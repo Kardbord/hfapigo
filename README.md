@@ -1,5 +1,5 @@
 # hfapigo
-Go bindings for the [Hugging Face Inference API](https://api-inference.huggingface.co/docs/python/html/index.html).
+(Golang) Go bindings for the [Hugging Face Inference API](https://api-inference.huggingface.co/docs/python/html/index.html).
 Directly call any model available in the [Model Hub](https://huggingface.co/models).
 
 An API key is required for authorized access. To get one, create a [Hugging Face](https://huggingface.co/) profile.
