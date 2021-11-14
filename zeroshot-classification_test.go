@@ -2,6 +2,8 @@ package hfapigo_test
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/TannerKvarfordt/hfapigo"
@@ -138,6 +140,33 @@ func TestZeroShotRequest(t *testing.T) {
 		}
 		if len(zresp.Scores) != len(zresp.Labels) {
 			t.Fatalf("expected len(zresp.Scores) == len(zresp.Labels), but %d != %d", len(zresp.Scores), len(zresp.Labels))
+		}
+	}
+
+	// Request with too many labels
+	{
+		candidateLabels := make([]string, hfapigo.MaxCandidateLabels+1)
+		for i := range candidateLabels {
+			candidateLabels[i] = fmt.Sprintf("foo%d", i)
+		}
+
+		zreq := hfapigo.ZeroShotRequest{
+			Inputs: []string{"Hi, I recently bought a device from your company but it is not working as advertised and I would like to get reimbursed!"},
+			Parameters: hfapigo.ZeroShotParameters{
+				CandidateLabels: candidateLabels,
+			},
+		}
+
+		zresps, err := hfapigo.SendZeroShotRequest(hfapigo.APIBaseURL+hfapigo.RecommendedZeroShotModel, &zreq)
+		if err == nil {
+			t.Fatal("Expected error - too many candidate labels")
+		}
+		apiErr := hfapigo.APIError{}
+		if !errors.As(err, &apiErr) {
+			t.Fatalf("Expected APIError type. err=%v", err)
+		}
+		if zresps != nil {
+			t.Fatal("Expected nil response")
 		}
 	}
 }
