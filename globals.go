@@ -2,29 +2,14 @@ package hfapigo
 
 import (
 	"net/http"
-	"sync"
 )
 
 const APIBaseURL = "https://api-inference.huggingface.co/models/"
 
-var (
-	apiKeyMutex = sync.RWMutex{}
-
-	APIKey = func() string {
-		apiKeyMutex.RLock()
-		defer apiKeyMutex.RUnlock()
-		return ""
-	}
-)
+var APIKey = func() string { return "" }
 
 func SetAPIKey(key string) {
-	apiKeyMutex.Lock()
-	defer apiKeyMutex.Unlock()
-	APIKey = func() string {
-		apiKeyMutex.RLock()
-		defer apiKeyMutex.RUnlock()
-		return key
-	}
+	APIKey = func() string { return key }
 }
 
 const (
