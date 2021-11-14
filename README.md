@@ -1,4 +1,7 @@
 # hfapigo
+[![Unit Tests](https://github.com/TannerKvarfordt/hfapigo/actions/workflows/unit-tests.yml/badge.svg)](https://github.com/TannerKvarfordt/hfapigo/actions/workflows/unit-tests.yml)
+[![CodeQL](https://github.com/TannerKvarfordt/hfapigo/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/TannerKvarfordt/hfapigo/actions/workflows/codeql-analysis.yml)
+
 (Golang) Go bindings for the [Hugging Face Inference API](https://api-inference.huggingface.co/docs/python/html/index.html).
 Directly call any model available in the [Model Hub](https://huggingface.co/models).
 
