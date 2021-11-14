@@ -14,7 +14,7 @@ func main() {
 		"Hi, I am having a difficult time using your product. Do you have a manual or perhaps a list of frequently asked questions to help get me going?",
 	}
 	candidateLabels := []string{"refund", "legal", "faq"}
-	endpoint := hfapigo.APIBaseURL + hfapigo.RecommendedZeroShotModel
+	model := hfapigo.RecommendedZeroShotModel
 
 	fmt.Printf("Inputs: [\"%s\"]\n", strings.Join(inputs, `", "`))
 	fmt.Printf("CandidateLabels: %v\n", candidateLabels)
@@ -28,7 +28,7 @@ func main() {
 	ch := make(chan ChanRv)
 
 	go func() {
-		zresps, err := hfapigo.SendZeroShotRequest(endpoint, &hfapigo.ZeroShotRequest{
+		zresps, err := hfapigo.SendZeroShotRequest(model, &hfapigo.ZeroShotRequest{
 			Inputs: inputs,
 			Parameters: hfapigo.ZeroShotParameters{
 				CandidateLabels: candidateLabels,

@@ -73,7 +73,7 @@ func TestZeroShotRequest(t *testing.T) {
 			},
 		}
 
-		zresps, err := hfapigo.SendZeroShotRequest(hfapigo.APIBaseURL+hfapigo.RecommendedZeroShotModel, &zreq)
+		zresps, err := hfapigo.SendZeroShotRequest(hfapigo.RecommendedZeroShotModel, &zreq)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -109,7 +109,7 @@ func TestZeroShotRequest(t *testing.T) {
 			Options: *hfapigo.NewOptions().SetWaitForModel(true).SetUseGPU(false),
 		}
 
-		zresps, err := hfapigo.SendZeroShotRequest(hfapigo.APIBaseURL+hfapigo.RecommendedZeroShotModel, &zreq)
+		zresps, err := hfapigo.SendZeroShotRequest(hfapigo.RecommendedZeroShotModel, &zreq)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -157,7 +157,7 @@ func TestZeroShotRequest(t *testing.T) {
 			},
 		}
 
-		zresps, err := hfapigo.SendZeroShotRequest(hfapigo.APIBaseURL+hfapigo.RecommendedZeroShotModel, &zreq)
+		zresps, err := hfapigo.SendZeroShotRequest(hfapigo.RecommendedZeroShotModel, &zreq)
 		if err == nil {
 			t.Fatal("Expected error - too many candidate labels")
 		}

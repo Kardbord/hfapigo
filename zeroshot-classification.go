@@ -58,7 +58,8 @@ type ZeroShotResponse struct {
 	Scores []float64 `json:"scores"`
 }
 
-func SendZeroShotRequest(endpoint string, request *ZeroShotRequest) ([]*ZeroShotResponse, error) {
+func SendZeroShotRequest(model string, request *ZeroShotRequest) ([]*ZeroShotResponse, error) {
+	endpoint := APIBaseURL + model
 	if request == nil {
 		return nil, errors.New("nil ZeroShotRequest")
 	}
