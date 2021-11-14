@@ -2,7 +2,6 @@ package hfapigo_test
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"testing"
 
@@ -160,10 +159,6 @@ func TestZeroShotRequest(t *testing.T) {
 		zresps, err := hfapigo.SendZeroShotRequest(hfapigo.RecommendedZeroShotModel, &zreq)
 		if err == nil {
 			t.Fatal("Expected error - too many candidate labels")
-		}
-		apiErr := hfapigo.APIError{}
-		if !errors.As(err, &apiErr) {
-			t.Fatalf("Expected APIError type. err=%v", err)
 		}
 		if zresps != nil {
 			t.Fatal("Expected nil response")

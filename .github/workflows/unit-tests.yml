@@ -31,3 +31,6 @@ jobs:
       
       - name: Build ZeroShot Example
         run: go build -v ./examples/zeroshot/...
+
+      - name: Build Translation Example
+        run: go build -v ./examples/translation/...
