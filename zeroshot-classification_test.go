@@ -71,7 +71,7 @@ func TestZeroShotRequest(t *testing.T) {
 			},
 		}
 
-		zresps, err := hfapigo.SendZeroShotRequest(&zreq, hfapigo.APIBaseURL+hfapigo.RecommendedZeroShotModel)
+		zresps, err := hfapigo.SendZeroShotRequest(hfapigo.APIBaseURL+hfapigo.RecommendedZeroShotModel, &zreq)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -107,7 +107,7 @@ func TestZeroShotRequest(t *testing.T) {
 			Options: *hfapigo.NewOptions().SetWaitForModel(true).SetUseGPU(false),
 		}
 
-		zresps, err := hfapigo.SendZeroShotRequest(&zreq, hfapigo.APIBaseURL+hfapigo.RecommendedZeroShotModel)
+		zresps, err := hfapigo.SendZeroShotRequest(hfapigo.APIBaseURL+hfapigo.RecommendedZeroShotModel, &zreq)
 		if err != nil {
 			t.Fatal(err)
 		}

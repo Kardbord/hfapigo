@@ -55,7 +55,7 @@ type ZeroShotResponse struct {
 	Scores []float64 `json:"scores"`
 }
 
-func SendZeroShotRequest(request *ZeroShotRequest, endpoint string) ([]*ZeroShotResponse, error) {
+func SendZeroShotRequest(endpoint string, request *ZeroShotRequest) ([]*ZeroShotResponse, error) {
 	if request == nil {
 		return nil, errors.New("nil ZeroShotRequestMultiInput")
 	}
