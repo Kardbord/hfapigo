@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/TannerKvarfordt/hfapigo"
@@ -15,10 +16,10 @@ func main() {
 	candidateLabels := []string{"refund", "legal", "faq"}
 	endpoint := hfapigo.APIBaseURL + hfapigo.RecommendedZeroShotModel
 
-	fmt.Printf("Inputs: %s\n", inputs[0])
+	fmt.Printf("Inputs: [\"%s\"]\n", strings.Join(inputs, `", "`))
 	fmt.Printf("CandidateLabels: %v\n", candidateLabels)
 	fmt.Printf("Model: %s\n", hfapigo.RecommendedZeroShotModel)
-	fmt.Printf("Sending request")
+	fmt.Printf("\nSending request")
 
 	type ChanRv struct {
 		resps []*hfapigo.ZeroShotResponse
