@@ -60,7 +60,7 @@ type ZeroShotResponse struct {
 
 func SendZeroShotRequest(endpoint string, request *ZeroShotRequest) ([]*ZeroShotResponse, error) {
 	if request == nil {
-		return nil, errors.New("nil ZeroShotRequestMultiInput")
+		return nil, errors.New("nil ZeroShotRequest")
 	}
 
 	jsonBuf, err := json.Marshal(request)
