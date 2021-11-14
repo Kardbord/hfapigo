@@ -7,6 +7,10 @@ Directly call any model available in the [Model Hub](https://huggingface.co/mode
 
 An API key is required for authorized access. To get one, create a [Hugging Face](https://huggingface.co/) profile.
 
+# Usage
+See the [examples](https://github.com/TannerKvarfordt/hfapigo/tree/main/examples) directory.
+- [Zero-shot Classification](https://github.com/TannerKvarfordt/hfapigo/blob/main/examples/zeroshot/main.go)
+
 # Resources
 - [Hugging Face](https://huggingface.co/)
   - [Model Hub](https://huggingface.co/models)

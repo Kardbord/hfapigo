@@ -13,6 +13,8 @@ const (
 	RecommendedZeroShotModel = "facebook/bart-large-mnli"
 )
 
+// Request structure for the Zero-shot classification endpoint.
+//
 // One of the following fields is required:
 //   Input
 //   Inputs
@@ -43,6 +45,7 @@ func (zsp *ZeroShotParameters) SetMultiLabel(multiLabel bool) *ZeroShotParameter
 	return zsp
 }
 
+// Response structure from the Zero-shot classification endpoint.
 type ZeroShotResponse struct {
 	// The string sent as an input
 	Sequence string `json:"sequence"`
