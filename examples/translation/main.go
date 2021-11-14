@@ -2,26 +2,31 @@ package main
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/TannerKvarfordt/hfapigo"
 )
 
 func main() {
-	input := "Меня зовут Вольфганг и я живу в Берлине"
+	inputs := []string{
+		"Меня зовут Вольфганг и я живу в Берлине",
+		"Здравствуйте, не могли бы вы направить меня к автобусной остановке?",
+	}
 
-	fmt.Printf("Inputs: %s\n", input)
+	fmt.Printf("Inputs: [\"%s\"]\n", strings.Join(inputs, `", "`))
 	fmt.Printf("\nSending request")
 
 	type ChanRv struct {
-		resp *hfapigo.TranslationResponse
-		err  error
+		resps []*hfapigo.TranslationResponse
+		err   error
 	}
 	ch := make(chan ChanRv)
 
 	go func() {
 		tresps, err := hfapigo.SendTranslationRequest(hfapigo.RecommendedRussianToEnglishModel, &hfapigo.TranslationRequest{
-			Input: input,
+			Input:   inputs,
+			Options: *hfapigo.NewOptions().SetWaitForModel(true),
 		})
 
 		ch <- ChanRv{tresps, err}
@@ -35,7 +40,11 @@ func main() {
 				fmt.Println(chrv.err)
 				return
 			}
-			fmt.Println("\nTranslation:", chrv.resp.TranslationText)
+
+			fmt.Println()
+			for _, resp := range chrv.resps {
+				fmt.Println("Translation:", resp.TranslationText)
+			}
 			return
 		default:
 			fmt.Print(".")

@@ -15,7 +15,7 @@ const (
 // Request structure for the Translation endpoint
 type TranslationRequest struct {
 	// (Required) a string to be translated in the original languages
-	Input string `json:"inputs,omitempty"`
+	Input []string `json:"inputs,omitempty"`
 
 	Options Options `json:"options,omitempty"`
 }
@@ -26,7 +26,7 @@ type TranslationResponse struct {
 	TranslationText string `json:"translation_text"`
 }
 
-func SendTranslationRequest(model string, request *TranslationRequest) (*TranslationResponse, error) {
+func SendTranslationRequest(model string, request *TranslationRequest) ([]*TranslationResponse, error) {
 	endpoint := APIBaseURL + model
 	if request == nil {
 		return nil, errors.New("nil TranslationRequest")
@@ -55,22 +55,11 @@ func SendTranslationRequest(model string, request *TranslationRequest) (*Transla
 		return nil, err
 	}
 
-	// Not sure why they return an array of responses since they
-	// do not accept an array of inputs. But for now, just read
-	// the array and return the single response.
 	tresps := make([]*TranslationResponse, 1)
 	err = json.Unmarshal(respBody, &tresps)
 	if err != nil {
 		return nil, errors.New(string(respBody))
 	}
 
-	if len(tresps) == 0 {
-		return nil, errors.New("empty response list received")
-	}
-
-	if tresps[0] == nil {
-		return nil, errors.New("nil response received")
-	}
-
-	return tresps[0], nil
+	return tresps, nil
 }
