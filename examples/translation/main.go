@@ -48,7 +48,7 @@ func main() {
 			return
 		default:
 			fmt.Print(".")
-			time.Sleep(time.Millisecond * 50)
+			time.Sleep(time.Millisecond * 100)
 		}
 	}
 

@@ -28,9 +28,12 @@ jobs:
 
       - name: Test
         run: go test -v ./...
-      
+
       - name: Build ZeroShot Example
         run: go build -v ./examples/zeroshot/...
 
       - name: Build Translation Example
         run: go build -v ./examples/translation/...
+
+      - name: Build Summarization Example
+        run: go build -v ./examples/summarization/...

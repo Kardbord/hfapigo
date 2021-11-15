@@ -11,6 +11,7 @@ An API key is required for authorized access. To get one, create a [Hugging Face
 See the [examples](https://github.com/TannerKvarfordt/hfapigo/tree/main/examples) directory.
 - [Zero-shot Classification](https://github.com/TannerKvarfordt/hfapigo/blob/main/examples/zeroshot/main.go)
 - [Translation](https://github.com/TannerKvarfordt/hfapigo/blob/main/examples/translation/main.go)
+- [Summarization](https://github.com/TannerKvarfordt/hfapigo/blob/main/examples/summarization/main.go)
 
 # Resources
 - [Hugging Face](https://huggingface.co/)
