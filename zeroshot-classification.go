@@ -1,7 +1,6 @@
 package hfapigo
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"io"
@@ -69,12 +68,10 @@ func SendZeroShotRequest(model string, request *ZeroShotRequest) ([]*ZeroShotRes
 		return nil, err
 	}
 
-	req, err := http.NewRequest(http.MethodPost, endpoint, bytes.NewBuffer(jsonBuf))
+	req, err := BuildHFAPIRequest(jsonBuf, endpoint)
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("Content-Type", "application/json")
-	SetAuthorizationHeader(req)
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {

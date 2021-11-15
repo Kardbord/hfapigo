@@ -1,6 +1,8 @@
 package hfapigo
 
 import (
+	"bytes"
+	"errors"
 	"net/http"
 )
 
@@ -25,4 +27,18 @@ func SetAuthorizationHeader(req *http.Request) *http.Request {
 		req.Header.Set(AuthHeaderKey, AuthHeaderPrefix+APIKey())
 	}
 	return req
+}
+
+func BuildHFAPIRequest(jsonBody []byte, url string) (*http.Request, error) {
+	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(jsonBody))
+	if err != nil {
+		return nil, err
+	}
+	if req == nil {
+		return nil, errors.New("nil request created")
+	}
+	req.Header.Set("Content-Type", "application/json")
+	SetAuthorizationHeader(req)
+
+	return req, nil
 }
