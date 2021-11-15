@@ -59,7 +59,8 @@ func TestTranslationRequest(t *testing.T) {
 	// Minimal request
 	{
 		tresps, err := hfapigo.SendTranslationRequest(hfapigo.RecommendedRussianToEnglishModel, &hfapigo.TranslationRequest{
-			Input: []string{"Меня зовут Вольфганг и я живу в Берлине"},
+			Input:   []string{"Меня зовут Вольфганг и я живу в Берлине"},
+			Options: *hfapigo.NewOptions().SetWaitForModel(true),
 		})
 		if err != nil {
 			t.Fatal(err)
@@ -81,7 +82,8 @@ func TestTranslationRequest(t *testing.T) {
 			"Здравствуйте, не могли бы вы направить меня к автобусной остановке?",
 		}
 		tresps, err := hfapigo.SendTranslationRequest(hfapigo.RecommendedRussianToEnglishModel, &hfapigo.TranslationRequest{
-			Input: inputs,
+			Input:   inputs,
+			Options: *hfapigo.NewOptions().SetWaitForModel(true),
 		})
 		if err != nil {
 			t.Fatal(err)

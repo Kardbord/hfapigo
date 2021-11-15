@@ -70,6 +70,7 @@ func TestZeroShotRequest(t *testing.T) {
 			Parameters: hfapigo.ZeroShotParameters{
 				CandidateLabels: []string{"refund", "legal", "faq"},
 			},
+			Options: *hfapigo.NewOptions().SetWaitForModel(true),
 		}
 
 		zresps, err := hfapigo.SendZeroShotRequest(hfapigo.RecommendedZeroShotModel, &zreq)
@@ -154,6 +155,7 @@ func TestZeroShotRequest(t *testing.T) {
 			Parameters: hfapigo.ZeroShotParameters{
 				CandidateLabels: candidateLabels,
 			},
+			Options: *hfapigo.NewOptions().SetWaitForModel(true),
 		}
 
 		zresps, err := hfapigo.SendZeroShotRequest(hfapigo.RecommendedZeroShotModel, &zreq)
