@@ -23,7 +23,7 @@ type TranslationRequest struct {
 // Response structure from the Translation endpoint
 type TranslationResponse struct {
 	// The translated Input string
-	TranslationText string `json:"translation_text"`
+	TranslationText string `json:"translation_text,omitempty"`
 }
 
 func SendTranslationRequest(model string, request *TranslationRequest) ([]*TranslationResponse, error) {
