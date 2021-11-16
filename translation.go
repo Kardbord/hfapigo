@@ -52,6 +52,11 @@ func SendTranslationRequest(model string, request *TranslationRequest) ([]*Trans
 		return nil, err
 	}
 
+	err = checkRespForError(respBody)
+	if err != nil {
+		return nil, err
+	}
+
 	tresps := make([]*TranslationResponse, 1)
 	err = json.Unmarshal(respBody, &tresps)
 	if err != nil {

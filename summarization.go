@@ -89,6 +89,11 @@ func SendSummarizationRequest(model string, request *SummarizationRequest) ([]*S
 		return nil, err
 	}
 
+	err = checkRespForError(respBody)
+	if err != nil {
+		return nil, err
+	}
+
 	sresps := make([]*SummarizationResponse, len(request.Inputs))
 	err = json.Unmarshal(respBody, &sresps)
 	if err != nil {

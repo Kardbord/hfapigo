@@ -84,6 +84,11 @@ func SendZeroShotRequest(model string, request *ZeroShotRequest) ([]*ZeroShotRes
 		return nil, err
 	}
 
+	err = checkRespForError(respBody)
+	if err != nil {
+		return nil, err
+	}
+
 	zresps := make([]*ZeroShotResponse, len(request.Inputs))
 	err = json.Unmarshal(respBody, &zresps)
 	if err != nil {
