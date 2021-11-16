@@ -12,6 +12,7 @@ See the [examples](https://github.com/TannerKvarfordt/hfapigo/tree/main/examples
 - [Zero-shot Classification](https://github.com/TannerKvarfordt/hfapigo/blob/main/examples/zeroshot/main.go)
 - [Translation](https://github.com/TannerKvarfordt/hfapigo/blob/main/examples/translation/main.go)
 - [Summarization](https://github.com/TannerKvarfordt/hfapigo/blob/main/examples/summarization/main.go)
+- [Conversational](https://github.com/TannerKvarfordt/hfapigo/blob/main/examples/conversational/main.go)
 
 # Resources
 - [Hugging Face](https://huggingface.co/)

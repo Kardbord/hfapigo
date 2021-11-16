@@ -21,3 +21,4 @@
 examples/zeroshot/zeroshot
 examples/translation/translation
 examples/summarization/summarization
+examples/conversational/conversational
