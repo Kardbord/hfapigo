@@ -123,7 +123,7 @@ func SendConversationalRequest(model string, request *ConversationalRequest) (*C
 	cresp := ConversationalResponse{}
 	err = json.Unmarshal(respBody, &cresp)
 	if err != nil {
-		return nil, errors.New(string(respBody))
+		return nil, err
 	}
 
 	return &cresp, nil

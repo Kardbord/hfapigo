@@ -60,7 +60,7 @@ func SendTranslationRequest(model string, request *TranslationRequest) ([]*Trans
 	tresps := make([]*TranslationResponse, 1)
 	err = json.Unmarshal(respBody, &tresps)
 	if err != nil {
-		return nil, errors.New(string(respBody))
+		return nil, err
 	}
 
 	return tresps, nil
