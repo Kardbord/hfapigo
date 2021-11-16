@@ -2,6 +2,7 @@ package hfapigo
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"net/http"
 )
@@ -41,4 +42,40 @@ func BuildHFAPIRequest(jsonBody []byte, url string) (*http.Request, error) {
 	SetAuthorizationHeader(req)
 
 	return req, nil
+}
+
+type apiError struct {
+	Error string `json:"error,omitempty"`
+}
+
+type apiErrors struct {
+	Errors []string `json:"error,omitempty"`
+}
+
+// Checks for errors in the API response and returns them if
+// found.
+func checkRespForError(respJSON []byte) error {
+	// Check for single error
+	{
+		buf := make([]byte, len(respJSON))
+		copy(buf, respJSON)
+		apiErr := apiError{}
+		json.Unmarshal(buf, &apiErr)
+		if apiErr.Error != "" {
+			return errors.New(string(respJSON))
+		}
+	}
+
+	// Check for multiple errors
+	{
+		buf := make([]byte, len(respJSON))
+		copy(buf, respJSON)
+		apiErrs := apiErrors{}
+		json.Unmarshal(buf, &apiErrs)
+		if apiErrs.Errors != nil {
+			return errors.New(string(respJSON))
+		}
+	}
+
+	return nil
 }
