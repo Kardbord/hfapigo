@@ -45,10 +45,6 @@ type SummarizationParameters struct {
 	// (Default: None). Float (0-120.0). The amount of time in seconds that the query should take maximum.
 	// Network can cause some overhead so it will be a soft limit.
 	MaxTime float64 `json:"maxtime,omitempty"`
-
-	// This option is used in the API example, but not documented.
-	// Including it anyway until they either remove it or document it.
-	DoSample bool `json:"do_sample"`
 }
 
 func NewSummarizationParameters() *SummarizationParameters {

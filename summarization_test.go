@@ -40,7 +40,6 @@ func TestMarshalUnmarshalSummarizationRequest(t *testing.T) {
 				TopK:              20,
 				TopP:              1.25,
 				RepetitionPenalty: 0.215,
-				DoSample:          false,
 			}).SetTempurature(92.123456789),
 			Options: *hfapigo.NewOptions().SetUseCache(false),
 		}

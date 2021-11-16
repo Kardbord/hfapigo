@@ -28,10 +28,7 @@ func main() {
 
 	go func() {
 		sresps, err := hfapigo.SendSummarizationRequest(hfapigo.RecommmendedSummarizationModel, &hfapigo.SummarizationRequest{
-			Inputs: inputs,
-			Parameters: hfapigo.SummarizationParameters{
-				DoSample: false,
-			},
+			Inputs:  inputs,
 			Options: *hfapigo.NewOptions().SetWaitForModel(true),
 		})
 
