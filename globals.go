@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 )
 
@@ -20,7 +21,7 @@ const (
 	AuthHeaderPrefix = "Bearer "
 )
 
-func SetAuthorizationHeader(req *http.Request) *http.Request {
+func setAuthorizationHeader(req *http.Request) *http.Request {
 	if req == nil {
 		return req
 	}
@@ -30,8 +31,12 @@ func SetAuthorizationHeader(req *http.Request) *http.Request {
 	return req
 }
 
-func BuildHFAPIRequest(jsonBody []byte, url string) (*http.Request, error) {
-	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(jsonBody))
+// MakeHFAPIRequest builds and sends an HTTP POST request to the given model
+// using the provided JSON body. If the request is successful, returns the
+// response JSON and a nil error. If the request fails, returns an empty slice
+// and an error describing the failure.
+func MakeHFAPIRequest(jsonBody []byte, model string) ([]byte, error) {
+	req, err := http.NewRequest(http.MethodPost, APIBaseURL+model, bytes.NewBuffer(jsonBody))
 	if err != nil {
 		return nil, err
 	}
@@ -39,9 +44,25 @@ func BuildHFAPIRequest(jsonBody []byte, url string) (*http.Request, error) {
 		return nil, errors.New("nil request created")
 	}
 	req.Header.Set("Content-Type", "application/json")
-	SetAuthorizationHeader(req)
+	setAuthorizationHeader(req)
 
-	return req, nil
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	err = checkRespForError(respBody)
+	if err != nil {
+		return nil, err
+	}
+
+	return respBody, nil
 }
 
 type apiError struct {

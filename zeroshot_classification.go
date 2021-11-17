@@ -3,8 +3,6 @@ package hfapigo
 import (
 	"encoding/json"
 	"errors"
-	"io"
-	"net/http"
 )
 
 const (
@@ -58,7 +56,6 @@ type ZeroShotResponse struct {
 }
 
 func SendZeroShotRequest(model string, request *ZeroShotRequest) ([]*ZeroShotResponse, error) {
-	endpoint := APIBaseURL + model
 	if request == nil {
 		return nil, errors.New("nil ZeroShotRequest")
 	}
@@ -68,23 +65,7 @@ func SendZeroShotRequest(model string, request *ZeroShotRequest) ([]*ZeroShotRes
 		return nil, err
 	}
 
-	req, err := BuildHFAPIRequest(jsonBuf, endpoint)
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	respBody, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	err = checkRespForError(respBody)
+	respBody, err := MakeHFAPIRequest(jsonBuf, model)
 	if err != nil {
 		return nil, err
 	}

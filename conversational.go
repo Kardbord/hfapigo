@@ -3,8 +3,6 @@ package hfapigo
 import (
 	"encoding/json"
 	"errors"
-	"io"
-	"net/http"
 )
 
 const RecommendedConversationalModel = "microsoft/DialoGPT-large"
@@ -89,7 +87,6 @@ type Conversation struct {
 }
 
 func SendConversationalRequest(model string, request *ConversationalRequest) (*ConversationalResponse, error) {
-	endpoint := APIBaseURL + model
 	if request == nil {
 		return nil, errors.New("nil ConversationalRequest")
 	}
@@ -99,23 +96,7 @@ func SendConversationalRequest(model string, request *ConversationalRequest) (*C
 		return nil, err
 	}
 
-	req, err := BuildHFAPIRequest(jsonBuf, endpoint)
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	respBody, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	err = checkRespForError(respBody)
+	respBody, err := MakeHFAPIRequest(jsonBuf, model)
 	if err != nil {
 		return nil, err
 	}

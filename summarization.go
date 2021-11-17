@@ -3,8 +3,6 @@ package hfapigo
 import (
 	"encoding/json"
 	"errors"
-	"io"
-	"net/http"
 )
 
 const RecommmendedSummarizationModel = "facebook/bart-large-cnn"
@@ -63,7 +61,6 @@ type SummarizationResponse struct {
 }
 
 func SendSummarizationRequest(model string, request *SummarizationRequest) ([]*SummarizationResponse, error) {
-	endpoint := APIBaseURL + model
 	if request == nil {
 		return nil, errors.New("nil SummarizationRequest")
 	}
@@ -73,23 +70,7 @@ func SendSummarizationRequest(model string, request *SummarizationRequest) ([]*S
 		return nil, err
 	}
 
-	req, err := BuildHFAPIRequest(jsonBuf, endpoint)
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	respBody, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	err = checkRespForError(respBody)
+	respBody, err := MakeHFAPIRequest(jsonBuf, model)
 	if err != nil {
 		return nil, err
 	}
