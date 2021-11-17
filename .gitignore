@@ -22,3 +22,4 @@ examples/zeroshot/zeroshot
 examples/translation/translation
 examples/summarization/summarization
 examples/conversational/conversational
+examples/table_question_answering/table_question_answering
