@@ -2,10 +2,20 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/TannerKvarfordt/hfapigo"
 )
+
+const HuggingFaceTokenEnv = "HUGGING_FACE_TOKEN"
+
+func init() {
+	key := os.Getenv(HuggingFaceTokenEnv)
+	if key != "" {
+		hfapigo.SetAPIKey(key)
+	}
+}
 
 func main() {
 	inputs := []string{
