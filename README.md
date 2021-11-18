@@ -14,6 +14,7 @@ See the [examples](https://github.com/TannerKvarfordt/hfapigo/tree/main/examples
 - [Summarization](https://github.com/TannerKvarfordt/hfapigo/blob/main/examples/summarization/main.go)
 - [Conversational](https://github.com/TannerKvarfordt/hfapigo/blob/main/examples/conversational/main.go)
 - [Table Question Answering](https://github.com/TannerKvarfordt/hfapigo/blob/main/examples/table_question_answering/main.go)
+- [Question Answering](https://github.com/TannerKvarfordt/hfapigo/blob/main/examples/question_answering/main.go)
 
 # Resources
 - [Hugging Face](https://huggingface.co/)
