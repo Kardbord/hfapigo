@@ -18,5 +18,6 @@
 .vscode/
 
 # examples binaries
-examples/**/
+examples/**/*
 !examples/**/*.*
+!examples/**/
