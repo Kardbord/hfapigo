@@ -12,7 +12,7 @@ func TestMarshalUnMarshalTranslationRequest(t *testing.T) {
 	// No options
 	{
 		trExpected := hfapigo.TranslationRequest{
-			Input: []string{"Меня зовут Вольфганг и я живу в Берлине"},
+			Inputs: []string{"Меня зовут Вольфганг и я живу в Берлине"},
 		}
 
 		jsonBuf, err := json.Marshal(trExpected)
@@ -34,7 +34,7 @@ func TestMarshalUnMarshalTranslationRequest(t *testing.T) {
 	// Options
 	{
 		trExpected := hfapigo.TranslationRequest{
-			Input:   []string{"Меня зовут Вольфганг и я живу в Берлине"},
+			Inputs:   []string{"Меня зовут Вольфганг и я живу в Берлине"},
 			Options: *hfapigo.NewOptions().SetWaitForModel(true).SetUseGPU(false),
 		}
 
@@ -59,7 +59,7 @@ func TestTranslationRequest(t *testing.T) {
 	// Minimal request
 	{
 		tresps, err := hfapigo.SendTranslationRequest(hfapigo.RecommendedRussianToEnglishModel, &hfapigo.TranslationRequest{
-			Input:   []string{"Меня зовут Вольфганг и я живу в Берлине"},
+			Inputs:   []string{"Меня зовут Вольфганг и я живу в Берлине"},
 			Options: *hfapigo.NewOptions().SetWaitForModel(true),
 		})
 		if err != nil {
@@ -82,7 +82,7 @@ func TestTranslationRequest(t *testing.T) {
 			"Здравствуйте, не могли бы вы направить меня к автобусной остановке?",
 		}
 		tresps, err := hfapigo.SendTranslationRequest(hfapigo.RecommendedRussianToEnglishModel, &hfapigo.TranslationRequest{
-			Input:   inputs,
+			Inputs:   inputs,
 			Options: *hfapigo.NewOptions().SetWaitForModel(true),
 		})
 		if err != nil {
@@ -106,7 +106,7 @@ func TestTranslationRequest(t *testing.T) {
 	// Request with optional parameters
 	{
 		tresps, err := hfapigo.SendTranslationRequest(hfapigo.RecommendedRussianToEnglishModel, &hfapigo.TranslationRequest{
-			Input:   []string{"Меня зовут Вольфганг и я живу в Берлине"},
+			Inputs:   []string{"Меня зовут Вольфганг и я живу в Берлине"},
 			Options: *hfapigo.NewOptions().SetWaitForModel(true).SetUseGPU(false),
 		})
 		if err != nil {

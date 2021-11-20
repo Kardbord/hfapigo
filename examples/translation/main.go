@@ -35,7 +35,7 @@ func main() {
 
 	go func() {
 		tresps, err := hfapigo.SendTranslationRequest(hfapigo.RecommendedRussianToEnglishModel, &hfapigo.TranslationRequest{
-			Input:   inputs,
+			Inputs:   inputs,
 			Options: *hfapigo.NewOptions().SetWaitForModel(true),
 		})
 

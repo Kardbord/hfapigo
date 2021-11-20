@@ -12,7 +12,7 @@ const (
 // Request structure for the Translation endpoint
 type TranslationRequest struct {
 	// (Required) a string to be translated in the original languages
-	Input []string `json:"inputs,omitempty"`
+	Inputs []string `json:"inputs,omitempty"`
 
 	Options Options `json:"options,omitempty"`
 }
@@ -38,7 +38,7 @@ func SendTranslationRequest(model string, request *TranslationRequest) ([]*Trans
 		return nil, err
 	}
 
-	tresps := make([]*TranslationResponse, 1)
+	tresps := make([]*TranslationResponse, len(request.Inputs))
 	err = json.Unmarshal(respBody, &tresps)
 	if err != nil {
 		return nil, err
