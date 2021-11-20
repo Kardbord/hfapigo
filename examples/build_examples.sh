@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 EXPECTED_DIR="hfapigo/examples"
 
 cwd=$(basename "$(dirname "${PWD}")")/$(basename "${PWD}")
@@ -10,7 +12,5 @@ if [ "${cwd}" != "${EXPECTED_DIR}" ]; then
 fi
 
 for d in */; do
-  pushd "${d}" > /dev/null && go build
-  echo "Building ${d}"
-  popd > /dev/null || exit
+  pushd "${d}" > /dev/null && echo "Building ${d}" && go build && popd > /dev/null
 done
