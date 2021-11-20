@@ -24,8 +24,14 @@ func main() {
 		"My name is Clara and I live in Berkeley, California.",
 	}
 
+	classifyNoAggregation(inputs)
+	fmt.Println("===========================================================")
+	classifyWithAggregation(inputs)
+}
+
+func classifyNoAggregation(inputs []string) {
 	fmt.Printf("Inputs: [\"%s\"]\n", strings.Join(inputs, `", "`))
-	fmt.Printf("\nSending request")
+	fmt.Printf("\nSending request (AggregationStrategy=%s)", hfapigo.AggregationStrategyNone)
 
 	type ChanRv struct {
 		resps []*hfapigo.TokenClassificationResponse
@@ -35,8 +41,9 @@ func main() {
 
 	go func() {
 		tcresps, err := hfapigo.SendTokenClassificationRequest(hfapigo.RecommendedTokenClassificationModel, &hfapigo.TokenClassificationRequest{
-			Inputs:  inputs,
-			Options: *hfapigo.NewOptions().SetWaitForModel(true),
+			Inputs:     inputs,
+			Parameters: *hfapigo.NewTokenClassificationParameters().SetAggregationStrategy(hfapigo.AggregationStrategyNone),
+			Options:    *hfapigo.NewOptions().SetWaitForModel(true),
 		})
 
 		ch <- ChanRv{resps: tcresps, err: err}
@@ -53,8 +60,51 @@ func main() {
 
 			for i, input := range inputs {
 				fmt.Printf("\nInput %d: %s\n", i, input)
-				for _, group := range chrv.resps[i].EntityGroups {
-					fmt.Printf("Word: \"%s\" Label: %s Score: %f\n", group.Word, group.Name, group.Score)
+				for _, entity := range chrv.resps[i].Entities {
+					fmt.Printf("Entity: \"%s\" Label: \"%s\" Score: %f\n", entity.Entity, entity.Label, entity.Score)
+				}
+			}
+			return
+		default:
+			fmt.Print(".")
+			time.Sleep(time.Millisecond * 100)
+		}
+	}
+}
+
+func classifyWithAggregation(inputs []string) {
+	fmt.Printf("Inputs: [\"%s\"]\n", strings.Join(inputs, `", "`))
+	fmt.Printf("\nSending request (AggregationStrategy=%s)", hfapigo.AggregationStrategySimple)
+
+	type ChanRv struct {
+		resps []*hfapigo.TokenClassificationResponse
+		err   error
+	}
+	ch := make(chan ChanRv)
+
+	go func() {
+		tcresps, err := hfapigo.SendTokenClassificationRequest(hfapigo.RecommendedTokenClassificationModel, &hfapigo.TokenClassificationRequest{
+			Inputs:     inputs,
+			Parameters: *hfapigo.NewTokenClassificationParameters().SetAggregationStrategy(hfapigo.AggregationStrategySimple),
+			Options:    *hfapigo.NewOptions().SetWaitForModel(true),
+		})
+
+		ch <- ChanRv{resps: tcresps, err: err}
+	}()
+
+	for {
+		select {
+		case chrv := <-ch:
+			fmt.Println()
+			if chrv.err != nil {
+				fmt.Println(chrv.err)
+				return
+			}
+
+			for i, input := range inputs {
+				fmt.Printf("\nInput %d: %s\n", i, input)
+				for _, entity := range chrv.resps[i].Entities {
+					fmt.Printf("Entity: \"%s\" Label: \"%s\" Score: %f\n", entity.Entity, entity.Label, entity.Score)
 				}
 			}
 			return

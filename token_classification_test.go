@@ -70,15 +70,15 @@ func TestTokenClassificationRequest(t *testing.T) {
 			t.Fatal("expected 1 response")
 		}
 		for _, r := range tcresps {
-			for _, g := range r.EntityGroups {
-				if g.Name == "" {
-					t.Fatal("expected non-empty entity group")
+			for _, g := range r.Entities {
+				if g.Label == "" {
+					t.Fatal("expected non-empty entity list")
 				}
 				if g.Score == 0.0 {
 					t.Fatal("Expected non-zero score")
 				}
-				if g.Word == "" {
-					t.Fatal("Expected non-empty word")
+				if g.Entity == "" {
+					t.Fatal("Expected non-empty entity")
 				}
 				if g.Start == 0 {
 					t.Fatal("Expected non-zero start")
@@ -107,15 +107,15 @@ func TestTokenClassificationRequest(t *testing.T) {
 			t.Fatal("expected 2 responses")
 		}
 		for _, r := range tcresps {
-			for _, g := range r.EntityGroups {
-				if g.Name == "" {
-					t.Fatal("expected non-empty entity group")
+			for _, g := range r.Entities {
+				if g.Label == "" {
+					t.Fatal("expected non-empty entity list")
 				}
 				if g.Score == 0.0 {
 					t.Fatal("Expected non-zero score")
 				}
-				if g.Word == "" {
-					t.Fatal("Expected non-empty word")
+				if g.Entity == "" {
+					t.Fatal("Expected non-empty entity")
 				}
 				if g.Start == 0 {
 					t.Fatal("Expected non-zero start")
