@@ -30,4 +30,5 @@ jobs:
         run: go test -v ./...
 
       - name: Build Examples
-        run: cd examples && ./build_examples.sh
+        run: cd examples && ./build_examples.sh || exit 1
+        shell: bash
