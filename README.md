@@ -16,6 +16,7 @@ See the [examples](https://github.com/TannerKvarfordt/hfapigo/tree/main/examples
 - [Table Question Answering](https://github.com/TannerKvarfordt/hfapigo/blob/main/examples/table_question_answering/main.go)
 - [Question Answering](https://github.com/TannerKvarfordt/hfapigo/blob/main/examples/question_answering/main.go)
 - [Text Classification](https://github.com/TannerKvarfordt/hfapigo/blob/main/examples/text_classification/main.go)
+- [Token Classification](https://github.com/TannerKvarfordt/hfapigo/blob/main/examples/token_classification/main.go)
 
 # Resources
 - [Hugging Face](https://huggingface.co/)
