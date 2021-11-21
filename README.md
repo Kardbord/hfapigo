@@ -19,6 +19,7 @@ See the [examples](https://github.com/TannerKvarfordt/hfapigo/tree/main/examples
 - [Token Classification](https://github.com/TannerKvarfordt/hfapigo/blob/main/examples/token_classification/main.go)
 - [Text Generation](https://github.com/TannerKvarfordt/hfapigo/blob/main/examples/text_generation/main.go)
 - [Fill Mask](https://github.com/TannerKvarfordt/hfapigo/blob/main/examples/fill_mask/main.go)
+- [Speech Recognition](https://github.com/TannerKvarfordt/hfapigo/blob/main/examples/speech_recognition/main.go)
 
 # Resources
 - [Hugging Face](https://huggingface.co/)
