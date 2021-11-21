@@ -10,6 +10,8 @@ import (
 
 const HuggingFaceTokenEnv = "HUGGING_FACE_TOKEN"
 
+const TestFilesDir = "./test_files"
+
 func init() {
 	key := os.Getenv(HuggingFaceTokenEnv)
 	if key != "" {
