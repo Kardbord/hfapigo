@@ -21,6 +21,7 @@ See the [examples](https://github.com/TannerKvarfordt/hfapigo/tree/main/examples
 - [Text Generation](https://github.com/TannerKvarfordt/hfapigo/blob/main/examples/text_generation/main.go)
 - [Fill Mask](https://github.com/TannerKvarfordt/hfapigo/blob/main/examples/fill_mask/main.go)
 - [Speech Recognition](https://github.com/TannerKvarfordt/hfapigo/blob/main/examples/speech_recognition/main.go)
+- [Audio Classification](https://github.com/TannerKvarfordt/hfapigo/blob/main/examples/audio_classification/main.go)
 
 # Resources
 - [Hugging Face](https://huggingface.co/)

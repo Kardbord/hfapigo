@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"os"
 )
 
 const APIBaseURL = "https://api-inference.huggingface.co/models/"
@@ -99,4 +100,39 @@ func checkRespForError(respJSON []byte) error {
 	}
 
 	return nil
+}
+
+func MakeHFAPIRequestWithMedia(model, mediaFile string) ([]byte, error) {
+	buf, err := os.ReadFile(mediaFile)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, APIBaseURL+model, bytes.NewReader(buf))
+	if err != nil {
+		return nil, err
+	}
+	if req == nil {
+		return nil, errors.New("nil request created")
+	}
+	req.Header.Set("Content-Type", "application/octet-stream")
+	setAuthorizationHeader(req)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	err = checkRespForError(respBody)
+	if err != nil {
+		return nil, err
+	}
+
+	return respBody, nil
 }
