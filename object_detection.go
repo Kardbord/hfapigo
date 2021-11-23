@@ -26,6 +26,9 @@ type ObjectBox struct {
 
 func SendObjectDetectionRequest(model, imageFile string) ([]*ObjectDetectionResponse, error) {
 	respBody, err := MakeHFAPIRequestWithMedia(model, imageFile)
+	if err != nil {
+		return nil, err
+	}
 
 	resps := []*ObjectDetectionResponse{}
 	err = json.Unmarshal(respBody, &resps)

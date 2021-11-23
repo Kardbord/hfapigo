@@ -12,6 +12,9 @@ type AudioClassificationResponse struct {
 
 func SendAudioClassificationRequest(model, audioFile string) ([]*AudioClassificationResponse, error) {
 	respBody, err := MakeHFAPIRequestWithMedia(model, audioFile)
+	if err != nil {
+		return nil, err
+	}
 
 	acresp := []*AudioClassificationResponse{}
 	err = json.Unmarshal(respBody, &acresp)

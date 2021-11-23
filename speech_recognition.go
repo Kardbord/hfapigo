@@ -15,6 +15,9 @@ type SpeechRecognitionResponse struct {
 // It reads the file and sends a request to the speech recognition endpoint.
 func SendSpeechRecognitionRequest(model, audioFile string) (*SpeechRecognitionResponse, error) {
 	respBody, err := MakeHFAPIRequestWithMedia(model, audioFile)
+	if err != nil {
+		return nil, err
+	}
 
 	arresp := SpeechRecognitionResponse{}
 	err = json.Unmarshal(respBody, &arresp)
