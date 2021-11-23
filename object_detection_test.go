@@ -13,7 +13,7 @@ func TestObjectDetectionRequest(t *testing.T) {
 	resps := []*hfapigo.ObjectDetectionResponse{}
 	var err error
 	for i := 0; i < retries; i++ {
-		resps, err = hfapigo.SendObjectDetectionRequest(hfapigo.RecommendedObjectDetectionModel, TestFilesDir+"/test-image.jpeg")
+		resps, err = hfapigo.SendObjectDetectionRequest(hfapigo.RecommendedObjectDetectionModel, TestFilesDir+"/test-image.png")
 		if err == nil {
 			break
 		} else {
