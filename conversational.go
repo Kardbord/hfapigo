@@ -32,19 +32,19 @@ type ConverstationalInputs struct {
 // Used with ConversationalRequest
 type ConversationalParameters struct {
 	// (Default: None). Integer to define the minimum length in tokens of the output summary.
-	MinLength int `json:"min_length,omitempty"`
+	MinLength *int `json:"min_length,omitempty"`
 
 	// (Default: None). Integer to define the maximum length in tokens of the output summary.
-	MaxLength int `json:"max_length,omitempty"`
+	MaxLength *int `json:"max_length,omitempty"`
 
 	// (Default: None). Integer to define the top tokens considered within the sample operation to create
 	// new text.
-	TopK int `json:"top_k,omitempty"`
+	TopK *int `json:"top_k,omitempty"`
 
 	// (Default: None). Float to define the tokens that are within the sample` operation of text generation.
 	// Add tokens in the sample for more probable to least probable until the sum of the probabilities is
 	// greater than top_p.
-	TopP float64 `json:"top_p,omitempty"`
+	TopP *float64 `json:"top_p,omitempty"`
 
 	// (Default: 1.0). Float (0.0-100.0). The temperature of the sampling operation. 1 means regular sampling,
 	// 0 mens top_k=1, 100.0 is getting closer to uniform probability.
@@ -52,19 +52,42 @@ type ConversationalParameters struct {
 
 	// (Default: None). Float (0.0-100.0). The more a token is used within generation the more it is penalized
 	// to not be picked in successive generation passes.
-	RepetitionPenalty float64 `json:"repetitionpenalty,omitempty"`
+	RepetitionPenalty *float64 `json:"repetitionpenalty,omitempty"`
 
 	// (Default: None). Float (0-120.0). The amount of time in seconds that the query should take maximum.
 	// Network can cause some overhead so it will be a soft limit.
-	MaxTime float64 `json:"maxtime,omitempty"`
+	MaxTime *float64 `json:"maxtime,omitempty"`
 }
 
 func NewConversationalParameters() *ConversationalParameters {
 	return &ConversationalParameters{}
 }
-
+func (c *ConversationalParameters) SetMinLength(minLength int) *ConversationalParameters {
+	c.MinLength = &minLength
+	return c
+}
+func (c *ConversationalParameters) SetMaxLength(maxLength int) *ConversationalParameters {
+	c.MaxLength = &maxLength
+	return c
+}
+func (c *ConversationalParameters) SetTopK(topK int) *ConversationalParameters {
+	c.TopK = &topK
+	return c
+}
+func (c *ConversationalParameters) SetTopP(topP float64) *ConversationalParameters {
+	c.TopP = &topP
+	return c
+}
 func (c *ConversationalParameters) SetTempurature(temperature float64) *ConversationalParameters {
 	c.Temperature = &temperature
+	return c
+}
+func (c *ConversationalParameters) SetRepetitionPenalty(penalty float64) *ConversationalParameters {
+	c.RepetitionPenalty = &penalty
+	return c
+}
+func (c *ConversationalParameters) SetMaxTime(maxTime float64) *ConversationalParameters {
+	c.MaxTime = &maxTime
 	return c
 }
 

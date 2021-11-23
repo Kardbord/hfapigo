@@ -35,12 +35,12 @@ func TestMarshalUnmarshalSummarizationRequest(t *testing.T) {
 	{
 		srExpected := hfapigo.SummarizationRequest{
 			Inputs: []string{"Foobar", "baz"},
-			Parameters: *(&hfapigo.SummarizationParameters{
-				MaxLength:         5,
-				TopK:              20,
-				TopP:              1.25,
-				RepetitionPenalty: 0.215,
-			}).SetTempurature(92.123456789),
+			Parameters: *(&hfapigo.SummarizationParameters{}).
+				SetTempurature(92.123456789).
+				SetMinLength(5).
+				SetMaxLength(10).
+				SetTopK(30).
+				SetTopP(55.505),
 			Options: *hfapigo.NewOptions().SetUseCache(false),
 		}
 

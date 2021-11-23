@@ -39,12 +39,11 @@ func TestMarshalUnMarshalConversationalRequest(t *testing.T) {
 			Inputs: hfapigo.ConverstationalInputs{
 				Text: "Hey my name is Julien! How are you?",
 			},
-			Parameters: *(&hfapigo.ConversationalParameters{
-				MinLength: 10,
-				TopK:      0,
-				TopP:      0.12345,
-				MaxTime:   0.2,
-			}).SetTempurature(0.2345),
+			Parameters: *(&hfapigo.ConversationalParameters{}).
+				SetTempurature(0.2345).
+				SetMinLength(10).
+				SetMaxLength(20).
+				SetRepetitionPenalty(20),
 			Options: *hfapigo.NewOptions().SetWaitForModel(true),
 		}
 
@@ -72,12 +71,11 @@ func TestConversationalRequest(t *testing.T) {
 			Inputs: hfapigo.ConverstationalInputs{
 				Text: "Hey my name is Julien! How are you?",
 			},
-			Parameters: *(&hfapigo.ConversationalParameters{
-				MinLength: 10,
-				TopK:      0,
-				TopP:      0.12345,
-				MaxTime:   0.2,
-			}).SetTempurature(0.2345),
+			Parameters: *(&hfapigo.ConversationalParameters{}).
+				SetTempurature(0.2345).
+				SetMinLength(10).
+				SetMaxLength(20).
+				SetRepetitionPenalty(20),
 			Options: *hfapigo.NewOptions().SetWaitForModel(true),
 		})
 		if err != nil {
