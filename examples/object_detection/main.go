@@ -2,6 +2,10 @@ package main
 
 import (
 	"fmt"
+	"golang.org/x/image/font"
+	"golang.org/x/image/font/basicfont"
+	"golang.org/x/image/math/fixed"
+	"image"
 	"image/color"
 	"image/draw"
 	"image/png"
@@ -48,6 +52,11 @@ func main() {
 	for _, obj := range objects {
 		col := color.RGBA{uint8(rand.Intn(266)), uint8(rand.Intn(266)), uint8(rand.Intn(266)), 255}
 		Rect(obj.Box.XMin, obj.Box.YMin, obj.Box.XMax, obj.Box.YMax, img, col)
+		// Thicken up the lines a bit
+		Rect(obj.Box.XMin+1, obj.Box.YMin+1, obj.Box.XMax+1, obj.Box.YMax+1, img, col)
+		Rect(obj.Box.XMin+2, obj.Box.YMin+2, obj.Box.XMax+2, obj.Box.YMax+2, img, col)
+
+		AddLabel(img, obj.Box.XMax, obj.Box.YMax+15, fmt.Sprintf("%s (%.2f%%)", obj.Label, obj.Score*100.0))
 	}
 
 	outf, err := os.Create(outputImg)
@@ -138,4 +147,17 @@ func Rect(x1, y1, x2, y2 int, img draw.Image, col color.Color) {
 	HLine(x1, y2, x2, img, col)
 	VLine(x1, y1, y2, img, col)
 	VLine(x2, y1, y2, img, col)
+}
+
+func AddLabel(img draw.Image, x, y int, label string) {
+	col := color.RGBA{0, 0, 0, 255}
+	point := fixed.Point26_6{X: fixed.Int26_6(x * 64), Y:fixed.Int26_6(y * 64)}
+
+	d := &font.Drawer{
+		Dst:  img,
+		Src:  image.NewUniform(col),
+		Face: basicfont.Face7x13,
+		Dot:  point,
+	}
+	d.DrawString(label)
 }
