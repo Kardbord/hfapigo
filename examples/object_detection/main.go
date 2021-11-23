@@ -151,7 +151,7 @@ func Rect(x1, y1, x2, y2 int, img draw.Image, col color.Color) {
 
 func AddLabel(img draw.Image, x, y int, label string) {
 	col := color.RGBA{0, 0, 0, 255}
-	point := fixed.Point26_6{X: fixed.Int26_6(x * 64), Y:fixed.Int26_6(y * 64)}
+	point := fixed.Point26_6{X: fixed.Int26_6(x * 64), Y: fixed.Int26_6(y * 64)}
 
 	d := &font.Drawer{
 		Dst:  img,
