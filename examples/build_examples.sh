@@ -2,13 +2,8 @@
 
 set -e
 
-EXPECTED_DIR="hfapigo/examples"
-
-cwd=$(basename "$(dirname "${PWD}")")/$(basename "${PWD}")
-
-if [ "${cwd}" != "${EXPECTED_DIR}" ]; then
-  >&2 echo "This script must be run from ${EXPECTED_DIR}"
-  exit 1
+if ! pushd "$(dirname "${BASH_SOURCE[0]}")"; then
+  echo "Failed to enter script directory."
 fi
 
 for d in */; do
