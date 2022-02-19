@@ -55,11 +55,11 @@ func SendFillMaskRequest(model string, request *FillMaskRequest) ([]*FillMaskRes
 		return nil, err
 	}
 
-	fmResps := make([]*FillMaskResponse, len(request.Inputs))
+	fmResps := []*FillMaskResponse{}
 	for i := range rawResps {
-		fmResps[i] = &FillMaskResponse{
+		fmResps = append(fmResps, &FillMaskResponse{
 			Masks: rawResps[i],
-		}
+		})
 	}
 
 	return fmResps, nil
