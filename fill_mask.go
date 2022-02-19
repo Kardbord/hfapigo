@@ -3,9 +3,10 @@ package hfapigo
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 )
 
-const RecommendedFillMaskModel = "bert-base-uncased"
+const RecommendedFillMaskModel = "bert-base-multilingual-cased"
 
 // Request structure for the Fill Mask endpoint
 type FillMaskRequest struct {
@@ -49,18 +50,31 @@ func SendFillMaskRequest(model string, request *FillMaskRequest) ([]*FillMaskRes
 		return nil, err
 	}
 
-	rawResps := make([][]*FillMaskResponseEntry, len(request.Inputs))
-	err = json.Unmarshal(respBody, &rawResps)
-	if err != nil {
-		return nil, err
-	}
-
 	fmResps := []*FillMaskResponse{}
-	for i := range rawResps {
-		fmResps = append(fmResps, &FillMaskResponse{
-			Masks: rawResps[i],
-		})
+	{
+		// Multi-input or multi-mask implies response is a list of lists of dicts.
+		rawResps := make([][]*FillMaskResponseEntry, len(request.Inputs))
+		err = json.Unmarshal(respBody, &rawResps)
+		if err == nil {
+			for i := range rawResps {
+				fmResps = append(fmResps, &FillMaskResponse{
+					Masks: rawResps[i],
+				})
+			}
+			return fmResps, nil
+		}
 	}
-
-	return fmResps, nil
+	{
+		// Single input, single mask implies response is a list of dicts.
+		rawResps := make([]*FillMaskResponseEntry, len(request.Inputs))
+		err2 := json.Unmarshal(respBody, &rawResps)
+		if err2 != nil {
+			err = fmt.Errorf("%s; %w", err, err2)
+			return nil, err
+		}
+		fmResps = append(fmResps, &FillMaskResponse{
+			Masks: rawResps,
+		})
+		return fmResps, nil
+	}
 }
