@@ -28,6 +28,8 @@ jobs:
 
       - name: Test
         run: go test -timeout 300s -v ./...
+        env:
+          HUGGING_FACE_TOKEN: ${{ secrets.HUGGING_FACE_TOKEN }}
 
       - name: Build Examples
         run: cd examples && ./build_examples.sh || exit 1
