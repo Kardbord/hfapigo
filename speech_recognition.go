@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 )
 
-const RecommendedSpeechRecongnitionModelEnglish = "facebook/wav2vec2-base-960h"
+const RecommendedSpeechRecongnitionModelEnglish = "facebook/wav2vec2-large-960h-lv60-self"
 
 type SpeechRecognitionResponse struct {
 	// The string that was recognized within the audio file.
