@@ -13,8 +13,9 @@ const (
 // Request structure for the Zero-shot classification endpoint.
 //
 // One of the following fields is required:
-//   Input
-//   Inputs
+//
+//	Input
+//	Inputs
 type ZeroShotRequest struct {
 	// (Required) Input or Inputs are required request fields
 	Inputs []string `json:"inputs,omitempty"`
