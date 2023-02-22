@@ -6,7 +6,7 @@ import (
 	"fmt"
 )
 
-const RecommendedFillMaskModel = "bert-base-multilingual-cased"
+const RecommendedFillMaskModel = "bert-base-uncased"
 
 // Request structure for the Fill Mask endpoint
 type FillMaskRequest struct {
