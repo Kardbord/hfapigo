@@ -12,17 +12,18 @@ const (
 // Request structure for the Sentence Similarity endpoint.
 type SentenceSimilarityRequest struct {
 	// (Required) Inputs for the request.
-	Inputs struct {
-		// (Required) The string that you wish to compare the other strings with.
-		// This can be a phrase, sentence, or longer passage, depending on the
-		// model being used.
-		SourceSentence string `json:"source_sentence,omitempty"`
+	Inputs  SentenceSimilarityInputs `json:"inputs,omitempty"`
+	Options Options                  `json:"options,omitempty"`
+}
 
-		// A list of strings which will be compared against the source_sentence.
-		Sentences []string `json:"sentences,omitempty"`
-	} `json:"inputs,omitempty"`
+type SentenceSimilarityInputs struct {
+	// (Required) The string that you wish to compare the other strings with.
+	// This can be a phrase, sentence, or longer passage, depending on the
+	// model being used.
+	SourceSentence string `json:"source_sentence,omitempty"`
 
-	Options Options `json:"options,omitempty"`
+	// A list of strings which will be compared against the source_sentence.
+	Sentences []string `json:"sentences,omitempty"`
 }
 
 // Response structure from the Sentence Similarity endpoint.
