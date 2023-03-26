@@ -23,6 +23,7 @@ examples/conversational/conversational
 examples/fill_mask/fill_mask
 examples/object_detection/object_detection
 examples/question_answering/question_answering
+examples/sentence_similarity/sentence_similarity
 examples/speech_recognition/speech_recognition
 examples/summarization/summarization
 examples/table_question_answering/table_question_answering
