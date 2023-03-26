@@ -4,6 +4,7 @@ set -e
 
 if ! pushd "$(dirname "${BASH_SOURCE[0]}")"; then
   echo "Failed to enter script directory."
+  exit 1
 fi
 
 for d in */; do
