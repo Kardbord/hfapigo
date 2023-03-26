@@ -3,6 +3,7 @@
 [![Unit Tests](https://github.com/TannerKvarfordt/hfapigo/actions/workflows/unit-tests.yml/badge.svg)](https://github.com/TannerKvarfordt/hfapigo/actions/workflows/unit-tests.yml)
 [![CodeQL](https://github.com/TannerKvarfordt/hfapigo/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/TannerKvarfordt/hfapigo/actions/workflows/codeql-analysis.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/TannerKvarfordt/hfapigo)](https://goreportcard.com/report/github.com/TannerKvarfordt/hfapigo)
+[![Go Reference](https://pkg.go.dev/badge/github.com/TannerKvarfordt/hfapigo.svg)](https://pkg.go.dev/github.com/TannerKvarfordt/hfapigo)
 
 (Golang) Go bindings for the [Hugging Face Inference API](https://api-inference.huggingface.co/docs/python/html/index.html).
 Directly call any model available in the [Model Hub](https://huggingface.co/models).
