@@ -13,6 +13,9 @@ import (
 	"time"
 
 	"github.com/TannerKvarfordt/hfapigo"
+	"golang.org/x/image/font"
+	"golang.org/x/image/font/basicfont"
+	"golang.org/x/image/math/fixed"
 )
 
 const HuggingFaceTokenEnv = "HUGGING_FACE_TOKEN"
@@ -78,6 +81,12 @@ func SendRequest() ([]*hfapigo.ImageSegmentationResponse, error) {
 
 // See https://go.dev/blog/image-draw
 func DrawMasks(srcImg draw.Image, resps []*hfapigo.ImageSegmentationResponse) error {
+	type LabelCoords struct {
+		X int
+		Y int
+	}
+
+	labelCoords := []LabelCoords{}
 	for segmentN, r := range resps {
 		reader := base64.NewDecoder(base64.StdEncoding, strings.NewReader(r.Mask))
 		mask, _, err := image.Decode(reader)
@@ -102,11 +111,23 @@ func DrawMasks(srcImg draw.Image, resps []*hfapigo.ImageSegmentationResponse) er
 				mr, mg, mb, ma := mask.At(x, y).RGBA()
 				if mr+mg+mb == ma*3 {
 					segment.SetRGBA(x, y, segmentColor)
+					if len(labelCoords) == segmentN {
+						labelCoords = append(labelCoords, LabelCoords{
+							X: x + 5,
+							Y: y + 20,
+						})
+					}
 				}
 			}
 		}
+
 		WriteOutputFile(segment, fmt.Sprintf("segment%d.png", segmentN))
 		draw.DrawMask(srcImg, srcImg.Bounds(), segment, image.Point{}, mask, image.Point{}, draw.Over)
+	}
+
+	// Add labels last so they show through.
+	for i := range resps {
+		AddLabel(srcImg, labelCoords[i].X, labelCoords[i].Y, fmt.Sprintf("%s (%.2f%%)", resps[i].Label, resps[i].Score*100))
 	}
 	return nil
 }
@@ -124,4 +145,17 @@ func WriteOutputFile(img image.Image, filename string) error {
 	}
 	fmt.Println("Output image written to", outf.Name())
 	return nil
+}
+
+func AddLabel(img draw.Image, x, y int, label string) {
+	col := color.RGBA{0, 0, 0, 255}
+	point := fixed.Point26_6{X: fixed.Int26_6(x * 64), Y: fixed.Int26_6(y * 64)}
+
+	d := &font.Drawer{
+		Dst:  img,
+		Src:  image.NewUniform(col),
+		Face: basicfont.Face7x13,
+		Dot:  point,
+	}
+	d.DrawString(label)
 }
