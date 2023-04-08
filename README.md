@@ -28,6 +28,7 @@ See the [examples](./examples) directory.
 - [Token Classification](./examples/token_classification/main.go)
 - [Translation](./examples/translation/main.go)
 - [Zero-shot Classification](./examples/zeroshot/main.go)
+- [Image Classification](./examples/image_classification/main.go)
 
 ## Resources
 
