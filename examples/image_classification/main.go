@@ -7,7 +7,6 @@ import (
 	"github.com/TannerKvarfordt/hfapigo"
 )
 
-
 const HuggingFaceTokenEnv = "HUGGING_FACE_TOKEN"
 
 func init() {
@@ -23,7 +22,7 @@ func main() {
 	fmt.Printf("Requesting classification of image: %s\n", inputImg)
 	resps, err := hfapigo.SendImageClassificationRequest(hfapigo.RecommendedImageClassificationModel, inputImg)
 	if err != nil {
-		fmt.Printf("Error: %s\n", err);
+		fmt.Printf("Error: %s\n", err)
 		return
 	}
 
