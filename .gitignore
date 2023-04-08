@@ -21,6 +21,7 @@
 examples/audio_classification/audio_classification
 examples/conversational/conversational
 examples/fill_mask/fill_mask
+examples/image_classification/image_classification
 examples/object_detection/object_detection
 examples/question_answering/question_answering
 examples/sentence_similarity/sentence_similarity
