@@ -17,6 +17,8 @@ See the [examples](./examples) directory.
 - [Audio Classification](./examples/audio_classification/main.go)
 - [Conversational](./examples/conversational/main.go)
 - [Fill Mask](./examples/fill_mask/main.go)
+- [Image Classification](./examples/image_classification/main.go)
+- [Image Segmentation](./examples/image_segmentation/main.go)
 - [Object Detection](./examples/object_detection/main.go)
 - [Question Answering](./examples/question_answering/main.go)
 - [Sentence Similarity](./examples/sentence_similarity/main.go)
@@ -28,7 +30,6 @@ See the [examples](./examples) directory.
 - [Token Classification](./examples/token_classification/main.go)
 - [Translation](./examples/translation/main.go)
 - [Zero-shot Classification](./examples/zeroshot/main.go)
-- [Image Classification](./examples/image_classification/main.go)
 
 ## Resources
 
