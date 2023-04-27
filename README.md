@@ -27,6 +27,7 @@ See the [examples](./examples) directory.
 - [Table Question Answering](./examples/table_question_answering/main.go)
 - [Text Classification](./examples/text_classification/main.go)
 - [Text Generation](./examples/text_generation/main.go)
+- [Text-To-Image](./examples/text_to_image/main.go)
 - [Token Classification](./examples/token_classification/main.go)
 - [Translation](./examples/translation/main.go)
 - [Zero-shot Classification](./examples/zeroshot/main.go)
