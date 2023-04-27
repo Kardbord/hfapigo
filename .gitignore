@@ -34,3 +34,5 @@ examples/text_generation/text_generation
 examples/token_classification/token_classification
 examples/translation/translation
 examples/zeroshot/zeroshot
+examples/text_to_image/*
+!examples/text_to_image/*.go
