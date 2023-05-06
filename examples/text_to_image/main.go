@@ -52,8 +52,13 @@ func main() {
 		select {
 		default:
 			fmt.Print(".")
-			time.Sleep(time.Millisecond * 100)
+			time.Sleep(time.Millisecond * 300)
 		case chrv := <-ch:
+			if chrv.err != nil {
+				fmt.Printf("\nError from Hugging Face: %s\n", chrv.err)
+				return
+			}
+
 			filename := fmt.Sprintf("output.%s", chrv.format)
 			fout, err := os.Create(filename)
 			if err != nil {
