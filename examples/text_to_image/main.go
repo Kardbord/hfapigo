@@ -44,6 +44,13 @@ func main() {
 		img, fmt, err := hfapigo.SendTextToImageRequest(hfapigo.RecommendedTextToImageModel, &hfapigo.TextToImageRequest{
 			Inputs:  input,
 			Options: *hfapigo.NewOptions().SetWaitForModel(true),
+			Parameters: hfapigo.TextToImageRequestParameters{
+				NegativePrompt:    "blurry",
+				Height:            200,
+				Width:             200,
+				NumInferenceSteps: 20,
+				GuidanceScale:     7.5,
+			},
 		})
 		ch <- ChanRv{img, fmt, err}
 	}()

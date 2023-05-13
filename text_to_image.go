@@ -14,8 +14,26 @@ const RecommendedTextToImageModel = "runwayml/stable-diffusion-v1-5"
 
 // Request structure for text-to-image model
 type TextToImageRequest struct {
-	Inputs  string  `json:"inputs,omitempty"`
-	Options Options `json:"options,omitempty"`
+	// The prompt or prompts to guide the image generation.
+	Inputs     string                       `json:"inputs,omitempty"`
+	Options    Options                      `json:"options,omitempty"`
+	Parameters TextToImageRequestParameters `json:"parameters,omitempty"`
+}
+
+type TextToImageRequestParameters struct {
+	// The prompt or prompts not to guide the image generation.
+	// Ignored when not using guidance (i.e., ignored if guidance_scale is less than 1).
+	NegativePrompt string `json:"negative_prompt,omitempty"`
+	// The height in pixels of the generated image.
+	Height int64 `json:"height,omitempty"`
+	// The width in pixels of the generated image.
+	Width int64 `json:"width,omitempty"`
+	// The number of denoising steps. More denoising steps usually lead to a higher quality
+	// image at the expense of slower inference. Defaults to 50.
+	NumInferenceSteps int64 `json:"num_inference_steps,omitempty"`
+	// Higher guidance scale encourages to generate images that are closely linked to the text
+	// input, usually at the expense of lower image quality. Defaults to 7.5.
+	GuidanceScale float64 `json:"guidance_scale,omitempty"`
 }
 
 // Send a TextToImageRequest. If successful, returns the generated image object, format name, and nil.
