@@ -20,7 +20,7 @@ release:
   footer: |
     ## Full Changelog
 
-    https://github.com/TannerKvarfordt/gopenai/compare/{{ .PreviousTag }}...{{ .Tag }}
+    https://github.com/TannerKvarfordt/hfapigo/compare/{{ .PreviousTag }}...{{ .Tag }}
 
 # modelines #
 # yaml-language-server: $schema=https://goreleaser.com/static/schema.json
