@@ -11,7 +11,7 @@ changelog:
       - "^test:"
       - "(?i)updated readme(.md)*"
 release:
-  draft: true
+  draft: false
   prerelease: auto
   mode: keep-existing
   name_template: "{{ .Tag }}"
