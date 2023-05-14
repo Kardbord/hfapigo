@@ -5,7 +5,7 @@ import (
 	"errors"
 )
 
-const RecommendedQuestionAnsweringModel = "deepset/roberta-base-squad2"
+const RecommendedQuestionAnsweringModel = "bert-large-uncased-whole-word-masking-finetuned-squad"
 
 // Request structure for question answering model
 type QuestionAnsweringRequest struct {
