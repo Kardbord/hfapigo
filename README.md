@@ -19,6 +19,7 @@ See the [examples](./examples) directory.
 - [Fill Mask](./examples/fill_mask/main.go)
 - [Image Classification](./examples/image_classification/main.go)
 - [Image Segmentation](./examples/image_segmentation/main.go)
+- [Image-To-Text](./examples/image_to_text/main.go)
 - [Object Detection](./examples/object_detection/main.go)
 - [Question Answering](./examples/question_answering/main.go)
 - [Sentence Similarity](./examples/sentence_similarity/main.go)
