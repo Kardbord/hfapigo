@@ -40,5 +40,6 @@ See the [examples](./examples) directory.
   - [Datasets](https://huggingface.co/datasets)
   - [Hugging Face Inference API](https://api-inference.huggingface.co/docs/python/html/index.html) (HF API)
   - [HF on GitHub](https://github.com/huggingface)
+  - [Diffuser Docs](https://huggingface.co/docs/diffusers/using-diffusers/pipeline_overview)
   - Official [Python bindings](https://github.com/huggingface/hfapi) for the HF API
   - Official [JavaScript bindings](https://github.com/huggingface/huggingface.js) for the HF Inference API
