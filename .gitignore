@@ -36,5 +36,4 @@ examples/translation/translation
 examples/zeroshot/zeroshot
 examples/text_to_image/*
 !examples/text_to_image/*.go
-examples/image_to_text/*
-!examples/image_to_text/*.go
+examples/image_to_text/image_to_text
