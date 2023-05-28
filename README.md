@@ -40,3 +40,4 @@ See the [examples](./examples) directory.
   - [Hugging Face Inference API](https://api-inference.huggingface.co/docs/python/html/index.html) (HF API)
   - [HF on GitHub](https://github.com/huggingface)
   - Official [Python bindings](https://github.com/huggingface/hfapi) for the HF API
+  - Official [JavaScript bindings](https://github.com/huggingface/huggingface.js) for the HF Inference API
