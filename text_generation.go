@@ -6,7 +6,7 @@ import (
 	"fmt"
 )
 
-const RecommendedTextGenerationModel = "gpt2"
+const RecommendedTextGenerationModel = "gpt2-large"
 
 type TextGenerationRequest struct {
 	// (Required) a string to be generated from
