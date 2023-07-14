@@ -52,7 +52,7 @@ type ConversationalParameters struct {
 
 	// (Default: None). Float (0.0-100.0). The more a token is used within generation the more it is penalized
 	// to not be picked in successive generation passes.
-	RepetitionPenalty *float64 `json:"repetitionpenalty,omitempty"`
+	RepetitionPenalty *float64 `json:"repetition_penalty,omitempty"`
 
 	// (Default: None). Float (0-120.0). The amount of time in seconds that the query should take maximum.
 	// Network can cause some overhead so it will be a soft limit.
