@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/TannerKvarfordt/hfapigo"
+	"github.com/Kardbord/hfapigo"
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/basicfont"
 	"golang.org/x/image/math/fixed"

@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/TannerKvarfordt/hfapigo"
+	"github.com/Kardbord/hfapigo"
 )
 
 const HuggingFaceTokenEnv = "HUGGING_FACE_TOKEN"

@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/TannerKvarfordt/hfapigo"
+	"github.com/Kardbord/hfapigo"
 )
 
 func TestSpeechRecognitionRequest(t *testing.T) {

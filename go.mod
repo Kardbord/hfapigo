@@ -1,4 +1,4 @@
-module github.com/TannerKvarfordt/hfapigo
+module github.com/Kardbord/hfapigo
 
 go 1.17
 

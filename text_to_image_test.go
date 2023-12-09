@@ -3,7 +3,7 @@ package hfapigo_test
 import (
 	"testing"
 
-	"github.com/TannerKvarfordt/hfapigo"
+	"github.com/Kardbord/hfapigo"
 )
 
 func TestTextToImage(t *testing.T) {
