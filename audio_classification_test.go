@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Kardbord/hfapigo"
+	"github.com/Kardbord/hfapigo/v2"
 )
 
 func TestAudioClassificationRequest(t *testing.T) {

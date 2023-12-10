@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/Kardbord/hfapigo"
+	"github.com/Kardbord/hfapigo/v2"
 	"github.com/google/go-cmp/cmp"
 )
 
