@@ -6,7 +6,7 @@ import (
 	"text/tabwriter"
 	"time"
 
-	"github.com/Kardbord/hfapigo"
+	"github.com/Kardbord/hfapigo/v2"
 )
 
 const TableRows = 2
