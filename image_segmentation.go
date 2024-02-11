@@ -2,7 +2,7 @@ package hfapigo
 
 import "encoding/json"
 
-const RecommendedImageSegmentationModel = "facebook/detr-resnet-50-panoptic"
+const RecommendedImageSegmentationModel = "nvidia/segformer-b1-finetuned-cityscapes-1024-1024"
 
 type ImageSegmentationResponse struct {
 	// The label for the class (model specific) of a segment.
