@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
 set -e
 
-pushd "$(dirname "${BASH_SOURCE[0]}")/.." >/dev/null
+pushd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null
 
+./build-examples.sh
+
+pushd .. >/dev/null
 echo "Formatting code..."
 go fmt ./...
 echo "Building $(basename "$(pwd)")"
