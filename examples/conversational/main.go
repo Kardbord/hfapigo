@@ -32,6 +32,10 @@ func init() {
 
 const model = "facebook/blenderbot-400M-distill"
 
+// Deprecated: HF's conversational endpoint seems to be under construction
+// and slated to be either updated or replaced.
+// TODO: Update or remove conversational support once it becomes
+// clear what its replacement is.
 func main() {
 	fmt.Println("Enter your messages below. Hit enter to send. Use Ctrl+c or Ctrl+d to quit.")
 
