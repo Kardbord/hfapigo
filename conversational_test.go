@@ -65,6 +65,8 @@ func TestMarshalUnMarshalConversationalRequest(t *testing.T) {
 }
 
 func TestConversationalRequest(t *testing.T) {
+	t.Skip("The conversational endpoint seems to be undergoing deprecation/refactor. Disabling the unit tests for it until more information is available and updates can be made.")
+
 	// Basic request
 	{
 		cresp, err := hfapigo.SendConversationalRequest(hfapigo.RecommendedConversationalModel, &hfapigo.ConversationalRequest{
