@@ -15,7 +15,7 @@ An API key is required for authorized access. To get one, create a [Hugging Face
 See the [examples](./examples) directory.
 
 - [Audio Classification](./examples/audio_classification/main.go)
-- [Conversational](./examples/conversational/main.go)
+- ~~[Conversational](./examples/conversational/main.go)~~
 - [Fill Mask](./examples/fill_mask/main.go)
 - [Image Classification](./examples/image_classification/main.go)
 - [Image Segmentation](./examples/image_segmentation/main.go)

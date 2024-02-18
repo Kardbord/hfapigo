@@ -109,6 +109,10 @@ type Conversation struct {
 	PastUserInputs []string `json:"past_user_inputs,omitempty"`
 }
 
+// Deprecated: HF's conversational endpoint seems to be under construction
+// and slated to be either updated or replaced.
+// TODO: Update or remove conversational support once it becomes
+// clear what its replacement is.
 func SendConversationalRequest(model string, request *ConversationalRequest) (*ConversationalResponse, error) {
 	if request == nil {
 		return nil, errors.New("nil ConversationalRequest")
