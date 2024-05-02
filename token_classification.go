@@ -5,7 +5,7 @@ import (
 	"errors"
 )
 
-const RecommendedTokenClassificationModel = "dbmdz/bert-large-cased-finetuned-conll03-english"
+const RecommendedTokenClassificationModel = "dslim/bert-base-NER-uncased"
 
 // Request structure for the token classification endpoint
 type TokenClassificationRequest struct {
