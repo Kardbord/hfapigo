@@ -12,7 +12,7 @@ func TestMarshalUnMarshalTextGenerationRequest(t *testing.T) {
 	// No options
 	{
 		tgExpected := hfapigo.TextGenerationRequest{
-			Inputs: []string{"The answer to the universe is"},
+			Input: "The answer to the universe is",
 		}
 
 		jsonBuf, err := json.Marshal(tgExpected)
@@ -34,9 +34,8 @@ func TestMarshalUnMarshalTextGenerationRequest(t *testing.T) {
 	// Options
 	{
 		tgExpected := hfapigo.TextGenerationRequest{
-			Inputs: []string{"The answer to the universe is"},
+			Input: "The answer to the universe is",
 			Parameters: *hfapigo.NewTextGenerationParameters().
-				SetMaxTime(12.2).
 				SetMaxNewTokens(240).
 				SetReturnFullText(false),
 			Options: *hfapigo.NewOptions().SetWaitForModel(true),
@@ -62,57 +61,41 @@ func TestMarshalUnMarshalTextGenerationRequest(t *testing.T) {
 func TestTextGenerationRequest(t *testing.T) {
 	// Basic request
 	{
-		inputs := []string{"The answer to the universe is"}
-		const returnSeqs = 1
+		input := "The answer to the universe is"
 		tgresps, err := hfapigo.SendTextGenerationRequest(hfapigo.RecommendedTextGenerationModel, &hfapigo.TextGenerationRequest{
-			Inputs:  inputs,
+			Input:   input,
 			Options: *hfapigo.NewOptions().SetWaitForModel(true),
 		})
 		if err != nil {
 			t.Fatal(err)
 		}
-		if len(tgresps) != len(inputs) {
-			t.Fatalf("expected %d response", len(inputs))
+		if len(tgresps) != 1 {
+			t.Fatalf("expected 1 response, got %d", len(tgresps))
 		}
-		for i := range inputs {
-			if len(tgresps[i].GeneratedTexts) != returnSeqs {
-				t.Fatalf("expected non-empty list of generated texts")
-			}
-			for j := 0; j < returnSeqs; j++ {
-				if tgresps[i].GeneratedTexts[j] == "" {
-					t.Fatal("expected non-empty generated text")
-				}
-			}
+		if tgresps[0].GeneratedText == "" {
+			t.Fatal("expected non-empty generated text")
 		}
 	}
 
 	// More complicated request
 	{
-		inputs := []string{
-			"The answer to the universe is",
-			"There once was a ship that put to sea",
-		}
-		const returnSeqs = 3
+		input := "There once was a ship that put to sea"
 		tgresps, err := hfapigo.SendTextGenerationRequest(hfapigo.RecommendedTextGenerationModel, &hfapigo.TextGenerationRequest{
-			Inputs:     inputs,
-			Parameters: *hfapigo.NewTextGenerationParameters().SetRepetitionPenaly(50.235).SetReturnFullText(false).SetNumReturnSequences(returnSeqs),
+			Input:      input,
+			Parameters: *hfapigo.NewTextGenerationParameters().SetRepetitionPenaly(50.235).SetReturnFullText(false).SetDetails(true),
 			Options:    *hfapigo.NewOptions().SetWaitForModel(true),
 		})
 		if err != nil {
 			t.Fatal(err)
 		}
-		if len(tgresps) != len(inputs) {
-			t.Fatalf("expected %d responses", len(inputs))
+		if len(tgresps) != 1 {
+			t.Fatalf("expected 1 response, got %d", len(tgresps))
 		}
-		for i := range inputs {
-			if len(tgresps[i].GeneratedTexts) != returnSeqs {
-				t.Fatalf("expected non-empty list of generated texts")
-			}
-			for j := 0; j < returnSeqs; j++ {
-				if tgresps[i].GeneratedTexts[j] == "" {
-					t.Fatal("expected non-empty generated text")
-				}
-			}
+		if tgresps[0].GeneratedText == "" {
+			t.Fatal("expected non-empty generated text")
+		}
+		if tgresps[0].Details.FinishReason == "" {
+			t.Fatal("expected non-empty finish reason")
 		}
 	}
 
