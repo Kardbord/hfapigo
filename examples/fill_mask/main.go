@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Kardbord/hfapigo/v2"
+	"github.com/Kardbord/hfapigo/v3"
 )
 
 const HuggingFaceTokenEnv = "HUGGING_FACE_TOKEN"

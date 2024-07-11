@@ -3,10 +3,9 @@ package main
 import (
 	"fmt"
 	"os"
-	"strings"
 	"time"
 
-	"github.com/Kardbord/hfapigo/v2"
+	"github.com/Kardbord/hfapigo/v3"
 )
 
 const HuggingFaceTokenEnv = "HUGGING_FACE_TOKEN"
@@ -19,13 +18,9 @@ func init() {
 }
 
 func main() {
-	inputs := []string{
-		"The answer to life, the universe, and everything is",
-		"Somebody once told me that the world is gonna roll me",
-	}
-	const numReturnSequences = 3
+	input := "The answer to life, the universe, and everything is"
 
-	fmt.Printf("Inputs: [\"%s\"]\n", strings.Join(inputs, `", "`))
+	fmt.Printf("Input: \"%s\"\n", input)
 
 	type ChanRv struct {
 		resps []*hfapigo.TextGenerationResponse
@@ -36,9 +31,8 @@ func main() {
 	fmt.Print("Sending request")
 	go func() {
 		resps, err := hfapigo.SendTextGenerationRequest(hfapigo.RecommendedTextGenerationModel, &hfapigo.TextGenerationRequest{
-			Inputs:     inputs,
-			Parameters: *hfapigo.NewTextGenerationParameters().SetNumReturnSequences(numReturnSequences),
-			Options:    *hfapigo.NewOptions().SetWaitForModel(true),
+			Input:   input,
+			Options: *hfapigo.NewOptions().SetWaitForModel(true),
 		})
 		ch <- ChanRv{resps, err}
 	}()
@@ -51,14 +45,7 @@ func main() {
 				fmt.Println(chrv.err)
 				return
 			}
-			for i := range inputs {
-				fmt.Printf("\nInput %d results:\n", i)
-				for _, gt := range chrv.resps[i].GeneratedTexts {
-					gt = strings.Replace(gt, "\n", " ", -1)
-					gt = strings.Replace(gt, "\r", " ", -1)
-					fmt.Println(gt)
-				}
-			}
+			fmt.Printf("Response: %s\n", chrv.resps[0].GeneratedText)
 			return
 		default:
 			fmt.Print(".")

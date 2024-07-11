@@ -3,7 +3,7 @@ package hfapigo_test
 import (
 	"testing"
 
-	"github.com/Kardbord/hfapigo/v2"
+	"github.com/Kardbord/hfapigo/v3"
 )
 
 func TestImageSegmentationRequest(t *testing.T) {
