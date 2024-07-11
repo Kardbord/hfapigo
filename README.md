@@ -36,6 +36,7 @@ See the [examples](./examples) directory.
 ## Resources
 
 - [Hugging Face](https://huggingface.co/)
+  - [Inference API JSON Schema](https://huggingface.github.io/text-generation-inference/openapi.json)
   - [Model Hub](https://huggingface.co/models)
   - [Datasets](https://huggingface.co/datasets)
   - [Hugging Face Inference API](https://api-inference.huggingface.co/docs/python/html/index.html) (HF API)
