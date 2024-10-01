@@ -10,7 +10,7 @@ import (
 	_ "image/png"
 )
 
-const RecommendedTextToImageModel = "runwayml/stable-diffusion-v1-5"
+const RecommendedTextToImageModel = "stable-diffusion-v1-5/stable-diffusion-v1-5"
 
 // Request structure for text-to-image model
 type TextToImageRequest struct {

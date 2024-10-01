@@ -2,24 +2,14 @@ package hfapigo_test
 
 import (
 	"testing"
-	"time"
 
 	"github.com/Kardbord/hfapigo/v3"
 )
 
 func TestObjectDetectionRequest(t *testing.T) {
-	const retries = 10
-
 	resps := []*hfapigo.ObjectDetectionResponse{}
 	var err error
-	for i := 0; i < retries; i++ {
-		resps, err = hfapigo.SendObjectDetectionRequest(hfapigo.RecommendedObjectDetectionModel, TestFilesDir+"/test-image.png")
-		if err == nil {
-			break
-		} else {
-			time.Sleep(time.Second * 5)
-		}
-	}
+	resps, err = hfapigo.SendObjectDetectionRequest(hfapigo.RecommendedObjectDetectionModel, TestFilesDir+"/test-image.png")
 	if err != nil {
 		t.Fatal(err)
 	}
