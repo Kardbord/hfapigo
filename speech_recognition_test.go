@@ -2,24 +2,14 @@ package hfapigo_test
 
 import (
 	"testing"
-	"time"
 
 	"github.com/Kardbord/hfapigo/v3"
 )
 
 func TestSpeechRecognitionRequest(t *testing.T) {
-	const retries = 10
-
 	arResp := &hfapigo.SpeechRecognitionResponse{}
 	var err error
-	for i := 0; i < retries; i++ {
-		arResp, err = hfapigo.SendSpeechRecognitionRequest(hfapigo.RecommendedSpeechRecongnitionModelEnglish, TestFilesDir+"/sample.flac")
-		if err == nil {
-			break
-		} else {
-			time.Sleep(time.Second * 5)
-		}
-	}
+	arResp, err = hfapigo.SendSpeechRecognitionRequest(hfapigo.RecommendedSpeechRecongnitionModelEnglish, TestFilesDir+"/sample.flac")
 	if err != nil {
 		t.Fatal(err)
 	}

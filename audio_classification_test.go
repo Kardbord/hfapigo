@@ -2,24 +2,14 @@ package hfapigo_test
 
 import (
 	"testing"
-	"time"
 
 	"github.com/Kardbord/hfapigo/v3"
 )
 
 func TestAudioClassificationRequest(t *testing.T) {
-	const retries = 10
-
 	acResps := []*hfapigo.AudioClassificationResponse{}
 	var err error
-	for i := 0; i < retries; i++ {
-		acResps, err = hfapigo.SendAudioClassificationRequest(hfapigo.RecommendedAudioClassificationModel, TestFilesDir+"/sample.flac")
-		if err == nil {
-			break
-		} else {
-			time.Sleep(time.Second * 5)
-		}
-	}
+	acResps, err = hfapigo.SendAudioClassificationRequest(hfapigo.RecommendedAudioClassificationModel, TestFilesDir+"/sample.flac")
 	if err != nil {
 		t.Fatal(err)
 	}
