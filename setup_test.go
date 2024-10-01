@@ -20,12 +20,9 @@ func init() {
 }
 
 func TestMain(m *testing.M) {
-	shouldWarn := hfapigo.APIKey() == ""
-	if shouldWarn {
-		fmt.Printf("%s not found in env, tests may fail due to rate limiting.\n", HuggingFaceTokenEnv)
+	if hfapigo.APIKey() == "" {
+		fmt.Fprintf(os.Stderr, "%s not set, tests will fail due to rate limiting.", HuggingFaceTokenEnv)
+		os.Exit(1)
 	}
 	m.Run()
-	if shouldWarn {
-		fmt.Printf("%s not found in env, tests may fail due to rate limiting.\n", HuggingFaceTokenEnv)
-	}
 }
