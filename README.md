@@ -10,6 +10,14 @@ Directly call any model available in the [Model Hub](https://huggingface.co/mode
 
 An API key is required for authorized access. To get one, create a [Hugging Face](https://huggingface.co/) profile.
 
+## Notice
+
+I have been unable to keep up with the latest changes to the API as of yet,
+but I will continue to work on bringing these bindings up to date to the best
+of my ability. In the meantime, contributions are always welcome! Please submit
+pull requests with your contributions to the
+[v4-draft](https://github.com/Kardbord/hfapigo/tree/v4-draft) branch.
+
 ## Usage
 
 See the [examples](./examples) directory.
