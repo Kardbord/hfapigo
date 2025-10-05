@@ -9,7 +9,9 @@ import (
 func TestAudioClassificationRequest(t *testing.T) {
 	acResps := []*hfapigo.AudioClassificationResponse{}
 	var err error
-	acResps, err = hfapigo.SendAudioClassificationRequest(hfapigo.RecommendedAudioClassificationModel, TestFilesDir+"/sample.flac")
+	acResps, err = hfapigo.SendAudioClassificationRequest(hfapigo.RecommendedAudioClassificationModel, &hfapigo.AudioClassificationRequest{
+		InputFile: TestFilesDir + "/sample.flac",
+	})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -33,7 +33,9 @@ func main() {
 		acResps := []*hfapigo.AudioClassificationResponse{}
 		var err error
 		for i := 0; i < maxRetries; i++ {
-			acResps, err = hfapigo.SendAudioClassificationRequest(hfapigo.RecommendedAudioClassificationModel, audioFile)
+			acResps, err = hfapigo.SendAudioClassificationRequest(hfapigo.RecommendedAudioClassificationModel, &hfapigo.AudioClassificationRequest{
+				InputFile: audioFile,
+			})
 			if err == nil {
 				break
 			} else {
