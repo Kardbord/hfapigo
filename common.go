@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -11,10 +12,8 @@ import (
 
 const APIBaseURL = "https://router.huggingface.co/hf-inference/models/"
 
-var APIKey = func() string { return "" }
-
-func SetAPIKey(key string) {
-	APIKey = func() string { return key }
+type Client struct {
+	APIKey string
 }
 
 const (
@@ -22,12 +21,12 @@ const (
 	AuthHeaderPrefix = "Bearer "
 )
 
-func setAuthorizationHeader(req *http.Request) *http.Request {
+func setAuthorizationHeader(req *http.Request, client *Client) *http.Request {
 	if req == nil {
 		return req
 	}
-	if APIKey() != "" {
-		req.Header.Set(AuthHeaderKey, AuthHeaderPrefix+APIKey())
+	if client != nil && client.APIKey != "" {
+		req.Header.Set(AuthHeaderKey, AuthHeaderPrefix+client.APIKey)
 	}
 	return req
 }
@@ -36,7 +35,11 @@ func setAuthorizationHeader(req *http.Request) *http.Request {
 // using the provided JSON body. If the request is successful, returns the
 // response JSON and a nil error. If the request fails, returns an empty slice
 // and an error describing the failure.
-func MakeHFAPIRequest(jsonBody []byte, model string) ([]byte, error) {
+func MakeHFAPIRequest(jsonBody []byte, model string, client *Client) ([]byte, error) {
+	if client == nil {
+		return nil, fmt.Errorf("nil client provided")
+	}
+
 	req, err := http.NewRequest(http.MethodPost, APIBaseURL+model, bytes.NewBuffer(jsonBody))
 	if err != nil {
 		return nil, err
@@ -45,7 +48,7 @@ func MakeHFAPIRequest(jsonBody []byte, model string) ([]byte, error) {
 		return nil, errors.New("nil request created")
 	}
 	req.Header.Set("Content-Type", "application/json")
-	setAuthorizationHeader(req)
+	setAuthorizationHeader(req, client)
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -102,7 +105,11 @@ func checkRespForError(respJSON []byte) error {
 	return nil
 }
 
-func MakeHFAPIRequestWithMedia(model, mediaFile string) ([]byte, error) {
+func MakeHFAPIRequestWithMedia(model, mediaFile string, client *Client) ([]byte, error) {
+	if client == nil {
+		return nil, fmt.Errorf("nil client provided")
+	}
+
 	buf, err := os.ReadFile(mediaFile)
 	if err != nil {
 		return nil, err
@@ -116,7 +123,7 @@ func MakeHFAPIRequestWithMedia(model, mediaFile string) ([]byte, error) {
 		return nil, errors.New("nil request created")
 	}
 	req.Header.Set("Content-Type", "application/octet-stream")
-	setAuthorizationHeader(req)
+	setAuthorizationHeader(req, client)
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
