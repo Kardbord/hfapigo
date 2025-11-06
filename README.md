@@ -5,7 +5,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/Kardbord/hfapigo)](https://goreportcard.com/report/github.com/Kardbord/hfapigo)
 [![Go Reference](https://pkg.go.dev/badge/github.com/Kardbord/hfapigo.svg)](https://pkg.go.dev/github.com/Kardbord/hfapigo)
 
-(Golang) Go bindings for the [Hugging Face Inference API](https://api-inference.huggingface.co/docs/python/html/index.html).
+(Golang) Go bindings for the [Hugging Face Inference API](https://huggingface.co/docs/inference-providers/tasks/index).
 Directly call any model available in the [Model Hub](https://huggingface.co/models).
 
 An API key is required for authorized access. To get one, create a [Hugging Face](https://huggingface.co/) profile.
@@ -47,7 +47,7 @@ See the [examples](./examples) directory.
   - [Inference API JSON Schema](https://huggingface.github.io/text-generation-inference/openapi.json)
   - [Model Hub](https://huggingface.co/models)
   - [Datasets](https://huggingface.co/datasets)
-  - [Hugging Face Inference API](https://api-inference.huggingface.co/docs/python/html/index.html) (HF API)
+  - [Hugging Face Inference API](https://huggingface.co/docs/inference-providers/tasks/index) (HF API)
   - [HF on GitHub](https://github.com/huggingface)
   - [Diffuser Docs](https://huggingface.co/docs/diffusers/using-diffusers/pipeline_overview)
   - Official [Python bindings](https://github.com/huggingface/hfapi) for the HF API
