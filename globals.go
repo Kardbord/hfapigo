@@ -9,7 +9,7 @@ import (
 	"os"
 )
 
-const APIBaseURL = "https://api-inference.huggingface.co/models/"
+const APIBaseURL = "https://router.huggingface.co/hf-inference/models/"
 
 var APIKey = func() string { return "" }
 
