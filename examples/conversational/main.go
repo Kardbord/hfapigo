@@ -9,7 +9,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/Kardbord/hfapigo/v3"
+	"github.com/Kardbord/hfapigo/v4"
 )
 
 const HuggingFaceTokenEnv = "HUGGING_FACE_TOKEN"

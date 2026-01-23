@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/Kardbord/hfapigo/v3"
+	"github.com/Kardbord/hfapigo/v4"
 	"github.com/google/go-cmp/cmp"
 )
 

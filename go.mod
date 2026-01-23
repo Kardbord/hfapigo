@@ -1,6 +1,6 @@
-module github.com/Kardbord/hfapigo/v3
+module github.com/Kardbord/hfapigo/v4
 
-go 1.17
+go 1.25
 
 require (
 	github.com/google/go-cmp v0.6.0

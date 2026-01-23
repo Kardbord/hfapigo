@@ -3,7 +3,7 @@ package hfapigo_test
 import (
 	"testing"
 
-	"github.com/Kardbord/hfapigo/v3"
+	"github.com/Kardbord/hfapigo/v4"
 )
 
 func TestObjectDetectionRequest(t *testing.T) {
