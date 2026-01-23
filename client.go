@@ -64,6 +64,10 @@ func WithTransport(t Transport) clientOption {
 	return func(o *clientOptions) { o.transport = t }
 }
 
+func WithHTTPClient(c *http.Client) clientOption {
+	return WithTransport(&HTTPTransport{client: c})
+}
+
 func WithModel(m string) clientOption {
 	return func(o *clientOptions) { o.model = m }
 }
