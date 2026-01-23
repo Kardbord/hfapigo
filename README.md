@@ -10,45 +10,19 @@ Directly call any model available in the [Model Hub](https://huggingface.co/mode
 
 An API key is required for authorized access. To get one, create a [Hugging Face](https://huggingface.co/) profile.
 
-## Notice
-
-I have been unable to keep up with the latest changes to the API as of yet,
-but I will continue to work on bringing these bindings up to date to the best
-of my ability. In the meantime, contributions are always welcome! Please submit
-pull requests with your contributions to the
-[v4-draft](https://github.com/Kardbord/hfapigo/tree/v4-draft) branch.
-
 ## Usage
 
 See the [examples](./examples) directory.
 
-- [Audio Classification](./examples/audio_classification/main.go)
-- ~~[Conversational](./examples/conversational/main.go)~~
-- [Fill Mask](./examples/fill_mask/main.go)
-- [Image Classification](./examples/image_classification/main.go)
-- [Image Segmentation](./examples/image_segmentation/main.go)
-- [Image-To-Text](./examples/image_to_text/main.go)
-- [Object Detection](./examples/object_detection/main.go)
-- [Question Answering](./examples/question_answering/main.go)
-- [Sentence Similarity](./examples/sentence_similarity/main.go)
-- [Speech Recognition](./examples/speech_recognition/main.go)
-- [Summarization](./examples/summarization/main.go)
-- [Table Question Answering](./examples/table_question_answering/main.go)
-- [Text Classification](./examples/text_classification/main.go)
-- [Text Generation](./examples/text_generation/main.go)
-- [Text-To-Image](./examples/text_to_image/main.go)
-- [Token Classification](./examples/token_classification/main.go)
-- [Translation](./examples/translation/main.go)
-- [Zero-shot Classification](./examples/zeroshot/main.go)
+> Coming soon!
 
 ## Resources
 
 - [Hugging Face](https://huggingface.co/)
-  - [Inference API JSON Schema](https://huggingface.github.io/text-generation-inference/openapi.json)
-  - [Model Hub](https://huggingface.co/models)
-  - [Datasets](https://huggingface.co/datasets)
-  - [Hugging Face Inference API](https://huggingface.co/docs/inference-providers/tasks/index) (HF API)
-  - [HF on GitHub](https://github.com/huggingface)
-  - [Diffuser Docs](https://huggingface.co/docs/diffusers/using-diffusers/pipeline_overview)
-  - Official [Python bindings](https://github.com/huggingface/hfapi) for the HF API
-  - Official [JavaScript bindings](https://github.com/huggingface/huggingface.js) for the HF Inference API
+- [Inference API JSON Schema](https://huggingface.github.io/text-generation-inference/openapi.json)
+- [Model Hub](https://huggingface.co/models)
+- [Datasets](https://huggingface.co/datasets)
+- [Hugging Face Inference API](https://huggingface.co/docs/inference-providers/tasks/index)
+- [HF on GitHub](https://github.com/huggingface)
+  - Official [Python bindings](https://github.com/huggingface/huggingface_hub)
+  - Official [JavaScript bindings](https://github.com/huggingface/huggingface.js)

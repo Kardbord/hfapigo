@@ -21,7 +21,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
-          go-version: 1.17
+          go-version: 1.25
 
       - name: Build
         run: go build -v ./...
@@ -33,7 +33,4 @@ jobs:
         run: go test -timeout 300s -v ./...
         env:
           HUGGING_FACE_TOKEN: ${{ secrets.HUGGING_FACE_TOKEN }}
-
-      - name: Build Examples
-        run: cd examples && ./build_examples.sh || exit 1
-        shell: bash
+# TODO: Build examples
