@@ -1,52 +1,32 @@
 package hfapigo
 
 import (
+	"context"
 	"net/http"
+
+	"github.com/Kardbord/hfapigo/v4/internal/request"
 )
 
-type ClientOption func(*clientOptions)
-
-type clientOptions struct {
-	baseURL  string
-	token    string
-	model    string
-	provider string
-	httpc    *http.Client
+func WithBaseURL(u string) request.RequestOption {
+	return func(o *request.RequestOptions) { o.BaseURL = u }
 }
 
-func defaultClientOptions() clientOptions {
-	return clientOptions{
-		baseURL:  DefaultBaseURL,
-		token:    DefaultToken,
-		model:    DefaultModel,
-		provider: DefaultProvider,
-		httpc:    http.DefaultClient,
-	}
+func WithToken(t string) request.RequestOption {
+	return func(o *request.RequestOptions) { o.Token = t }
 }
 
-const (
-	DefaultBaseURL  = "https://router.huggingface.co"
-	DefaultToken    = ""
-	DefaultModel    = ""
-	DefaultProvider = ""
-)
-
-func WithBaseURL(u string) ClientOption {
-	return func(o *clientOptions) { o.baseURL = u }
+func WithModel(m string) request.RequestOption {
+	return func(o *request.RequestOptions) { o.Model = m }
 }
 
-func WithToken(t string) ClientOption {
-	return func(o *clientOptions) { o.token = t }
+func WithProvider(p string) request.RequestOption {
+	return func(o *request.RequestOptions) { o.Provider = p }
 }
 
-func WithModel(m string) ClientOption {
-	return func(o *clientOptions) { o.model = m }
+func WithHTTPClient(c *http.Client) request.RequestOption {
+	return func(o *request.RequestOptions) { o.Transport = c }
 }
 
-func WithProvider(p string) ClientOption {
-	return func(o *clientOptions) { o.provider = p }
-}
-
-func WithHTTPClient(c *http.Client) ClientOption {
-	return func(o *clientOptions) { o.httpc = c }
+func WithContext(ctx context.Context) request.RequestOption {
+	return func(o *request.RequestOptions) { o.Ctx = ctx }
 }

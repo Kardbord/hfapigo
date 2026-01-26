@@ -9,21 +9,9 @@ type Client struct {
 	opts request.RequestOptions
 }
 
-func NewClient(opts ...ClientOption) (*Client, error) {
-	options := defaultClientOptions()
-
-	for _, opt := range opts {
-		opt(&options)
-	}
-
+func NewClient(opts ...request.RequestOption) (*Client, error) {
 	return &Client{
-		opts: request.RequestOptions{
-			BaseURL:   options.baseURL,
-			Token:     options.token,
-			Model:     options.model,
-			Provider:  options.provider,
-			Transport: request.NewHTTPTransport(options.httpc),
-		},
+		opts: *request.NewFromDefault(opts...),
 	}, nil
 }
 

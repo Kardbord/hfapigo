@@ -22,9 +22,9 @@ type ChatResponse struct {
 	GeneratedText string `json:"generated_text"`
 }
 
-func (s *Service) Complete(prompt string) (ChatResponse, error) {
+func (s *Service) Complete(prompt string, opts ...request.RequestOption) (ChatResponse, error) {
 	return request.DoJSON[ChatRequest, ChatResponse](
-		s.opts,
+		s.opts.NewOverride(opts...),
 		http.MethodPost,
 		"/v1/chat/completions",
 		ChatRequest{Inputs: prompt},
