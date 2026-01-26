@@ -7,7 +7,7 @@ import (
 )
 
 func DoJSON[TReq any, TResp any](
-	ctx *RequestOptions,
+	opts *RequestOptions,
 	method string,
 	path string,
 	reqBody TReq,
@@ -21,7 +21,7 @@ func DoJSON[TReq any, TResp any](
 	}
 
 	resp, err := DoBytes(
-		ctx,
+		opts,
 		method,
 		path,
 		buf,

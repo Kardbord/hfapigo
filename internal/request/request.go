@@ -8,7 +8,7 @@ import (
 )
 
 func Do(
-	ctx *RequestOptions,
+	opts *RequestOptions,
 	method string,
 	path string,
 	body io.Reader,
@@ -18,27 +18,27 @@ func Do(
 	req, err := http.NewRequestWithContext(
 		context.Background(),
 		method,
-		ctx.BaseURL+path,
+		opts.BaseURL+path,
 		body,
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	req.Header.Set("Authorization", "Bearer "+ctx.Token)
+	req.Header.Set("Authorization", "Bearer "+opts.Token)
 	for k, v := range headers {
 		req.Header.Set(k, v)
 	}
 
-	return ctx.Transport.Do(req)
+	return opts.Transport.Do(req)
 }
 
 func DoBytes(
-	ctx *RequestOptions,
+	opts *RequestOptions,
 	method string,
 	path string,
 	data []byte,
 	headers map[string]string,
 ) (*http.Response, error) {
-	return Do(ctx, method, path, bytes.NewReader(data), headers)
+	return Do(opts, method, path, bytes.NewReader(data), headers)
 }

@@ -7,11 +7,11 @@ import (
 )
 
 type Service struct {
-	ctx *request.Context
+	opts *request.RequestOptions
 }
 
-func New(ctx *request.Context) *Service {
-	return &Service{ctx: ctx}
+func New(opts *request.RequestOptions) *Service {
+	return &Service{opts: opts}
 }
 
 type ChatRequest struct {
@@ -24,7 +24,7 @@ type ChatResponse struct {
 
 func (s *Service) Complete(prompt string) (ChatResponse, error) {
 	return request.DoJSON[ChatRequest, ChatResponse](
-		s.ctx,
+		s.opts,
 		http.MethodPost,
 		"/v1/chat/completions",
 		ChatRequest{Inputs: prompt},

@@ -6,7 +6,7 @@ import (
 )
 
 type Client struct {
-	ctx request.RequestOptions
+	opts request.RequestOptions
 }
 
 func NewClient(opts ...ClientOption) (*Client, error) {
@@ -17,7 +17,7 @@ func NewClient(opts ...ClientOption) (*Client, error) {
 	}
 
 	return &Client{
-		ctx: request.RequestOptions{
+		opts: request.RequestOptions{
 			BaseURL:   options.baseURL,
 			Token:     options.token,
 			Model:     options.model,
@@ -28,5 +28,5 @@ func NewClient(opts ...ClientOption) (*Client, error) {
 }
 
 func (c *Client) Chat() *chat.Service {
-	return chat.New(&c.ctx)
+	return chat.New(&c.opts)
 }
