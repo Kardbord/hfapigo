@@ -24,7 +24,7 @@ func WithProvider(p string) request.RequestOption {
 }
 
 func WithHTTPClient(c *http.Client) request.RequestOption {
-	return func(o *request.RequestOptions) { o.Transport = c }
+	return func(o *request.RequestOptions) { o.Transport = request.NewHTTPTransport(c) }
 }
 
 func WithContext(ctx context.Context) request.RequestOption {

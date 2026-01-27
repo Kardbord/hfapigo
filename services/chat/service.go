@@ -7,11 +7,11 @@ import (
 )
 
 type Service struct {
-	opts *request.RequestOptions
+	client request.OptionProvider
 }
 
-func New(opts *request.RequestOptions) *Service {
-	return &Service{opts: opts}
+func New(client request.OptionProvider) Service {
+	return Service{client: client}
 }
 
 type ChatRequest struct {
@@ -22,9 +22,9 @@ type ChatResponse struct {
 	GeneratedText string `json:"generated_text"`
 }
 
-func (s *Service) Complete(prompt string, opts ...request.RequestOption) (ChatResponse, error) {
+func (s Service) Complete(prompt string, opts ...request.RequestOption) (ChatResponse, error) {
 	return request.DoJSON[ChatRequest, ChatResponse](
-		s.opts.NewOverride(opts...),
+		s.client.Options().With(opts...),
 		http.MethodPost,
 		"/v1/chat/completions",
 		ChatRequest{Inputs: prompt},

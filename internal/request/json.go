@@ -7,7 +7,7 @@ import (
 )
 
 func DoJSON[TReq any, TResp any](
-	opts *RequestOptions,
+	opts RequestOptions,
 	method string,
 	path string,
 	reqBody TReq,

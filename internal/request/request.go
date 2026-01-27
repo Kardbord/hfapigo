@@ -7,7 +7,7 @@ import (
 )
 
 func Do(
-	opts *RequestOptions,
+	opts RequestOptions,
 	method string,
 	path string,
 	body io.Reader,
@@ -33,7 +33,7 @@ func Do(
 }
 
 func DoBytes(
-	opts *RequestOptions,
+	opts RequestOptions,
 	method string,
 	path string,
 	data []byte,
