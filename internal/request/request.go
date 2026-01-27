@@ -2,7 +2,6 @@ package request
 
 import (
 	"bytes"
-	"context"
 	"io"
 	"net/http"
 )
@@ -16,7 +15,7 @@ func Do(
 ) (*http.Response, error) {
 
 	req, err := http.NewRequestWithContext(
-		context.Background(),
+		opts.Ctx,
 		method,
 		opts.BaseURL+path,
 		body,
