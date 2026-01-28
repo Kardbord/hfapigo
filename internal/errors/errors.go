@@ -56,6 +56,7 @@ func (e *APIError) IsRateLimitError() bool {
 	return e.StatusCode == http.StatusTooManyRequests
 }
 
+// TODO: Remove this if it is unused
 // ValidationError represents an error that occurs when validating
 // request parameters or configuration options.
 type ValidationError struct {
