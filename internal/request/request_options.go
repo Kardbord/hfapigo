@@ -3,6 +3,8 @@ package request
 import (
 	"context"
 	"net/http"
+
+	"github.com/Kardbord/hfapigo/v4/internal/version"
 )
 
 // OptionProvider is an interface for types that can provide RequestOptions.
@@ -18,6 +20,7 @@ type RequestOptions struct {
 	Token     string
 	Model     string
 	Provider  string
+	UserAgent string
 	Transport Transport
 }
 
@@ -41,6 +44,7 @@ func NewRequestOptions() RequestOptions {
 		Token:     DefaultToken,
 		Model:     DefaultModel,
 		Provider:  DefaultProvider,
+		UserAgent: version.UserAgent(),
 		Transport: NewHTTPTransport(http.DefaultClient),
 	}
 }

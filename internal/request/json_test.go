@@ -3,16 +3,13 @@ package request
 import (
 	"errors"
 	"net/http"
+	"strings"
 	"testing"
+
+	internalErrors "github.com/Kardbord/hfapigo/v4/internal/errors"
 )
 
-func TestDoJSON_Success(t *testing.T) {
-	mt := newMockTransport(200, `{"generated_text":"hello"}`, nil)
-
-	opts := NewRequestOptions().With(func(o *RequestOptions) {
-		o.Transport = mt
-	})
-
+func TestDoJSON(t *testing.T) {
 	type req struct {
 		Inputs string `json:"inputs"`
 	}
@@ -20,40 +17,194 @@ func TestDoJSON_Success(t *testing.T) {
 		GeneratedText string `json:"generated_text"`
 	}
 
-	out, err := DoJSON[req, resp](
-		opts,
-		http.MethodPost,
-		"/chat",
-		req{Inputs: "hi"},
-	)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	tests := []struct {
+		name           string
+		setupTransport func() Transport
+		method         string
+		path           string
+		reqBody        req
+		wantErr        bool
+		wantResp       *resp
+		validateErr    func(t *testing.T, err error)
+		validateReq    func(t *testing.T, mt *mockTransport)
+	}{
+		{
+			name: "successful request",
+			setupTransport: func() Transport {
+				return newMockTransport(200, `{"generated_text":"hello"}`, nil)
+			},
+			method:  http.MethodPost,
+			path:    "/chat",
+			reqBody: req{Inputs: "hi"},
+			wantErr: false,
+			wantResp: &resp{
+				GeneratedText: "hello",
+			},
+		},
+		{
+			name: "401 error status",
+			setupTransport: func() Transport {
+				return newMockTransport(401, `unauthorized`, nil)
+			},
+			method:  http.MethodGet,
+			path:    "/fail",
+			reqBody: req{},
+			wantErr: true,
+			validateErr: func(t *testing.T, err error) {
+				var apiErr *internalErrors.APIError
+				if !errors.As(err, &apiErr) {
+					t.Errorf("expected *errors.APIError, got %T", err)
+					return
+				}
+				if apiErr.StatusCode != 401 {
+					t.Errorf("expected status code 401, got %d", apiErr.StatusCode)
+				}
+				if !apiErr.IsAuthenticationError() {
+					t.Error("expected IsAuthenticationError() to return true")
+				}
+			},
+		},
+		{
+			name: "500 error status",
+			setupTransport: func() Transport {
+				return newMockTransport(500, `internal server error`, nil)
+			},
+			method:  http.MethodGet,
+			path:    "/fail",
+			reqBody: req{},
+			wantErr: true,
+			validateErr: func(t *testing.T, err error) {
+				var apiErr *internalErrors.APIError
+				if !errors.As(err, &apiErr) {
+					t.Errorf("expected *errors.APIError, got %T", err)
+					return
+				}
+				if apiErr.StatusCode != 500 {
+					t.Errorf("expected status code 500, got %d", apiErr.StatusCode)
+				}
+				if !apiErr.IsServerError() {
+					t.Error("expected IsServerError() to return true")
+				}
+			},
+		},
+		{
+			name: "transport error",
+			setupTransport: func() Transport {
+				return &mockTransport{
+					Err: errors.New("network down"),
+				}
+			},
+			method:  http.MethodGet,
+			path:    "/test",
+			reqBody: req{},
+			wantErr: true,
+			validateErr: func(t *testing.T, err error) {
+				if !strings.Contains(err.Error(), "network down") {
+					t.Errorf("expected error to contain 'network down', got: %v", err)
+				}
+			},
+		},
+		{
+			name: "invalid JSON response",
+			setupTransport: func() Transport {
+				return newMockTransport(200, `{not valid json}`, nil)
+			},
+			method:  http.MethodGet,
+			path:    "/test",
+			reqBody: req{},
+			wantErr: true,
+			validateErr: func(t *testing.T, err error) {
+				if !strings.Contains(err.Error(), "failed to decode response body") {
+					t.Errorf("expected decode error, got: %v", err)
+				}
+			},
+		},
+		{
+			name: "empty response body",
+			setupTransport: func() Transport {
+				return newMockTransport(200, ``, nil)
+			},
+			method:  http.MethodGet,
+			path:    "/test",
+			reqBody: req{},
+			wantErr: true,
+			validateErr: func(t *testing.T, err error) {
+				if !strings.Contains(err.Error(), "failed to decode response body") {
+					t.Errorf("expected decode error on empty body, got: %v", err)
+				}
+			},
+		},
+		{
+			name: "sets Content-Type header",
+			setupTransport: func() Transport {
+				return newMockTransport(200, `{}`, nil)
+			},
+			method:  http.MethodPost,
+			path:    "/test",
+			reqBody: req{},
+			wantErr: false,
+			validateReq: func(t *testing.T, mt *mockTransport) {
+				if got := mt.LastRequest.Header.Get("Content-Type"); got != "application/json" {
+					t.Errorf("expected Content-Type 'application/json', got %q", got)
+				}
+			},
+		},
+		{
+			name: "returns zero value on error",
+			setupTransport: func() Transport {
+				return newMockTransport(500, `boom`, nil)
+			},
+			method:   http.MethodGet,
+			path:     "/test",
+			reqBody:  req{},
+			wantErr:  true,
+			wantResp: &resp{}, // zero value
+		},
 	}
 
-	if out.GeneratedText != "hello" {
-		t.Fatalf("unexpected response: %+v", out)
-	}
-}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			transport := tt.setupTransport()
+			opts := NewRequestOptions().With(func(o *RequestOptions) {
+				o.Transport = transport
+			})
 
-func TestDoJSON_ErrorStatus(t *testing.T) {
-	mt := newMockTransport(401, `unauthorized`, nil)
+			out, err := DoJSON[req, resp](
+				opts,
+				tt.method,
+				tt.path,
+				tt.reqBody,
+			)
 
-	opts := NewRequestOptions().With(func(o *RequestOptions) {
-		o.Transport = mt
-	})
+			// Check error expectation
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("DoJSON() error = %v, wantErr %v", err, tt.wantErr)
+			}
 
-	_, err := DoJSON[struct{}, struct{}](
-		opts,
-		http.MethodGet,
-		"/fail",
-		struct{}{},
-	)
-	if err == nil {
-		t.Fatal("expected error, got nil")
+			// Validate error if custom validation provided
+			if err != nil && tt.validateErr != nil {
+				tt.validateErr(t, err)
+			}
+
+			// Validate response if expected
+			if tt.wantResp != nil && !tt.wantErr {
+				if out != *tt.wantResp {
+					t.Errorf("DoJSON() response = %+v, want %+v", out, *tt.wantResp)
+				}
+			}
+
+			// Validate request if custom validation provided
+			if tt.validateReq != nil {
+				if mt, ok := transport.(*mockTransport); ok {
+					tt.validateReq(t, mt)
+				}
+			}
+		})
 	}
 }
 
 func TestDoJSON_MarshalError(t *testing.T) {
+	// This test is separate because it uses an unmarshalable type
 	opts := NewRequestOptions()
 
 	// Channels cannot be marshaled to JSON
@@ -71,112 +222,8 @@ func TestDoJSON_MarshalError(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected marshal error, got nil")
 	}
-}
 
-func TestDoJSON_TransportError(t *testing.T) {
-	mt := &mockTransport{
-		Err: errors.New("network down"),
-	}
-
-	opts := NewRequestOptions().With(func(o *RequestOptions) {
-		o.Transport = mt
-	})
-
-	_, err := DoJSON[struct{}, struct{}](
-		opts,
-		http.MethodGet,
-		"/test",
-		struct{}{},
-	)
-
-	if err == nil {
-		t.Fatal("expected transport error, got nil")
-	}
-}
-
-func TestDoJSON_InvalidJSONResponse(t *testing.T) {
-	mt := newMockTransport(200, `{not valid json}`, nil)
-
-	opts := NewRequestOptions().With(func(o *RequestOptions) {
-		o.Transport = mt
-	})
-
-	_, err := DoJSON[struct{}, struct{}](
-		opts,
-		http.MethodGet,
-		"/test",
-		struct{}{},
-	)
-
-	if err == nil {
-		t.Fatal("expected JSON decode error, got nil")
-	}
-}
-
-func TestDoJSON_EmptyBody(t *testing.T) {
-	mt := newMockTransport(200, ``, nil)
-
-	opts := NewRequestOptions().With(func(o *RequestOptions) {
-		o.Transport = mt
-	})
-
-	_, err := DoJSON[struct{}, struct{}](
-		opts,
-		http.MethodGet,
-		"/test",
-		struct{}{},
-	)
-
-	if err == nil {
-		t.Fatal("expected decode error on empty body")
-	}
-}
-
-func TestDoJSON_SetsContentType(t *testing.T) {
-	mt := newMockTransport(200, `{}`, nil)
-
-	opts := NewRequestOptions().With(func(o *RequestOptions) {
-		o.Transport = mt
-	})
-
-	_, err := DoJSON[struct{}, struct{}](
-		opts,
-		http.MethodPost,
-		"/test",
-		struct{}{},
-	)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	if got := mt.LastRequest.Header.Get("Content-Type"); got != "application/json" {
-		t.Fatalf("unexpected Content-Type: %q", got)
-	}
-}
-
-func TestDoJSON_ReturnsZeroValueOnError(t *testing.T) {
-	ft := newMockTransport(500, `boom`, nil)
-
-	opts := NewRequestOptions().With(func(o *RequestOptions) {
-		o.Transport = ft
-	})
-
-	type resp struct {
-		Value string
-	}
-
-	out, err := DoJSON[struct{}, resp](
-		opts,
-		http.MethodGet,
-		"/test",
-		struct{}{},
-	)
-
-	if err == nil {
-		t.Fatal("expected error")
-	}
-
-	if out != (resp{}) {
-		t.Fatalf("expected zero value response, got %+v", out)
+	if !strings.Contains(err.Error(), "failed to marshal request body") {
+		t.Errorf("expected marshal error message, got: %v", err)
 	}
 }

@@ -2,6 +2,7 @@ package request
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"net/http"
 )
@@ -24,10 +25,14 @@ func Do(
 		body,
 	)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create HTTP request: %w", err)
 	}
 
+	// Set standard headers
+	req.Header.Set("User-Agent", opts.UserAgent)
 	req.Header.Set("Authorization", "Bearer "+opts.Token)
+
+	// Set custom headers (can override defaults if needed)
 	for k, v := range headers {
 		req.Header.Set(k, v)
 	}

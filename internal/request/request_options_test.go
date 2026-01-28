@@ -2,54 +2,152 @@ package request
 
 import (
 	"testing"
+
+	"github.com/Kardbord/hfapigo/v4/internal/version"
 )
 
-func TestRequestOptions_With_IsImmutable(t *testing.T) {
-	orig := NewRequestOptions()
-
-	updated := orig.With(func(o *RequestOptions) {
-		o.Token = "secret"
-	})
-
-	if orig.Token != "" {
-		t.Fatalf("expected original Token to be empty, got %q", orig.Token)
+func TestRequestOptions_With(t *testing.T) {
+	tests := []struct {
+		name     string
+		initial  RequestOptions
+		options  []RequestOption
+		validate func(t *testing.T, orig, updated RequestOptions)
+	}{
+		{
+			name:    "is immutable",
+			initial: NewRequestOptions(),
+			options: []RequestOption{
+				func(o *RequestOptions) { o.Token = "secret" },
+			},
+			validate: func(t *testing.T, orig, updated RequestOptions) {
+				if orig.Token != "" {
+					t.Errorf("expected original Token to be empty, got %q", orig.Token)
+				}
+				if updated.Token != "secret" {
+					t.Errorf("expected updated Token to be 'secret', got %q", updated.Token)
+				}
+			},
+		},
+		{
+			name:    "duplicate options - last wins",
+			initial: NewRequestOptions(),
+			options: []RequestOption{
+				func(o *RequestOptions) { o.Token = "first" },
+				func(o *RequestOptions) { o.Token = "second" },
+			},
+			validate: func(t *testing.T, orig, updated RequestOptions) {
+				if updated.Token != "second" {
+					t.Errorf("expected last option to win, got %q", updated.Token)
+				}
+			},
+		},
+		{
+			name:    "multiple fields",
+			initial: NewRequestOptions(),
+			options: []RequestOption{
+				func(o *RequestOptions) { o.Token = "token123" },
+				func(o *RequestOptions) { o.Model = "llama-3" },
+				func(o *RequestOptions) { o.Provider = "aws" },
+				func(o *RequestOptions) { o.UserAgent = "myapp/1.2.3" },
+			},
+			validate: func(t *testing.T, orig, updated RequestOptions) {
+				if updated.Token != "token123" {
+					t.Errorf("expected Token 'token123', got %q", updated.Token)
+				}
+				if updated.Model != "llama-3" {
+					t.Errorf("expected Model 'llama-3', got %q", updated.Model)
+				}
+				if updated.Provider != "aws" {
+					t.Errorf("expected Provider 'aws', got %q", updated.Provider)
+				}
+				if updated.UserAgent != "myapp/1.2.3" {
+					t.Errorf("expected UserAgent 'myapp/1.2.3, got %q", updated.UserAgent)
+				}
+			},
+		},
 	}
 
-	if updated.Token != "secret" {
-		t.Fatalf("expected updated Token to be set, got %q", updated.Token)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			orig := tt.initial
+			updated := orig.With(tt.options...)
+
+			if tt.validate != nil {
+				tt.validate(t, orig, updated)
+			}
+		})
 	}
 }
 
-func TestNewRequestOptions_Defaults(t *testing.T) {
-	opts := NewRequestOptions()
+func TestNewRequestOptions(t *testing.T) {
+	tests := []struct {
+		name     string
+		validate func(t *testing.T, opts RequestOptions)
+	}{
+		{
+			name: "has default context",
+			validate: func(t *testing.T, opts RequestOptions) {
+				if opts.Ctx == nil {
+					t.Error("expected default context, got nil")
+				}
+			},
+		},
+		{
+			name: "has default BaseURL",
+			validate: func(t *testing.T, opts RequestOptions) {
+				if opts.BaseURL != DefaultBaseURL {
+					t.Errorf("expected BaseURL %q, got %q", DefaultBaseURL, opts.BaseURL)
+				}
+			},
+		},
+		{
+			name: "has default Token",
+			validate: func(t *testing.T, opts RequestOptions) {
+				if opts.Token != DefaultToken {
+					t.Errorf("expected Token %q, got %q", DefaultToken, opts.Token)
+				}
+			},
+		},
+		{
+			name: "has default Model",
+			validate: func(t *testing.T, opts RequestOptions) {
+				if opts.Model != DefaultModel {
+					t.Errorf("expected Model %q, got %q", DefaultModel, opts.Model)
+				}
+			},
+		},
+		{
+			name: "has default Provider",
+			validate: func(t *testing.T, opts RequestOptions) {
+				if opts.Provider != DefaultProvider {
+					t.Errorf("expected Provider %q, got %q", DefaultProvider, opts.Provider)
+				}
+			},
+		},
+		{
+			name: "has default UserAgent",
+			validate: func(t *testing.T, opts RequestOptions) {
+				if opts.UserAgent != version.UserAgent() {
+					t.Errorf("expected UserAgent %q, got %q", version.UserAgent(), opts.UserAgent)
+				}
+			},
+		},
+		{
+			name: "has default Transport",
+			validate: func(t *testing.T, opts RequestOptions) {
+				if opts.Transport == nil {
+					t.Error("expected default transport, got nil")
+				}
+			},
+		},
+	}
 
-	if opts.Ctx == nil {
-		t.Fatal("expected default context")
-	}
-	if opts.BaseURL != DefaultBaseURL {
-		t.Fatalf("unexpected BaseURL: %q", opts.BaseURL)
-	}
-	if opts.Token != DefaultToken {
-		t.Fatalf("unexpected Token: %q", opts.Token)
-	}
-	if opts.Model != DefaultModel {
-		t.Fatalf("unexpected Model: %q", opts.Model)
-	}
-	if opts.Provider != DefaultProvider {
-		t.Fatalf("unexpected Provider: %q", opts.Provider)
-	}
-	if opts.Transport == nil {
-		t.Fatal("expected default transport")
-	}
-}
-
-func TestRequestOptions_With_DuplicateOptions(t *testing.T) {
-	opts := NewRequestOptions().With(
-		func(o *RequestOptions) { o.Token = "first" },
-		func(o *RequestOptions) { o.Token = "second" },
-	)
-
-	if opts.Token != "second" {
-		t.Fatalf("expected last option to win, got %q", opts.Token)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			opts := NewRequestOptions()
+			if tt.validate != nil {
+				tt.validate(t, opts)
+			}
+		})
 	}
 }

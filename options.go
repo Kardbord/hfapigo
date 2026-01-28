@@ -2,9 +2,11 @@ package hfapigo
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	"github.com/Kardbord/hfapigo/v4/internal/request"
+	"github.com/Kardbord/hfapigo/v4/internal/version"
 )
 
 // WithBaseURL returns a RequestOption that sets the base URL for API requests.
@@ -41,4 +43,8 @@ func WithHTTPClient(c *http.Client) request.RequestOption {
 // The context can be used for cancellation, timeouts, and passing request-scoped values.
 func WithContext(ctx context.Context) request.RequestOption {
 	return func(o *request.RequestOptions) { o.Ctx = ctx }
+}
+
+func WithUserAgentSuffix(s string) request.RequestOption {
+	return func(o *request.RequestOptions) { o.UserAgent = fmt.Sprintf("%s %s", version.UserAgent(), s) }
 }

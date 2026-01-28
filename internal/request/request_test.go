@@ -4,121 +4,194 @@ import (
 	"context"
 	"io"
 	"net/http"
+	"strings"
 	"testing"
+
+	"github.com/Kardbord/hfapigo/v4/internal/version"
 )
 
-func TestDo_BuildsRequestCorrectly(t *testing.T) {
-	mt := newMockTransport(200, `{}`, nil)
-
-	opts := NewRequestOptions().With(
-		func(o *RequestOptions) {
-			o.BaseURL = "https://example.com"
-			o.Token = "abc123"
-			o.Transport = mt
+func TestDo(t *testing.T) {
+	tests := []struct {
+		name        string
+		setupOpts   func() RequestOptions
+		method      string
+		path        string
+		body        io.Reader
+		headers     map[string]string
+		wantErr     bool
+		validateReq func(t *testing.T, req *http.Request)
+		validateErr func(t *testing.T, err error)
+	}{
+		{
+			name: "builds request correctly",
+			setupOpts: func() RequestOptions {
+				mt := newMockTransport(200, `{}`, nil)
+				return NewRequestOptions().With(func(o *RequestOptions) {
+					o.BaseURL = "https://example.com"
+					o.Token = "abc123"
+					o.Transport = mt
+				})
+			},
+			method:  http.MethodGet,
+			path:    "/test",
+			body:    nil,
+			headers: map[string]string{"X-Test": "yes"},
+			wantErr: false,
+			validateReq: func(t *testing.T, req *http.Request) {
+				if req.URL.String() != "https://example.com/test" {
+					t.Errorf("unexpected URL: %s", req.URL)
+				}
+				if got := req.Header.Get("Authorization"); got != "Bearer abc123" {
+					t.Errorf("unexpected Authorization header: %q", got)
+				}
+				if got := req.Header.Get("X-Test"); got != "yes" {
+					t.Errorf("unexpected X-Test header: %q", got)
+				}
+				if got := req.Header.Get("User-Agent"); got != version.UserAgent() {
+					t.Errorf("unexpected User-Agent header: %q, want %q", got, version.UserAgent())
+				}
+			},
 		},
-	)
-
-	_, err := Do(
-		opts,
-		http.MethodGet,
-		"/test",
-		nil,
-		map[string]string{"X-Test": "yes"},
-	)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	req := mt.LastRequest
-	if req == nil {
-		t.Fatal("expected request to be sent")
-	}
-
-	if req.URL.String() != "https://example.com/test" {
-		t.Fatalf("unexpected URL: %s", req.URL)
-	}
-
-	if got := req.Header.Get("Authorization"); got != "Bearer abc123" {
-		t.Fatalf("unexpected Authorization header: %q", got)
-	}
-
-	if got := req.Header.Get("X-Test"); got != "yes" {
-		t.Fatalf("unexpected X-Test header: %q", got)
-	}
-}
-
-func TestDo_ContextCanceled(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel()
-
-	mt := newMockTransport(200, `{}`, nil)
-
-	opts := NewRequestOptions().With(func(o *RequestOptions) {
-		o.Ctx = ctx
-		o.Transport = mt
-	})
-
-	_, err := Do(
-		opts,
-		http.MethodGet,
-		"/test",
-		nil,
-		nil,
-	)
-
-	if err == nil {
-		t.Fatal("expected context cancellation error")
-	}
-}
-
-func TestDoBytes_BodyIsCorrect(t *testing.T) {
-	mt := newMockTransport(200, `{}`, nil)
-
-	opts := NewRequestOptions().With(func(o *RequestOptions) {
-		o.Transport = mt
-	})
-
-	data := []byte("hello world")
-
-	_, err := DoBytes(
-		opts,
-		http.MethodPost,
-		"/test",
-		data,
-		nil,
-	)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	body, _ := io.ReadAll(mt.LastRequest.Body)
-	if string(body) != "hello world" {
-		t.Fatalf("unexpected body: %q", string(body))
-	}
-}
-
-func TestDo_HeaderOverride(t *testing.T) {
-	mt := newMockTransport(200, `{}`, nil)
-
-	opts := NewRequestOptions().With(func(o *RequestOptions) {
-		o.Token = "default"
-		o.Transport = mt
-	})
-
-	_, err := Do(
-		opts,
-		http.MethodGet,
-		"/test",
-		nil,
-		map[string]string{
-			"Authorization": "Bearer override",
+		{
+			name: "context canceled",
+			setupOpts: func() RequestOptions {
+				ctx, cancel := context.WithCancel(context.Background())
+				cancel()
+				mt := newMockTransport(200, `{}`, nil)
+				return NewRequestOptions().With(func(o *RequestOptions) {
+					o.Ctx = ctx
+					o.Transport = mt
+				})
+			},
+			method:  http.MethodGet,
+			path:    "/test",
+			body:    nil,
+			headers: nil,
+			wantErr: true,
+			validateErr: func(t *testing.T, err error) {
+				if err == nil {
+					t.Fatal("expected context cancellation error")
+				}
+			},
 		},
-	)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+		{
+			name: "header override",
+			setupOpts: func() RequestOptions {
+				mt := newMockTransport(200, `{}`, nil)
+				return NewRequestOptions().With(func(o *RequestOptions) {
+					o.Token = "default"
+					o.Transport = mt
+				})
+			},
+			method:  http.MethodGet,
+			path:    "/test",
+			body:    nil,
+			headers: map[string]string{"Authorization": "Bearer override"},
+			wantErr: false,
+			validateReq: func(t *testing.T, req *http.Request) {
+				if got := req.Header.Get("Authorization"); got != "Bearer override" {
+					t.Errorf("expected override auth header, got %q", got)
+				}
+			},
+		},
 	}
 
-	if got := mt.LastRequest.Header.Get("Authorization"); got != "Bearer override" {
-		t.Fatalf("expected override auth header, got %q", got)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			opts := tt.setupOpts()
+
+			resp, err := Do(opts, tt.method, tt.path, tt.body, tt.headers)
+
+			// Check error expectation
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("Do() error = %v, wantErr %v", err, tt.wantErr)
+			}
+
+			// Validate error if custom validation provided
+			if tt.validateErr != nil {
+				tt.validateErr(t, err)
+			}
+
+			// Validate request if no error and validation provided
+			if !tt.wantErr && tt.validateReq != nil {
+				// Get the mock transport to access the last request
+				if mt, ok := opts.Transport.(*mockTransport); ok && mt.LastRequest != nil {
+					tt.validateReq(t, mt.LastRequest)
+				} else {
+					t.Fatal("expected mock transport with LastRequest")
+				}
+			}
+
+			// Close response body if present
+			if resp != nil {
+				resp.Body.Close()
+			}
+		})
+	}
+}
+
+func TestDoBytes(t *testing.T) {
+	tests := []struct {
+		name        string
+		data        []byte
+		validateReq func(t *testing.T, req *http.Request)
+	}{
+		{
+			name: "sends body correctly",
+			data: []byte("hello world"),
+			validateReq: func(t *testing.T, req *http.Request) {
+				body, err := io.ReadAll(req.Body)
+				if err != nil {
+					t.Fatalf("failed to read request body: %v", err)
+				}
+				if string(body) != "hello world" {
+					t.Errorf("unexpected body: %q, want %q", string(body), "hello world")
+				}
+			},
+		},
+		{
+			name: "sends empty body",
+			data: []byte(""),
+			validateReq: func(t *testing.T, req *http.Request) {
+				body, err := io.ReadAll(req.Body)
+				if err != nil {
+					t.Fatalf("failed to read request body: %v", err)
+				}
+				if string(body) != "" {
+					t.Errorf("unexpected body: %q, want empty", string(body))
+				}
+			},
+		},
+		{
+			name: "sends JSON data",
+			data: []byte(`{"key":"value"}`),
+			validateReq: func(t *testing.T, req *http.Request) {
+				body, err := io.ReadAll(req.Body)
+				if err != nil {
+					t.Fatalf("failed to read request body: %v", err)
+				}
+				if !strings.Contains(string(body), "key") {
+					t.Errorf("unexpected body: %q", string(body))
+				}
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mt := newMockTransport(200, `{}`, nil)
+			opts := NewRequestOptions().With(func(o *RequestOptions) {
+				o.Transport = mt
+			})
+
+			_, err := DoBytes(opts, http.MethodPost, "/test", tt.data, nil)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			if tt.validateReq != nil && mt.LastRequest != nil {
+				tt.validateReq(t, mt.LastRequest)
+			}
+		})
 	}
 }
