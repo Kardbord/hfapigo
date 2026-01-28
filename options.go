@@ -6,7 +6,6 @@ import (
 	"net/http"
 
 	"github.com/Kardbord/hfapigo/v4/internal/request"
-	"github.com/Kardbord/hfapigo/v4/internal/version"
 )
 
 // WithBaseURL returns a RequestOption that sets the base URL for API requests.
@@ -46,5 +45,5 @@ func WithContext(ctx context.Context) request.RequestOption {
 }
 
 func WithUserAgentSuffix(s string) request.RequestOption {
-	return func(o *request.RequestOptions) { o.UserAgent = fmt.Sprintf("%s %s", version.UserAgent(), s) }
+	return func(o *request.RequestOptions) { o.UserAgent = fmt.Sprintf("%s %s", UserAgentPrefix(), s) }
 }
