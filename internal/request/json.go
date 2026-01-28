@@ -6,6 +6,17 @@ import (
 	"io"
 )
 
+// DoJSON performs an HTTP request with a JSON request body and expects a JSON response.
+// It marshals the request body to JSON, sends the request, and unmarshals the response
+// into the specified response type. The function uses Go generics to provide type-safe
+// request and response handling.
+//
+// Type parameters:
+//   - TReq: The type of the request body
+//   - TResp: The type of the response body
+//
+// Returns an error if JSON marshaling/unmarshaling fails, the HTTP request fails,
+// or the response status code is 300 or greater.
 func DoJSON[TReq any, TResp any](
 	opts RequestOptions,
 	method string,

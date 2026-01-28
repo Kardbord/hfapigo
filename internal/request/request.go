@@ -6,6 +6,9 @@ import (
 	"net/http"
 )
 
+// Do performs an HTTP request with the provided options and returns the response.
+// It creates a new HTTP request with the given method, path, and body, adds authorization
+// and custom headers, and executes the request using the configured transport.
 func Do(
 	opts RequestOptions,
 	method string,
@@ -32,6 +35,8 @@ func Do(
 	return opts.Transport.Do(req)
 }
 
+// DoBytes performs an HTTP request with a byte slice body.
+// It is a convenience wrapper around Do that converts the byte slice to an io.Reader.
 func DoBytes(
 	opts RequestOptions,
 	method string,
