@@ -15,7 +15,7 @@ func TestAPIError_Error(t *testing.T) {
 		{
 			name: "basic error message",
 			err: &APIError{
-				StatusCode: 400,
+				StatusCode: http.StatusBadRequest,
 				Message:    "Bad Request",
 			},
 			wantSubstr: []string{"400", "Bad Request"},
@@ -23,19 +23,17 @@ func TestAPIError_Error(t *testing.T) {
 		{
 			name: "error with request ID",
 			err: &APIError{
-				StatusCode: 500,
+				StatusCode: http.StatusInternalServerError,
 				Message:    "Internal Server Error",
-				RequestID:  "req-12345",
+				RequestID:  "test-req-12345",
 			},
-			wantSubstr: []string{"500", "Internal Server Error", "req-12345"},
+			wantSubstr: []string{"500", "Internal Server Error", "test-req-12345"},
 		},
 		{
 			name: "error with URL and method",
 			err: &APIError{
-				StatusCode: 404,
+				StatusCode: http.StatusNotFound,
 				Message:    "Not Found",
-				Method:     "GET",
-				URL:        "https://api.example.com/test",
 			},
 			wantSubstr: []string{"404", "Not Found"},
 		},
@@ -59,12 +57,12 @@ func TestAPIError_IsClientError(t *testing.T) {
 		statusCode int
 		want       bool
 	}{
-		{"400 is client error", 400, true},
-		{"404 is client error", 404, true},
+		{"400 is client error", http.StatusBadRequest, true},
+		{"404 is client error", http.StatusNotFound, true},
 		{"499 is client error", 499, true},
-		{"200 is not client error", 200, false},
-		{"500 is not client error", 500, false},
-		{"300 is not client error", 300, false},
+		{"200 is not client error", http.StatusOK, false},
+		{"500 is not client error", http.StatusInternalServerError, false},
+		{"300 is not client error", http.StatusMultipleChoices, false},
 	}
 
 	for _, tt := range tests {
@@ -83,11 +81,11 @@ func TestAPIError_IsServerError(t *testing.T) {
 		statusCode int
 		want       bool
 	}{
-		{"500 is server error", 500, true},
-		{"503 is server error", 503, true},
+		{"500 is server error", http.StatusInternalServerError, true},
+		{"503 is server error", http.StatusServiceUnavailable, true},
 		{"599 is server error", 599, true},
-		{"400 is not server error", 400, false},
-		{"200 is not server error", 200, false},
+		{"400 is not server error", http.StatusBadRequest, false},
+		{"200 is not server error", http.StatusOK, false},
 		{"600 is not server error", 600, false},
 	}
 
@@ -108,9 +106,9 @@ func TestAPIError_IsAuthenticationError(t *testing.T) {
 		want       bool
 	}{
 		{"401 is authentication error", http.StatusUnauthorized, true},
-		{"400 is not authentication error", 400, false},
-		{"403 is not authentication error", 403, false},
-		{"500 is not authentication error", 500, false},
+		{"400 is not authentication error", http.StatusBadRequest, false},
+		{"403 is not authentication error", http.StatusForbidden, false},
+		{"500 is not authentication error", http.StatusInternalServerError, false},
 	}
 
 	for _, tt := range tests {
@@ -130,8 +128,8 @@ func TestAPIError_IsRateLimitError(t *testing.T) {
 		want       bool
 	}{
 		{"429 is rate limit error", http.StatusTooManyRequests, true},
-		{"400 is not rate limit error", 400, false},
-		{"500 is not rate limit error", 500, false},
+		{"400 is not rate limit error", http.StatusBadRequest, false},
+		{"500 is not rate limit error", http.StatusInternalServerError, false},
 	}
 
 	for _, tt := range tests {

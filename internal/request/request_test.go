@@ -25,7 +25,7 @@ func TestDo(t *testing.T) {
 		{
 			name: "builds request correctly",
 			setupOpts: func() RequestOptions {
-				mt := newMockTransport(200, `{}`, nil)
+				mt := newMockTransport(http.StatusOK, `{}`, nil)
 				return NewRequestOptions().With(func(o *RequestOptions) {
 					o.BaseURL = "https://example.com"
 					o.Token = "abc123"
@@ -57,7 +57,7 @@ func TestDo(t *testing.T) {
 			setupOpts: func() RequestOptions {
 				ctx, cancel := context.WithCancel(context.Background())
 				cancel()
-				mt := newMockTransport(200, `{}`, nil)
+				mt := newMockTransport(http.StatusOK, `{}`, nil)
 				return NewRequestOptions().With(func(o *RequestOptions) {
 					o.Ctx = ctx
 					o.Transport = mt
@@ -77,7 +77,7 @@ func TestDo(t *testing.T) {
 		{
 			name: "header override",
 			setupOpts: func() RequestOptions {
-				mt := newMockTransport(200, `{}`, nil)
+				mt := newMockTransport(http.StatusOK, `{}`, nil)
 				return NewRequestOptions().With(func(o *RequestOptions) {
 					o.Token = "default"
 					o.Transport = mt
@@ -179,7 +179,7 @@ func TestDoBytes(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mt := newMockTransport(200, `{}`, nil)
+			mt := newMockTransport(http.StatusOK, `{}`, nil)
 			opts := NewRequestOptions().With(func(o *RequestOptions) {
 				o.Transport = mt
 			})

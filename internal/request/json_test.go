@@ -31,7 +31,7 @@ func TestDoJSON(t *testing.T) {
 		{
 			name: "successful request",
 			setupTransport: func() Transport {
-				return newMockTransport(200, `{"generated_text":"hello"}`, nil)
+				return newMockTransport(http.StatusOK, `{"generated_text":"hello"}`, nil)
 			},
 			method:  http.MethodPost,
 			path:    "/chat",
@@ -44,7 +44,7 @@ func TestDoJSON(t *testing.T) {
 		{
 			name: "401 error status",
 			setupTransport: func() Transport {
-				return newMockTransport(401, `unauthorized`, nil)
+				return newMockTransport(http.StatusUnauthorized, `unauthorized`, nil)
 			},
 			method:  http.MethodGet,
 			path:    "/fail",
@@ -56,7 +56,7 @@ func TestDoJSON(t *testing.T) {
 					t.Errorf("expected *errors.APIError, got %T", err)
 					return
 				}
-				if apiErr.StatusCode != 401 {
+				if apiErr.StatusCode != http.StatusUnauthorized {
 					t.Errorf("expected status code 401, got %d", apiErr.StatusCode)
 				}
 				if !apiErr.IsAuthenticationError() {
@@ -67,7 +67,7 @@ func TestDoJSON(t *testing.T) {
 		{
 			name: "500 error status",
 			setupTransport: func() Transport {
-				return newMockTransport(500, `internal server error`, nil)
+				return newMockTransport(http.StatusInternalServerError, `internal server error`, nil)
 			},
 			method:  http.MethodGet,
 			path:    "/fail",
@@ -79,7 +79,7 @@ func TestDoJSON(t *testing.T) {
 					t.Errorf("expected *errors.APIError, got %T", err)
 					return
 				}
-				if apiErr.StatusCode != 500 {
+				if apiErr.StatusCode != http.StatusInternalServerError {
 					t.Errorf("expected status code 500, got %d", apiErr.StatusCode)
 				}
 				if !apiErr.IsServerError() {
@@ -107,7 +107,7 @@ func TestDoJSON(t *testing.T) {
 		{
 			name: "invalid JSON response",
 			setupTransport: func() Transport {
-				return newMockTransport(200, `{not valid json}`, nil)
+				return newMockTransport(http.StatusOK, `{not valid json}`, nil)
 			},
 			method:  http.MethodGet,
 			path:    "/test",
@@ -122,7 +122,7 @@ func TestDoJSON(t *testing.T) {
 		{
 			name: "empty response body",
 			setupTransport: func() Transport {
-				return newMockTransport(200, ``, nil)
+				return newMockTransport(http.StatusOK, ``, nil)
 			},
 			method:  http.MethodGet,
 			path:    "/test",
@@ -137,7 +137,7 @@ func TestDoJSON(t *testing.T) {
 		{
 			name: "sets Content-Type header",
 			setupTransport: func() Transport {
-				return newMockTransport(200, `{}`, nil)
+				return newMockTransport(http.StatusOK, `{}`, nil)
 			},
 			method:  http.MethodPost,
 			path:    "/test",
@@ -152,7 +152,7 @@ func TestDoJSON(t *testing.T) {
 		{
 			name: "returns zero value on error",
 			setupTransport: func() Transport {
-				return newMockTransport(500, `boom`, nil)
+				return newMockTransport(http.StatusInternalServerError, `boom`, nil)
 			},
 			method:   http.MethodGet,
 			path:     "/test",

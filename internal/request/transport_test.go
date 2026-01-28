@@ -19,7 +19,7 @@ func TestHTTPTransport_Delegates(t *testing.T) {
 		Transport: roundTripperFunc(func(*http.Request) (*http.Response, error) {
 			called = true
 			return &http.Response{
-				StatusCode: 200,
+				StatusCode: http.StatusOK,
 				Body:       io.NopCloser(bytes.NewBufferString("{}")),
 				Header:     make(http.Header),
 			}, nil
