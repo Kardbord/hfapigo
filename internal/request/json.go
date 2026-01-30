@@ -3,7 +3,6 @@ package request
 import (
 	"encoding/json"
 	stderrors "errors"
-	"fmt"
 	"io"
 
 	"github.com/Kardbord/hfapigo/v4/internal/errors"
@@ -18,9 +17,9 @@ import (
 //   - TReq: The type of the request body
 //   - TResp: The type of the response body
 //
-// Returns an error if JSON marshaling/unmarshaling fails, the HTTP request fails,
-// or the response status code is 400 or greater. For HTTP errors, returns an *errors.APIError
-// which includes the status code, response body, and other metadata.
+// Returns an error if JSON marshaling/unmarshaling fails or the HTTP request fails.
+// For HTTP errors, Do returns an *errors.APIError which includes the status code,
+// response body, and other metadata.
 func DoJSON[TReq any, TResp any](
 	opts RequestOptions,
 	method string,
@@ -32,7 +31,11 @@ func DoJSON[TReq any, TResp any](
 
 	buf, err := json.Marshal(reqBody)
 	if err != nil {
-		return zero, fmt.Errorf("failed to marshal request body: %w", err)
+		return zero, &errors.SDKError{
+			Kind:    errors.SDKErrorKindSerialization,
+			Message: "failed to marshal request body",
+			Err:     err,
+		}
 	}
 
 	resp, err := DoBytes(
@@ -43,38 +46,20 @@ func DoJSON[TReq any, TResp any](
 		map[string]string{"Content-Type": "application/json"},
 	)
 	if err != nil {
-		return zero, fmt.Errorf("failed to execute request to %s %s: %w", method, path, err)
+		return zero, err
 	}
 	defer resp.Body.Close()
-
-	// Check for HTTP error status codes (4xx and 5xx)
-	if resp.StatusCode >= 400 {
-		b, readErr := io.ReadAll(resp.Body)
-		if readErr != nil {
-			return zero, &errors.APIError{
-				StatusCode: resp.StatusCode,
-				Message:    fmt.Sprintf("failed to read error response body: %v", readErr),
-				Method:     method,
-				URL:        opts.BaseURL + path,
-				RequestID:  resp.Header.Get("X-Request-ID"),
-			}
-		}
-		return zero, &errors.APIError{
-			StatusCode: resp.StatusCode,
-			Message:    string(b),
-			Body:       b,
-			Method:     method,
-			URL:        opts.BaseURL + path,
-			RequestID:  resp.Header.Get("X-Request-ID"),
-		}
-	}
 
 	var out TResp
 	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
 		if stderrors.Is(err, io.EOF) {
 			return zero, nil
 		}
-		return zero, fmt.Errorf("failed to decode response body: %w", err)
+		return zero, &errors.SDKError{
+			Kind:    errors.SDKErrorKindSerialization,
+			Message: "failed to decode response body",
+			Err:     err,
+		}
 	}
 
 	return out, nil

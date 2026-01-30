@@ -108,16 +108,16 @@ func TestDoJSON(t *testing.T) {
 			reqBody: req{},
 			wantErr: true,
 			validateErr: func(t *testing.T, err error) {
-				// Verify that we got an error - the fact that the transport
-				// error was propagated is what matters, not the exact message
 				if err == nil {
 					t.Fatal("expected error from transport")
 				}
 
-				// Verify it's not wrapped as an APIError (since this is a transport failure)
-				var apiErr *internalErrors.APIError
-				if errors.As(err, &apiErr) {
-					t.Error("expected raw transport error, not APIError")
+				var sdkErr *internalErrors.SDKError
+				if !errors.As(err, &sdkErr) {
+					t.Fatalf("expected SDKError, got %T", err)
+				}
+				if sdkErr.Kind != internalErrors.SDKErrorKindTransport {
+					t.Errorf("expected transport SDKError, got %q", sdkErr.Kind)
 				}
 			},
 		},
@@ -131,15 +131,16 @@ func TestDoJSON(t *testing.T) {
 			reqBody: req{},
 			wantErr: true,
 			validateErr: func(t *testing.T, err error) {
-				// Verify we got an error when decoding invalid JSON
 				if err == nil {
 					t.Fatal("expected error when decoding invalid JSON")
 				}
 
-				// Verify it's not an APIError since status was 200
-				var apiErr *internalErrors.APIError
-				if errors.As(err, &apiErr) {
-					t.Error("expected JSON decode error, not APIError for 200 status")
+				var sdkErr *internalErrors.SDKError
+				if !errors.As(err, &sdkErr) {
+					t.Fatalf("expected SDKError, got %T", err)
+				}
+				if sdkErr.Kind != internalErrors.SDKErrorKindSerialization {
+					t.Errorf("expected serialization SDKError, got %q", sdkErr.Kind)
 				}
 			},
 		},
@@ -241,5 +242,12 @@ func TestDoJSON_MarshalError(t *testing.T) {
 
 	if err == nil {
 		t.Fatal("expected marshal error, got nil")
+	}
+	var sdkErr *internalErrors.SDKError
+	if !errors.As(err, &sdkErr) {
+		t.Fatalf("expected SDKError, got %T", err)
+	}
+	if sdkErr.Kind != internalErrors.SDKErrorKindSerialization {
+		t.Fatalf("expected serialization SDKError, got %q", sdkErr.Kind)
 	}
 }

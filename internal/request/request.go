@@ -7,11 +7,14 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+
+	"github.com/Kardbord/hfapigo/v4/internal/errors"
 )
 
 // Do performs an HTTP request with the provided options and returns the response.
 // It creates a new HTTP request with the given method, path, and body, adds authorization
 // and custom headers, and executes the request using the configured transport.
+// For HTTP status codes >= 400, it returns an *errors.APIError.
 func Do(
 	opts RequestOptions,
 	method string,
@@ -27,7 +30,11 @@ func Do(
 
 	reqURL, err := url.JoinPath(opts.BaseURL, path)
 	if err != nil {
-		return nil, fmt.Errorf("failed to join base URL %q with path %q: %w", opts.BaseURL, path, err)
+		return nil, &errors.SDKError{
+			Kind:    errors.SDKErrorKindConfiguration,
+			Message: fmt.Sprintf("failed to join base URL %q with path %q", opts.BaseURL, path),
+			Err:     err,
+		}
 	}
 	req, err := http.NewRequestWithContext(
 		ctx,
@@ -36,7 +43,11 @@ func Do(
 		body,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create HTTP request: %w", err)
+		return nil, &errors.SDKError{
+			Kind:    errors.SDKErrorKindInternal,
+			Message: "failed to create HTTP request",
+			Err:     err,
+		}
 	}
 
 	// Set standard headers
@@ -50,7 +61,36 @@ func Do(
 		req.Header.Set(k, v)
 	}
 
-	return opts.Transport.Do(req)
+	resp, err := opts.Transport.Do(req)
+	if err != nil {
+		return nil, &errors.SDKError{
+			Kind:    errors.SDKErrorKindTransport,
+			Message: "request failed",
+			Err:     err,
+		}
+	}
+
+	if resp.StatusCode >= 400 {
+		b, readErr := io.ReadAll(resp.Body)
+		_ = resp.Body.Close()
+		if readErr != nil {
+			return nil, &errors.SDKError{
+				Kind:    errors.SDKErrorKindInternal,
+				Message: "failed to read error response body",
+				Err:     readErr,
+			}
+		}
+		return nil, &errors.APIError{
+			StatusCode: resp.StatusCode,
+			Message:    string(b),
+			Body:       b,
+			Method:     method,
+			URL:        req.URL.String(),
+			RequestID:  resp.Header.Get("X-Request-ID"),
+		}
+	}
+
+	return resp, nil
 }
 
 // DoBytes performs an HTTP request with a byte slice body.

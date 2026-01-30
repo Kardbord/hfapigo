@@ -4,14 +4,24 @@ package request
 
 import (
 	"context"
+	"errors"
 	"io"
 	"net/http"
 	"net/url"
 	"strings"
 	"testing"
 
+	internalErrors "github.com/Kardbord/hfapigo/v4/internal/errors"
 	"github.com/Kardbord/hfapigo/v4/internal/version"
 )
+
+type errorReadCloser struct{}
+
+func (e errorReadCloser) Read([]byte) (int, error) {
+	return 0, errors.New("read failed")
+}
+
+func (e errorReadCloser) Close() error { return nil }
 
 func assertURL(t *testing.T, raw string, want *url.URL) {
 	t.Helper()
@@ -124,6 +134,32 @@ func TestDo(t *testing.T) {
 			},
 		},
 		{
+			name: "returns API error on non-2xx response",
+			setupOpts: func() RequestOptions {
+				mt := newMockTransport(http.StatusUnauthorized, `unauthorized`, nil)
+				return NewRequestOptions().With(func(o *RequestOptions) {
+					o.Transport = mt
+				})
+			},
+			method:  http.MethodGet,
+			path:    "/test",
+			body:    nil,
+			headers: nil,
+			wantErr: true,
+			validateErr: func(t *testing.T, err error) {
+				var apiErr *internalErrors.APIError
+				if !errors.As(err, &apiErr) {
+					t.Fatalf("expected APIError, got %T", err)
+				}
+				if apiErr.StatusCode != http.StatusUnauthorized {
+					t.Errorf("expected status 401, got %d", apiErr.StatusCode)
+				}
+				if apiErr.Message == "" {
+					t.Errorf("expected non-empty API error message")
+				}
+			},
+		},
+		{
 			name: "header override",
 			setupOpts: func() RequestOptions {
 				mt := newMockTransport(http.StatusOK, `{}`, nil)
@@ -140,6 +176,82 @@ func TestDo(t *testing.T) {
 			validateReq: func(t *testing.T, req *http.Request) {
 				if got := req.Header.Get("Authorization"); got != "Bearer override" {
 					t.Errorf("expected override auth header, got %q", got)
+				}
+			},
+		},
+		{
+			name: "returns configuration SDKError on bad base URL",
+			setupOpts: func() RequestOptions {
+				mt := newMockTransport(http.StatusOK, `{}`, nil)
+				return NewRequestOptions().With(func(o *RequestOptions) {
+					o.BaseURL = "http://[::1"
+					o.Transport = mt
+				})
+			},
+			method:  http.MethodGet,
+			path:    "/test",
+			body:    nil,
+			headers: nil,
+			wantErr: true,
+			validateErr: func(t *testing.T, err error) {
+				var sdkErr *internalErrors.SDKError
+				if !errors.As(err, &sdkErr) {
+					t.Fatalf("expected SDKError, got %T", err)
+				}
+				if sdkErr.Kind != internalErrors.SDKErrorKindConfiguration {
+					t.Errorf("expected configuration SDKError, got %q", sdkErr.Kind)
+				}
+			},
+		},
+		{
+			name: "returns internal SDKError on invalid method",
+			setupOpts: func() RequestOptions {
+				mt := newMockTransport(http.StatusOK, `{}`, nil)
+				return NewRequestOptions().With(func(o *RequestOptions) {
+					o.Transport = mt
+				})
+			},
+			method:  "GET\n",
+			path:    "/test",
+			body:    nil,
+			headers: nil,
+			wantErr: true,
+			validateErr: func(t *testing.T, err error) {
+				var sdkErr *internalErrors.SDKError
+				if !errors.As(err, &sdkErr) {
+					t.Fatalf("expected SDKError, got %T", err)
+				}
+				if sdkErr.Kind != internalErrors.SDKErrorKindInternal {
+					t.Errorf("expected internal SDKError, got %q", sdkErr.Kind)
+				}
+			},
+		},
+		{
+			name: "returns internal SDKError when reading error response fails",
+			setupOpts: func() RequestOptions {
+				mt := &mockTransport{
+					Response: &http.Response{
+						StatusCode: http.StatusBadRequest,
+						Body:       errorReadCloser{},
+						Header:     make(http.Header),
+					},
+				}
+				return NewRequestOptions().With(func(o *RequestOptions) {
+					o.Transport = mt
+				})
+			},
+			method:  http.MethodGet,
+			path:    "/test",
+			body:    nil,
+			headers: nil,
+			wantErr: true,
+			validateErr: func(t *testing.T, err error) {
+				var sdkErr *internalErrors.SDKError
+				if !errors.As(err, &sdkErr) {
+					t.Fatalf("expected SDKError, got %T", err)
+				}
+				if sdkErr.Kind != internalErrors.SDKErrorKindInternal {
+					t.Errorf("expected internal SDKError, got %q", sdkErr.Kind)
 				}
 			},
 		},
