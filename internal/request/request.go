@@ -2,9 +2,11 @@ package request
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 )
 
 // Do performs an HTTP request with the provided options and returns the response.
@@ -18,10 +20,19 @@ func Do(
 	headers map[string]string,
 ) (*http.Response, error) {
 
+	ctx := opts.Ctx
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	reqURL, err := url.JoinPath(opts.BaseURL, path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to join base URL %q with path %q: %w", opts.BaseURL, path, err)
+	}
 	req, err := http.NewRequestWithContext(
-		opts.Ctx,
+		ctx,
 		method,
-		opts.BaseURL+path,
+		reqURL,
 		body,
 	)
 	if err != nil {
@@ -30,7 +41,9 @@ func Do(
 
 	// Set standard headers
 	req.Header.Set("User-Agent", opts.UserAgent)
-	req.Header.Set("Authorization", "Bearer "+opts.Token)
+	if opts.Token != "" {
+		req.Header.Set("Authorization", "Bearer "+opts.Token)
+	}
 
 	// Set custom headers (can override defaults if needed)
 	for k, v := range headers {

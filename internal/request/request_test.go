@@ -55,6 +55,26 @@ func TestDo(t *testing.T) {
 			},
 		},
 		{
+			name: "joins base URL path with relative path",
+			setupOpts: func() RequestOptions {
+				mt := newMockTransport(http.StatusOK, `{}`, nil)
+				return NewRequestOptions().With(func(o *RequestOptions) {
+					o.BaseURL = "https://example.com/api"
+					o.Transport = mt
+				})
+			},
+			method:  http.MethodGet,
+			path:    "v1/chat/completions",
+			body:    nil,
+			headers: nil,
+			wantErr: false,
+			validateReq: func(t *testing.T, req *http.Request) {
+				if req.URL.String() != "https://example.com/api/v1/chat/completions" {
+					t.Errorf("unexpected URL: %s", req.URL)
+				}
+			},
+		},
+		{
 			name: "context canceled",
 			setupOpts: func() RequestOptions {
 				ctx, cancel := context.WithCancel(context.Background())

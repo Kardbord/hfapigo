@@ -2,6 +2,7 @@ package request
 
 import (
 	"encoding/json"
+	stderrors "errors"
 	"fmt"
 	"io"
 
@@ -70,6 +71,9 @@ func DoJSON[TReq any, TResp any](
 
 	var out TResp
 	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		if stderrors.Is(err, io.EOF) {
+			return zero, nil
+		}
 		return zero, fmt.Errorf("failed to decode response body: %w", err)
 	}
 
