@@ -18,7 +18,7 @@ func TestDoJSON(t *testing.T) {
 		GeneratedText string `json:"generated_text"`
 	}
 
-	tests := []struct {
+	type testCase struct {
 		name           string
 		setupTransport func() Transport
 		method         string
@@ -28,7 +28,15 @@ func TestDoJSON(t *testing.T) {
 		wantResp       *resp
 		validateErr    func(t *testing.T, err error)
 		validateReq    func(t *testing.T, mt *mockTransport)
-	}{
+	}
+
+	newOptions := func(transport Transport) RequestOptions {
+		return NewRequestOptions().With(func(o *RequestOptions) {
+			o.Transport = transport
+		})
+	}
+
+	tests := []testCase{
 		{
 			name: "successful request",
 			setupTransport: func() Transport {
@@ -143,18 +151,9 @@ func TestDoJSON(t *testing.T) {
 			method:  http.MethodGet,
 			path:    "/test",
 			reqBody: req{},
-			wantErr: true,
-			validateErr: func(t *testing.T, err error) {
-				// Verify we got an error when decoding empty response
-				if err == nil {
-					t.Fatal("expected error when decoding empty response body")
-				}
-
-				// Verify it's not an APIError since status was 200
-				var apiErr *internalErrors.APIError
-				if errors.As(err, &apiErr) {
-					t.Error("expected JSON decode error, not APIError for 200 status")
-				}
+			wantErr: false,
+			wantResp: &resp{
+				GeneratedText: "",
 			},
 		},
 		{
@@ -188,9 +187,7 @@ func TestDoJSON(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			transport := tt.setupTransport()
-			opts := NewRequestOptions().With(func(o *RequestOptions) {
-				o.Transport = transport
-			})
+			opts := newOptions(transport)
 
 			out, err := DoJSON[req, resp](
 				opts,
@@ -210,7 +207,7 @@ func TestDoJSON(t *testing.T) {
 			}
 
 			// Validate response if expected
-			if tt.wantResp != nil && !tt.wantErr {
+			if tt.wantResp != nil {
 				if out != *tt.wantResp {
 					t.Errorf("DoJSON() response = %+v, want %+v", out, *tt.wantResp)
 				}

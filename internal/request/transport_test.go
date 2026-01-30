@@ -30,8 +30,11 @@ func TestHTTPTransport_Delegates(t *testing.T) {
 
 	tp := NewHTTPTransport(client)
 
-	req, _ := http.NewRequest(http.MethodGet, "https://example.com", nil)
-	_, err := tp.Do(req)
+	req, err := http.NewRequest(http.MethodGet, "https://example.com", nil)
+	if err != nil {
+		t.Fatalf("failed to create request: %v", err)
+	}
+	_, err = tp.Do(req)
 
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

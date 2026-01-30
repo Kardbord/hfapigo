@@ -6,11 +6,34 @@ import (
 	"context"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"testing"
 
 	"github.com/Kardbord/hfapigo/v4/internal/version"
 )
+
+func assertURL(t *testing.T, raw string, want *url.URL) {
+	t.Helper()
+
+	got, err := url.Parse(raw)
+	if err != nil {
+		t.Fatalf("failed to parse URL %q: %v", raw, err)
+	}
+
+	if got.Scheme != want.Scheme {
+		t.Errorf("unexpected scheme: %s", got.Scheme)
+	}
+	if got.Host != want.Host {
+		t.Errorf("unexpected host: %s", got.Host)
+	}
+	if got.Path != want.Path {
+		t.Errorf("unexpected path: %s", got.Path)
+	}
+	if got.RawQuery != want.RawQuery {
+		t.Errorf("unexpected query: %s", got.RawQuery)
+	}
+}
 
 func TestDo(t *testing.T) {
 	tests := []struct {
@@ -40,9 +63,11 @@ func TestDo(t *testing.T) {
 			headers: map[string]string{"X-Test": "yes"},
 			wantErr: false,
 			validateReq: func(t *testing.T, req *http.Request) {
-				if req.URL.String() != "https://example.com/test" {
-					t.Errorf("unexpected URL: %s", req.URL)
-				}
+				assertURL(t, req.URL.String(), &url.URL{
+					Scheme: "https",
+					Host:   "example.com",
+					Path:   "/test",
+				})
 				if got := req.Header.Get("Authorization"); got != "Bearer abc123" {
 					t.Errorf("unexpected Authorization header: %q", got)
 				}
@@ -69,9 +94,11 @@ func TestDo(t *testing.T) {
 			headers: nil,
 			wantErr: false,
 			validateReq: func(t *testing.T, req *http.Request) {
-				if req.URL.String() != "https://example.com/api/v1/chat/completions" {
-					t.Errorf("unexpected URL: %s", req.URL)
-				}
+				assertURL(t, req.URL.String(), &url.URL{
+					Scheme: "https",
+					Host:   "example.com",
+					Path:   "/api/v1/chat/completions",
+				})
 			},
 		},
 		{
