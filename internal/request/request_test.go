@@ -134,6 +134,29 @@ func TestDo(t *testing.T) {
 			},
 		},
 		{
+			name: "nil context uses background",
+			setupOpts: func() RequestOptions {
+				mt := newMockTransport(http.StatusOK, `{}`, nil)
+				return NewRequestOptions().With(func(o *RequestOptions) {
+					o.Ctx = nil
+					o.Transport = mt
+				})
+			},
+			method:  http.MethodGet,
+			path:    "/test",
+			body:    nil,
+			headers: nil,
+			wantErr: false,
+			validateReq: func(t *testing.T, req *http.Request) {
+				if req.Context() == nil {
+					t.Fatal("expected non-nil request context")
+				}
+				if err := req.Context().Err(); err != nil {
+					t.Fatalf("unexpected context error: %v", err)
+				}
+			},
+		},
+		{
 			name: "returns API error on non-2xx response",
 			setupOpts: func() RequestOptions {
 				mt := newMockTransport(http.StatusUnauthorized, `unauthorized`, nil)

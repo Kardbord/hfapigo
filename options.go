@@ -40,6 +40,7 @@ func WithHTTPClient(c *http.Client) request.RequestOption {
 
 // WithContext returns a RequestOption that sets the context for API requests.
 // The context can be used for cancellation, timeouts, and passing request-scoped values.
+// If a nil context is provided, the SDK will fall back to context.Background().
 func WithContext(ctx context.Context) request.RequestOption {
 	return func(o *request.RequestOptions) { o.Ctx = ctx }
 }
