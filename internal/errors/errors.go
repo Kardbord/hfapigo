@@ -56,18 +56,53 @@ func (e *APIError) IsRateLimitError() bool {
 	return e.StatusCode == http.StatusTooManyRequests
 }
 
-// TODO: Remove this if it is unused
-// ValidationError represents an error that occurs when validating
-// request parameters or configuration options.
-type ValidationError struct {
-	// Field is the name of the field that failed validation
-	Field string
+// SDKErrorKind represents the category of a client-side SDK error.
+// These errors are produced locally (not returned by the API).
+type SDKErrorKind string
 
-	// Message is the human-readable error message
+const (
+	SDKErrorKindValidation    SDKErrorKind = "validation"
+	SDKErrorKindConfiguration SDKErrorKind = "configuration"
+	SDKErrorKindSerialization SDKErrorKind = "serialization"
+	SDKErrorKindTransport     SDKErrorKind = "transport"
+	SDKErrorKindInternal      SDKErrorKind = "internal"
+)
+
+// SDKError represents a client-side SDK error that occurred before
+// a response was received from the API, or while trying to unmarshal
+// the response from the API.
+type SDKError struct {
+	// Kind is the category of error (validation/configuration/etc).
+	Kind SDKErrorKind
+
+	// Message is the human-readable error message.
 	Message string
+
+	// Err is the underlying error, if any.
+	Err error
 }
 
-// Error implements the error interface for ValidationError.
-func (e *ValidationError) Error() string {
-	return fmt.Sprintf("validation error on field '%s': %s", e.Field, e.Message)
+// Error implements the error interface for SDKError.
+func (e *SDKError) Error() string {
+	if e == nil {
+		return ""
+	}
+	if e.Err != nil && e.Message != "" {
+		return fmt.Sprintf("sdk error (%s): %s: %v", e.Kind, e.Message, e.Err)
+	}
+	if e.Err != nil {
+		return fmt.Sprintf("sdk error (%s): %v", e.Kind, e.Err)
+	}
+	if e.Message != "" {
+		return fmt.Sprintf("sdk error (%s): %s", e.Kind, e.Message)
+	}
+	return fmt.Sprintf("sdk error (%s)", e.Kind)
+}
+
+// Unwrap returns the underlying error, if any.
+func (e *SDKError) Unwrap() error {
+	if e == nil {
+		return nil
+	}
+	return e.Err
 }

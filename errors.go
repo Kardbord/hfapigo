@@ -16,13 +16,24 @@ import "github.com/Kardbord/hfapigo/v4/internal/errors"
 //	}
 type APIError = errors.APIError
 
-// ValidationError represents an error that occurs when validating
-// request parameters or configuration options.
+// SDKError represents a client-side SDK error that occurred before
+// a response was received from the API.
 //
-// Users can type-assert errors to *ValidationError to access
-// the specific field that failed validation:
+// Users can type-assert errors to *SDKError to access
+// the error kind and underlying cause:
 //
-//	if valErr, ok := err.(*hfapigo.ValidationError); ok {
-//	    fmt.Printf("Field %s failed validation: %s\n", valErr.Field, valErr.Message)
+//	if sdkErr, ok := err.(*hfapigo.SDKError); ok {
+//	    fmt.Printf("Kind %s: %s\n", sdkErr.Kind, sdkErr.Message)
 //	}
-type ValidationError = errors.ValidationError
+type SDKError = errors.SDKError
+
+// SDKErrorKind represents the category of a client-side SDK error.
+type SDKErrorKind = errors.SDKErrorKind
+
+const (
+	SDKErrorKindValidation    = errors.SDKErrorKindValidation
+	SDKErrorKindConfiguration = errors.SDKErrorKindConfiguration
+	SDKErrorKindSerialization = errors.SDKErrorKindSerialization
+	SDKErrorKindTransport     = errors.SDKErrorKindTransport
+	SDKErrorKindInternal      = errors.SDKErrorKindInternal
+)
