@@ -45,6 +45,7 @@ func WithContext(ctx context.Context) request.RequestOption {
 	return func(o *request.RequestOptions) { o.Ctx = ctx }
 }
 
+// WithUserAgentSuffix returns a RequestOption that appends a suffix to the SDK user agent string.
 func WithUserAgentSuffix(s string) request.RequestOption {
 	return func(o *request.RequestOptions) { o.UserAgent = fmt.Sprintf("%s %s", UserAgentPrefix(), s) }
 }
