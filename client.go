@@ -21,6 +21,7 @@ func NewClient(opts ...request.RequestOption) Client {
 
 // Chat returns a ChatService instance configured with this client's options.
 // The chat service provides methods for interacting with chat completion endpoints.
+// Service configurations are captured at creation time and do not change if the client options change later.
 func (c Client) Chat() ChatService {
 	return newChatService(c.opts)
 }
