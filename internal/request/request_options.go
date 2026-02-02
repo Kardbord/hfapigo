@@ -7,12 +7,6 @@ import (
 	"github.com/Kardbord/hfapigo/v4/internal/version"
 )
 
-// OptionProvider is an interface for types that can provide RequestOptions.
-// This allows for flexible configuration of API clients and services.
-type OptionProvider interface {
-	Options() RequestOptions
-}
-
 // RequestOptions holds configuration settings for API requests.
 type RequestOptions struct {
 	Ctx       context.Context
