@@ -51,9 +51,22 @@ func DoJSON[TReq any, TResp any](
 	defer resp.Body.Close()
 
 	var out TResp
-	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+	body, err := readResponseBodyLimited(resp.Body, opts.MaxResponseBodyBytes)
+	if err != nil {
+		return zero, err
+	}
+	if len(body) == 0 {
+		return zero, &errors.SDKError{
+			Kind:    errors.SDKErrorKindSerialization,
+			Message: "empty response body",
+		}
+	}
+	if err := json.Unmarshal(body, &out); err != nil {
 		if stderrors.Is(err, io.EOF) {
-			return zero, nil
+			return zero, &errors.SDKError{
+				Kind:    errors.SDKErrorKindSerialization,
+				Message: "empty response body",
+			}
 		}
 		return zero, &errors.SDKError{
 			Kind:    errors.SDKErrorKindSerialization,

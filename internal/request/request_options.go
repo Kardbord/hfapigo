@@ -9,13 +9,14 @@ import (
 
 // RequestOptions holds configuration settings for API requests.
 type RequestOptions struct {
-	Ctx       context.Context
-	BaseURL   string
-	Token     string
-	Model     string
-	Provider  string
-	UserAgent string
-	Transport Transport
+	Ctx                  context.Context
+	BaseURL              string
+	Token                string
+	Model                string
+	Provider             string
+	UserAgent            string
+	MaxResponseBodyBytes int64
+	Transport            Transport
 }
 
 const (
@@ -27,19 +28,22 @@ const (
 	DefaultModel = ""
 	// DefaultProvider is the default inference provider
 	DefaultProvider = ""
+	// DefaultMaxResponseBodyBytes caps the amount of response data read into memory by default.
+	DefaultMaxResponseBodyBytes int64 = 1 << 20 // 1 MiB
 )
 
 // NewRequestOptions creates a new RequestOptions instance with default values.
 // The returned options use a background context, default endpoints, and the default HTTP client.
 func NewRequestOptions() RequestOptions {
 	return RequestOptions{
-		Ctx:       context.Background(),
-		BaseURL:   DefaultBaseURL,
-		Token:     DefaultToken,
-		Model:     DefaultModel,
-		Provider:  DefaultProvider,
-		UserAgent: version.UserAgent(),
-		Transport: NewHTTPTransport(http.DefaultClient),
+		Ctx:                  context.Background(),
+		BaseURL:              DefaultBaseURL,
+		Token:                DefaultToken,
+		Model:                DefaultModel,
+		Provider:             DefaultProvider,
+		UserAgent:            version.UserAgent(),
+		MaxResponseBodyBytes: DefaultMaxResponseBodyBytes,
+		Transport:            NewHTTPTransport(http.DefaultClient),
 	}
 }
 

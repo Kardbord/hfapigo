@@ -278,6 +278,28 @@ func TestDo(t *testing.T) {
 				}
 			},
 		},
+		{
+			name: "returns configuration SDKError when transport is nil",
+			setupOpts: func() RequestOptions {
+				return NewRequestOptions().With(func(o *RequestOptions) {
+					o.Transport = nil
+				})
+			},
+			method:  http.MethodGet,
+			path:    "/test",
+			body:    nil,
+			headers: nil,
+			wantErr: true,
+			validateErr: func(t *testing.T, err error) {
+				var sdkErr *internalErrors.SDKError
+				if !errors.As(err, &sdkErr) {
+					t.Fatalf("expected SDKError, got %T", err)
+				}
+				if sdkErr.Kind != internalErrors.SDKErrorKindConfiguration {
+					t.Errorf("expected configuration SDKError, got %q", sdkErr.Kind)
+				}
+			},
+		},
 	}
 
 	for _, tt := range tests {

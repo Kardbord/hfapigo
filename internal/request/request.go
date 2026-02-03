@@ -22,6 +22,12 @@ func Do(
 	body io.Reader,
 	headers map[string]string,
 ) (*http.Response, error) {
+	if opts.Transport == nil {
+		return nil, &errors.SDKError{
+			Kind:    errors.SDKErrorKindConfiguration,
+			Message: "transport is nil",
+		}
+	}
 
 	ctx := opts.Ctx
 	if ctx == nil {
@@ -71,7 +77,7 @@ func Do(
 	}
 
 	if resp.StatusCode >= 400 {
-		b, readErr := io.ReadAll(resp.Body)
+		b, readErr := readResponseBodyLimited(resp.Body, opts.MaxResponseBodyBytes)
 		_ = resp.Body.Close()
 		if readErr != nil {
 			return nil, &errors.SDKError{
@@ -103,4 +109,24 @@ func DoBytes(
 	headers map[string]string,
 ) (*http.Response, error) {
 	return Do(opts, method, path, bytes.NewReader(data), headers)
+}
+
+func readResponseBodyLimited(r io.Reader, maxBytes int64) ([]byte, error) {
+	if maxBytes <= 0 {
+		maxBytes = DefaultMaxResponseBodyBytes
+	}
+	// LimitReader doesn't error on overflow; it just stops at the limit and returns EOF.
+	// Read one extra byte so we can detect truncation by checking len(b) > maxBytes.
+	limitReader := io.LimitReader(r, maxBytes+1)
+	b, err := io.ReadAll(limitReader)
+	if err != nil {
+		return nil, err
+	}
+	if int64(len(b)) > maxBytes {
+		return nil, &errors.SDKError{
+			Kind:    errors.SDKErrorKindInternal,
+			Message: "response body exceeds max size",
+		}
+	}
+	return b, nil
 }

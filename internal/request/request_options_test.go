@@ -142,6 +142,14 @@ func TestNewRequestOptions(t *testing.T) {
 				}
 			},
 		},
+		{
+			name: "has default max response body size",
+			validate: func(t *testing.T, opts RequestOptions) {
+				if opts.MaxResponseBodyBytes != DefaultMaxResponseBodyBytes {
+					t.Errorf("expected %d max response body bytes, got %d", DefaultMaxResponseBodyBytes, opts.MaxResponseBodyBytes)
+				}
+			},
+		},
 	}
 
 	for _, tt := range tests {

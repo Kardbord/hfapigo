@@ -49,3 +49,9 @@ func WithContext(ctx context.Context) request.RequestOption {
 func WithUserAgentSuffix(s string) request.RequestOption {
 	return func(o *request.RequestOptions) { o.UserAgent = fmt.Sprintf("%s %s", UserAgentPrefix(), s) }
 }
+
+// WithMaxResponseBodyBytes returns a RequestOption that sets the maximum number of bytes
+// read from any response body. Values <= 0 fall back to the default.
+func WithMaxResponseBodyBytes(n int64) request.RequestOption {
+	return func(o *request.RequestOptions) { o.MaxResponseBodyBytes = n }
+}
