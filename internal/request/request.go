@@ -57,7 +57,9 @@ func Do(
 	}
 
 	// Set standard headers
-	req.Header.Set("User-Agent", opts.UserAgent)
+	if opts.UserAgent != "" {
+		req.Header.Set("User-Agent", opts.UserAgent)
+	}
 	if opts.Token != "" {
 		req.Header.Set("Authorization", "Bearer "+opts.Token)
 	}
