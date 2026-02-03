@@ -77,7 +77,7 @@ func Do(
 	}
 
 	if resp.StatusCode >= 400 {
-		b, readErr := readResponseBodyLimited(resp.Body, opts.MaxResponseBodyBytes)
+		b, truncated, readErr := readResponseBodyTruncated(resp.Body, opts.MaxResponseBodyBytes)
 		_ = resp.Body.Close()
 		if readErr != nil {
 			return nil, &errors.SDKError{
@@ -86,9 +86,13 @@ func Do(
 				Err:     readErr,
 			}
 		}
+		msg := string(b)
+		if truncated {
+			msg = msg + " [truncated]"
+		}
 		return nil, &errors.APIError{
 			StatusCode: resp.StatusCode,
-			Message:    string(b),
+			Message:    msg,
 			Body:       b,
 			Method:     method,
 			URL:        req.URL.String(),
@@ -129,4 +133,21 @@ func readResponseBodyLimited(r io.Reader, maxBytes int64) ([]byte, error) {
 		}
 	}
 	return b, nil
+}
+
+func readResponseBodyTruncated(r io.Reader, maxBytes int64) ([]byte, bool, error) {
+	if maxBytes <= 0 {
+		maxBytes = DefaultMaxResponseBodyBytes
+	}
+	// LimitReader doesn't error on overflow; it just stops at the limit and returns EOF.
+	// Read one extra byte so we can detect truncation by checking len(b) > maxBytes.
+	limitReader := io.LimitReader(r, maxBytes+1)
+	b, err := io.ReadAll(limitReader)
+	if err != nil {
+		return nil, false, err
+	}
+	if int64(len(b)) > maxBytes {
+		return b[:maxBytes], true, nil
+	}
+	return b, false, nil
 }

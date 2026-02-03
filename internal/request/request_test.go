@@ -300,6 +300,36 @@ func TestDo(t *testing.T) {
 				}
 			},
 		},
+		{
+			name: "returns API error with truncated body on oversized error response",
+			setupOpts: func() RequestOptions {
+				mt := newMockTransport(http.StatusTooManyRequests, strings.Repeat("x", 10), nil)
+				return NewRequestOptions().With(func(o *RequestOptions) {
+					o.MaxResponseBodyBytes = 5
+					o.Transport = mt
+				})
+			},
+			method:  http.MethodGet,
+			path:    "/test",
+			body:    nil,
+			headers: nil,
+			wantErr: true,
+			validateErr: func(t *testing.T, err error) {
+				var apiErr *internalErrors.APIError
+				if !errors.As(err, &apiErr) {
+					t.Fatalf("expected APIError, got %T", err)
+				}
+				if apiErr.StatusCode != http.StatusTooManyRequests {
+					t.Errorf("expected status 429, got %d", apiErr.StatusCode)
+				}
+				if apiErr.Message != strings.Repeat("x", 5)+" [truncated]" {
+					t.Errorf("unexpected message: %q", apiErr.Message)
+				}
+				if len(apiErr.Body) != 5 {
+					t.Errorf("expected truncated body length 5, got %d", len(apiErr.Body))
+				}
+			},
+		},
 	}
 
 	for _, tt := range tests {
