@@ -41,3 +41,9 @@ func TestHTTPTransport_Delegates(t *testing.T) {
 		t.Fatal("expected underlying client to be called")
 	}
 }
+
+func TestNewHTTPTransport_NilClient(t *testing.T) {
+	if NewHTTPTransport(nil) != nil {
+		t.Fatal("expected nil transport when client is nil")
+	}
+}

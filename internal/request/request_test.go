@@ -429,3 +429,39 @@ func TestDoBytes(t *testing.T) {
 		})
 	}
 }
+
+type closeTracker struct {
+	closed bool
+}
+
+func (c *closeTracker) Read([]byte) (int, error) {
+	return 0, io.EOF
+}
+
+func (c *closeTracker) Close() error {
+	c.closed = true
+	return nil
+}
+
+func TestDo_ClosesResponseOnTransportError(t *testing.T) {
+	tracker := &closeTracker{}
+	mt := &mockTransport{
+		Response: &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       tracker,
+			Header:     make(http.Header),
+		},
+		Err: errors.New("boom"),
+	}
+	opts := NewRequestOptions().With(func(o *RequestOptions) {
+		o.Transport = mt
+	})
+
+	_, err := Do(opts, http.MethodGet, "/test", nil, nil)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if !tracker.closed {
+		t.Fatal("expected response body to be closed")
+	}
+}
