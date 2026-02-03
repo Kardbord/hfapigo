@@ -47,7 +47,7 @@ func WithContext(ctx context.Context) request.RequestOption {
 
 // WithUserAgentSuffix returns a RequestOption that appends a suffix to the SDK user agent string.
 func WithUserAgentSuffix(s string) request.RequestOption {
-	return func(o *request.RequestOptions) { o.UserAgent = fmt.Sprintf("%s %s", UserAgentPrefix(), s) }
+	return func(o *request.RequestOptions) { o.UserAgent = fmt.Sprintf("%s %s", UserAgent(), s) }
 }
 
 // WithMaxResponseBodyBytes returns a RequestOption that sets the maximum number of bytes

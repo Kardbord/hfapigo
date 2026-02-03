@@ -10,6 +10,6 @@ const Version = version.Version
 
 // UserAgent returns the User-Agent string used for HTTP requests.
 // The format is: hfapigo/<version> (Go)
-func UserAgentPrefix() string {
+func UserAgent() string {
 	return version.UserAgent()
 }
