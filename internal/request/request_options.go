@@ -10,6 +10,9 @@ import (
 )
 
 // RequestOptions holds configuration settings for API requests.
+// Built-in option helpers return a new value and defensively clone headers,
+// while context and transport are shared as-is. Custom options should avoid
+// reusing mutable header maps if they want the same defensive-copy behavior.
 type RequestOptions struct {
 	Ctx                  context.Context
 	BaseURL              string
@@ -53,6 +56,8 @@ func NewRequestOptions() RequestOptions {
 
 // RequestOption is a function type that modifies RequestOptions.
 // It follows the functional options pattern for flexible configuration.
+// Custom options that set Headers should avoid reusing mutable header maps
+// if they want to preserve the defensive-copy behavior of built-in helpers.
 type RequestOption func(*RequestOptions)
 
 // apply applies a series of RequestOption functions to the RequestOptions instance.
@@ -62,69 +67,87 @@ func (o *RequestOptions) apply(opts ...RequestOption) {
 	}
 }
 
+// clone returns a shallow copy with reference types safely duplicated where possible.
+// Headers are deep-copied; context and transport are shared by design.
+func (o RequestOptions) clone() RequestOptions {
+	o.Headers = cloneHeader(o.Headers)
+	return o
+}
+
 // With returns a new RequestOptions instance with the provided options applied.
 // This method creates a copy of the current options and applies modifications to it.
 func (o RequestOptions) With(opts ...RequestOption) RequestOptions {
+	o = o.clone()
 	o.apply(opts...)
 	return o
 }
 
 // WithBaseURL returns a new RequestOptions instance with the base URL updated.
 func (o RequestOptions) WithBaseURL(u string) RequestOptions {
+	o = o.clone()
 	o.BaseURL = u
 	return o
 }
 
 // WithToken returns a new RequestOptions instance with the authentication token updated.
 func (o RequestOptions) WithToken(t string) RequestOptions {
+	o = o.clone()
 	o.Token = t
 	return o
 }
 
 // WithModel returns a new RequestOptions instance with the model updated.
 func (o RequestOptions) WithModel(m string) RequestOptions {
+	o = o.clone()
 	o.Model = m
 	return o
 }
 
 // WithProvider returns a new RequestOptions instance with the provider updated.
 func (o RequestOptions) WithProvider(p string) RequestOptions {
+	o = o.clone()
 	o.Provider = p
 	return o
 }
 
 // WithUserAgent returns a new RequestOptions instance with the User-Agent value updated.
 func (o RequestOptions) WithUserAgent(ua string) RequestOptions {
+	o = o.clone()
 	o.UserAgent = ua
 	return o
 }
 
 // WithUserAgentSuffix returns a new RequestOptions instance with a suffix appended to the SDK User-Agent.
 func (o RequestOptions) WithUserAgentSuffix(s string) RequestOptions {
+	o = o.clone()
 	o.UserAgent = fmt.Sprintf("%s %s", version.UserAgent(), s)
 	return o
 }
 
 // WithMaxResponseBodyBytes returns a new RequestOptions instance with the response size cap updated.
 func (o RequestOptions) WithMaxResponseBodyBytes(n int64) RequestOptions {
+	o = o.clone()
 	o.MaxResponseBodyBytes = n
 	return o
 }
 
 // WithContext returns a new RequestOptions instance with the context updated.
 func (o RequestOptions) WithContext(ctx context.Context) RequestOptions {
+	o = o.clone()
 	o.Ctx = ctx
 	return o
 }
 
 // WithHTTPClient returns a new RequestOptions instance with the transport updated from the HTTP client.
 func (o RequestOptions) WithHTTPClient(c *http.Client) RequestOptions {
+	o = o.clone()
 	o.Transport = NewHTTPTransport(c)
 	return o
 }
 
 // WithTransport returns a new RequestOptions instance with the transport updated.
 func (o RequestOptions) WithTransport(t Transport) RequestOptions {
+	o = o.clone()
 	o.Transport = t
 	return o
 }

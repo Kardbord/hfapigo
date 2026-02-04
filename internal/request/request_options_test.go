@@ -135,6 +135,117 @@ func TestWithHeaders_CopiesMap(t *testing.T) {
 	}
 }
 
+func TestRequestOptions_DefensiveHeaderClone(t *testing.T) {
+	mt := newMockTransport(http.StatusOK, `{}`, nil)
+
+	tests := []struct {
+		name  string
+		apply func(RequestOptions) RequestOptions
+	}{
+		{
+			name: "With",
+			apply: func(opts RequestOptions) RequestOptions {
+				return opts.With(WithToken("token"))
+			},
+		},
+		{
+			name: "WithBaseURL",
+			apply: func(opts RequestOptions) RequestOptions {
+				return opts.WithBaseURL("https://example.com")
+			},
+		},
+		{
+			name: "WithToken",
+			apply: func(opts RequestOptions) RequestOptions {
+				return opts.WithToken("token")
+			},
+		},
+		{
+			name: "WithModel",
+			apply: func(opts RequestOptions) RequestOptions {
+				return opts.WithModel("model")
+			},
+		},
+		{
+			name: "WithProvider",
+			apply: func(opts RequestOptions) RequestOptions {
+				return opts.WithProvider("provider")
+			},
+		},
+		{
+			name: "WithUserAgent",
+			apply: func(opts RequestOptions) RequestOptions {
+				return opts.WithUserAgent("ua/1.0")
+			},
+		},
+		{
+			name: "WithUserAgentSuffix",
+			apply: func(opts RequestOptions) RequestOptions {
+				return opts.WithUserAgentSuffix("custom/1.0")
+			},
+		},
+		{
+			name: "WithMaxResponseBodyBytes",
+			apply: func(opts RequestOptions) RequestOptions {
+				return opts.WithMaxResponseBodyBytes(42)
+			},
+		},
+		{
+			name: "WithContext",
+			apply: func(opts RequestOptions) RequestOptions {
+				return opts.WithContext(context.Background())
+			},
+		},
+		{
+			name: "WithHTTPClient",
+			apply: func(opts RequestOptions) RequestOptions {
+				return opts.WithHTTPClient(http.DefaultClient)
+			},
+		},
+		{
+			name: "WithTransport",
+			apply: func(opts RequestOptions) RequestOptions {
+				return opts.WithTransport(mt)
+			},
+		},
+		{
+			name: "WithHeaders",
+			apply: func(opts RequestOptions) RequestOptions {
+				return opts.WithHeaders(http.Header{"X-Other": []string{"value"}})
+			},
+		},
+		{
+			name: "WithHeader",
+			apply: func(opts RequestOptions) RequestOptions {
+				return opts.WithHeader("X-Other", "value")
+			},
+		},
+		{
+			name: "WithDefaultHeader",
+			apply: func(opts RequestOptions) RequestOptions {
+				return opts.WithDefaultHeader("X-Test", "default")
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			orig := NewRequestOptions().WithHeader("X-Test", "one")
+			derived := tt.apply(orig)
+
+			orig.Headers.Set("X-Test", "two")
+			if got := derived.Headers.Get("X-Test"); got != "one" {
+				t.Errorf("expected derived header to stay 'one', got %q", got)
+			}
+
+			derived.Headers.Set("X-Test", "three")
+			if got := orig.Headers.Get("X-Test"); got != "two" {
+				t.Errorf("expected original header to stay 'two', got %q", got)
+			}
+		})
+	}
+}
+
 func TestNewRequestOptions(t *testing.T) {
 	tests := []struct {
 		name     string
