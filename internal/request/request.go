@@ -104,7 +104,7 @@ func DoRaw(
 	}
 
 	// Set custom headers (can override defaults if needed).
-	req.Header = mergeHeaders(req.Header, opts.Headers)
+	req.Header = overrideHeaders(req.Header, opts.Headers)
 
 	resp, err := opts.Transport.Do(req)
 	if err != nil {

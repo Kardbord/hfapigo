@@ -63,6 +63,9 @@ func DoJSON[TReq any, TResp any](
 		return zero, err
 	}
 	if len(body) == 0 {
+		if resp.StatusCode == http.StatusNoContent || resp.StatusCode == http.StatusResetContent {
+			return zero, nil
+		}
 		return zero, &errors.SDKError{
 			Kind:    errors.SDKErrorKindSerialization,
 			Message: "empty response body",

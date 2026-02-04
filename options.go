@@ -55,7 +55,8 @@ func WithMaxResponseBodyBytes(n int64) request.RequestOption {
 	return request.WithMaxResponseBodyBytes(n)
 }
 
-// WithHeaders returns a RequestOption that sets custom headers applied to every request.
+// WithHeaders returns a RequestOption that sets custom headers applied to every request,
+// overriding any existing values for matching keys.
 // Per-request headers can still override these values when provided.
 func WithHeaders(h http.Header) request.RequestOption {
 	return request.WithHeaders(h)

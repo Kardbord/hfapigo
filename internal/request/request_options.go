@@ -120,7 +120,11 @@ func (o RequestOptions) WithUserAgent(ua string) RequestOptions {
 // WithUserAgentSuffix returns a new RequestOptions instance with a suffix appended to the SDK User-Agent.
 func (o RequestOptions) WithUserAgentSuffix(s string) RequestOptions {
 	o = o.clone()
-	o.UserAgent = fmt.Sprintf("%s %s", version.UserAgent(), s)
+	base := o.UserAgent
+	if base == "" {
+		base = version.UserAgent()
+	}
+	o.UserAgent = fmt.Sprintf("%s %s", base, s)
 	return o
 }
 
@@ -152,15 +156,16 @@ func (o RequestOptions) WithTransport(t Transport) RequestOptions {
 	return o
 }
 
-// WithHeaders returns a new RequestOptions instance with the provided headers merged in.
+// WithHeaders returns a new RequestOptions instance with the provided headers applied,
+// overriding any existing values for matching keys.
 func (o RequestOptions) WithHeaders(h http.Header) RequestOptions {
-	o.Headers = mergeHeaders(o.Headers, h)
+	o.Headers = overrideHeaders(o.Headers, h)
 	return o
 }
 
 // WithHeader returns a new RequestOptions instance with a single header applied.
 func (o RequestOptions) WithHeader(key, value string) RequestOptions {
-	o.Headers = mergeHeaders(o.Headers, http.Header{key: []string{value}})
+	o.Headers = overrideHeaders(o.Headers, http.Header{key: []string{value}})
 	return o
 }
 
@@ -209,7 +214,11 @@ func WithUserAgent(ua string) RequestOption {
 // WithUserAgentSuffix returns a RequestOption that appends a suffix to the SDK user agent string.
 func WithUserAgentSuffix(s string) RequestOption {
 	return func(o *RequestOptions) {
-		o.UserAgent = fmt.Sprintf("%s %s", version.UserAgent(), s)
+		base := o.UserAgent
+		if base == "" {
+			base = version.UserAgent()
+		}
+		o.UserAgent = fmt.Sprintf("%s %s", base, s)
 	}
 }
 
@@ -241,18 +250,19 @@ func WithTransport(t Transport) RequestOption {
 	}
 }
 
-// WithHeaders returns a RequestOption that sets custom headers applied to every request.
+// WithHeaders returns a RequestOption that sets custom headers applied to every request,
+// overriding any existing values for matching keys.
 // The provided map is copied to avoid unexpected mutations by callers.
 func WithHeaders(h http.Header) RequestOption {
 	return func(o *RequestOptions) {
-		o.Headers = mergeHeaders(o.Headers, h)
+		o.Headers = overrideHeaders(o.Headers, h)
 	}
 }
 
 // WithHeader returns a RequestOption that sets a single header applied to every request.
 func WithHeader(key, value string) RequestOption {
 	return func(o *RequestOptions) {
-		o.Headers = mergeHeaders(o.Headers, http.Header{key: []string{value}})
+		o.Headers = overrideHeaders(o.Headers, http.Header{key: []string{value}})
 	}
 }
 
@@ -275,7 +285,9 @@ func cloneHeader(h http.Header) http.Header {
 	return out
 }
 
-func mergeHeaders(base http.Header, override http.Header) http.Header {
+// overrideHeaders copies base headers and replaces values with override entries.
+// Header keys are canonicalized to avoid duplicate variants.
+func overrideHeaders(base http.Header, override http.Header) http.Header {
 	if len(base) == 0 && len(override) == 0 {
 		return nil
 	}

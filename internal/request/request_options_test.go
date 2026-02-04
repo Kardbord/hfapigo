@@ -67,6 +67,34 @@ func TestRequestOptions_With(t *testing.T) {
 				}
 			},
 		},
+		{
+			name:    "user agent suffix uses default when base is empty",
+			initial: NewRequestOptions(),
+			options: []RequestOption{
+				WithUserAgent(""),
+				WithUserAgentSuffix("custom/1.0"),
+			},
+			validate: func(t *testing.T, orig, updated RequestOptions) {
+				want := version.UserAgent() + " custom/1.0"
+				if updated.UserAgent != want {
+					t.Errorf("expected UserAgent %q, got %q", want, updated.UserAgent)
+				}
+			},
+		},
+		{
+			name:    "user agent suffix uses existing base",
+			initial: NewRequestOptions(),
+			options: []RequestOption{
+				WithUserAgent("myapp/2.0"),
+				WithUserAgentSuffix("custom/1.0"),
+			},
+			validate: func(t *testing.T, orig, updated RequestOptions) {
+				want := "myapp/2.0 custom/1.0"
+				if updated.UserAgent != want {
+					t.Errorf("expected UserAgent %q, got %q", want, updated.UserAgent)
+				}
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -243,6 +271,36 @@ func TestRequestOptions_DefensiveHeaderClone(t *testing.T) {
 				t.Errorf("expected original header to stay 'two', got %q", got)
 			}
 		})
+	}
+}
+
+func TestWithHeaders_CanonicalizesAndOverrides(t *testing.T) {
+	opts := NewRequestOptions().
+		WithHeaders(http.Header{"x-test": []string{"one"}}).
+		WithHeader("X-TEST", "two")
+
+	if got := opts.Headers.Get("X-Test"); got != "two" {
+		t.Errorf("expected X-Test to be overridden to 'two', got %q", got)
+	}
+	for key := range opts.Headers {
+		if key == "x-test" || key == "X-TEST" {
+			t.Error("expected header keys to be canonicalized")
+		}
+	}
+}
+
+func TestWithDefaultHeader_CaseInsensitiveAndEmpty(t *testing.T) {
+	opts := NewRequestOptions().
+		WithHeader("x-test", "").
+		WithDefaultHeader("X-Test", "default")
+
+	if got := opts.Headers.Get("X-Test"); got != "default" {
+		t.Errorf("expected default header value, got %q", got)
+	}
+
+	unchanged := opts.WithDefaultHeader("x-test", "other")
+	if got := unchanged.Headers.Get("X-Test"); got != "default" {
+		t.Errorf("expected default header to remain, got %q", got)
 	}
 }
 
