@@ -153,6 +153,23 @@ func TestWithUserAgentSuffix(t *testing.T) {
 	}
 }
 
+func TestWithUserAgentSuffix_Empty(t *testing.T) {
+	t.Run("default user agent unchanged", func(t *testing.T) {
+		opts := NewRequestOptions().WithUserAgentSuffix("")
+		want := version.UserAgent()
+		if opts.UserAgent != want {
+			t.Errorf("expected UserAgent %q, got %q", want, opts.UserAgent)
+		}
+	})
+
+	t.Run("empty base remains empty", func(t *testing.T) {
+		opts := NewRequestOptions().WithUserAgent("").WithUserAgentSuffix("")
+		if opts.UserAgent != "" {
+			t.Errorf("expected empty UserAgent, got %q", opts.UserAgent)
+		}
+	})
+}
+
 func TestWithHeaders_CopiesMap(t *testing.T) {
 	headers := http.Header{"X-Test": []string{"one"}}
 	opts := NewRequestOptions().WithHeaders(headers)

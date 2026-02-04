@@ -120,6 +120,9 @@ func (o RequestOptions) WithUserAgent(ua string) RequestOptions {
 // WithUserAgentSuffix returns a new RequestOptions instance with a suffix appended to the SDK User-Agent.
 func (o RequestOptions) WithUserAgentSuffix(s string) RequestOptions {
 	o = o.clone()
+	if s == "" {
+		return o
+	}
 	base := o.UserAgent
 	if base == "" {
 		base = version.UserAgent()
@@ -214,6 +217,9 @@ func WithUserAgent(ua string) RequestOption {
 // WithUserAgentSuffix returns a RequestOption that appends a suffix to the SDK user agent string.
 func WithUserAgentSuffix(s string) RequestOption {
 	return func(o *RequestOptions) {
+		if s == "" {
+			return
+		}
 		base := o.UserAgent
 		if base == "" {
 			base = version.UserAgent()
