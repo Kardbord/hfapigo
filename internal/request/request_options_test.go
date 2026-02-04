@@ -1,6 +1,7 @@
 package request
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/Kardbord/hfapigo/v4/internal/version"
@@ -79,6 +80,16 @@ func TestRequestOptions_With(t *testing.T) {
 	}
 }
 
+func TestWithHeaders_CopiesMap(t *testing.T) {
+	headers := http.Header{"X-Test": []string{"one"}}
+	opts := NewRequestOptions().WithHeaders(headers)
+	headers.Set("X-Test", "two")
+
+	if opts.Headers == nil || opts.Headers.Get("X-Test") != "one" {
+		t.Errorf("expected headers to be copied, got %#v", opts.Headers)
+	}
+}
+
 func TestNewRequestOptions(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -129,6 +140,14 @@ func TestNewRequestOptions(t *testing.T) {
 			validate: func(t *testing.T, opts RequestOptions) {
 				if opts.UserAgent != version.UserAgent() {
 					t.Errorf("expected UserAgent %q, got %q", version.UserAgent(), opts.UserAgent)
+				}
+			},
+		},
+		{
+			name: "has default headers",
+			validate: func(t *testing.T, opts RequestOptions) {
+				if opts.Headers != nil {
+					t.Errorf("expected default headers to be nil, got %#v", opts.Headers)
 				}
 			},
 		},

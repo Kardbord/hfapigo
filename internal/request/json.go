@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	stderrors "errors"
 	"io"
+	"mime"
+	"net/http"
 
 	"github.com/Kardbord/hfapigo/v4/internal/errors"
 )
@@ -38,12 +40,19 @@ func DoJSON[TReq any, TResp any](
 		}
 	}
 
+	opts = opts.With(func(o *RequestOptions) {
+		o.Headers = ensureHeader(o.Headers, "Content-Type", "application/json")
+	})
+
+	if err := validateJSONContentType(opts.Headers); err != nil {
+		return zero, err
+	}
+
 	resp, err := DoBytes(
 		opts,
 		method,
 		path,
 		buf,
-		map[string]string{"Content-Type": "application/json"},
 	)
 	if err != nil {
 		return zero, err
@@ -76,4 +85,37 @@ func DoJSON[TReq any, TResp any](
 	}
 
 	return out, nil
+}
+
+func ensureHeader(h http.Header, key string, value string) http.Header {
+	out := cloneHeader(h)
+	if out == nil {
+		out = make(http.Header, 1)
+	}
+	if v := out.Get(key); v == "" {
+		out.Set(key, value)
+	}
+	return out
+}
+
+func validateJSONContentType(headers http.Header) error {
+	ct := headers.Get("Content-Type")
+	if ct == "" {
+		return nil
+	}
+	mediatype, _, err := mime.ParseMediaType(ct)
+	if err != nil {
+		return &errors.SDKError{
+			Kind:    errors.SDKErrorKindSerialization,
+			Message: "invalid Content-Type header",
+			Err:     err,
+		}
+	}
+	if mediatype != "application/json" {
+		return &errors.SDKError{
+			Kind:    errors.SDKErrorKindSerialization,
+			Message: "Content-Type must be application/json for DoJSON requests",
+		}
+	}
+	return nil
 }

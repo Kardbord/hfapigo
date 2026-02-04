@@ -55,3 +55,19 @@ func WithUserAgentSuffix(s string) request.RequestOption {
 func WithMaxResponseBodyBytes(n int64) request.RequestOption {
 	return func(o *request.RequestOptions) { o.MaxResponseBodyBytes = n }
 }
+
+// WithHeaders returns a RequestOption that sets custom headers applied to every request.
+// Per-request headers can still override these values when provided.
+func WithHeaders(h http.Header) request.RequestOption {
+	return request.WithHeaders(h)
+}
+
+// WithHeader returns a RequestOption that sets a single header applied to every request.
+func WithHeader(key, value string) request.RequestOption {
+	return request.WithHeader(key, value)
+}
+
+// WithDefaultHeader returns a RequestOption that sets a header only if missing or empty.
+func WithDefaultHeader(key, value string) request.RequestOption {
+	return request.WithDefaultHeader(key, value)
+}

@@ -3,6 +3,7 @@ package request
 import (
 	"context"
 	"net/http"
+	"net/textproto"
 
 	"github.com/Kardbord/hfapigo/v4/internal/version"
 )
@@ -15,6 +16,7 @@ type RequestOptions struct {
 	Model                string
 	Provider             string
 	UserAgent            string
+	Headers              http.Header
 	MaxResponseBodyBytes int64
 	Transport            Transport
 }
@@ -42,6 +44,7 @@ func NewRequestOptions() RequestOptions {
 		Model:                DefaultModel,
 		Provider:             DefaultProvider,
 		UserAgent:            version.UserAgent(),
+		Headers:              nil,
 		MaxResponseBodyBytes: DefaultMaxResponseBodyBytes,
 		Transport:            NewHTTPTransport(http.DefaultClient),
 	}
@@ -63,4 +66,72 @@ func (o *RequestOptions) apply(opts ...RequestOption) {
 func (o RequestOptions) With(opts ...RequestOption) RequestOptions {
 	o.apply(opts...)
 	return o
+}
+
+// WithHeaders returns a new RequestOptions instance with the provided headers merged in.
+func (o RequestOptions) WithHeaders(h http.Header) RequestOptions {
+	o.Headers = mergeHeaders(o.Headers, h)
+	return o
+}
+
+// WithHeader returns a new RequestOptions instance with a single header applied.
+func (o RequestOptions) WithHeader(key, value string) RequestOptions {
+	o.Headers = mergeHeaders(o.Headers, http.Header{key: []string{value}})
+	return o
+}
+
+// WithDefaultHeader returns a new RequestOptions instance with a header set
+// only if the header is missing or empty.
+func (o RequestOptions) WithDefaultHeader(key, value string) RequestOptions {
+	o.Headers = ensureHeader(o.Headers, key, value)
+	return o
+}
+
+// WithHeaders returns a RequestOption that sets custom headers applied to every request.
+// The provided map is copied to avoid unexpected mutations by callers.
+func WithHeaders(h http.Header) RequestOption {
+	return func(o *RequestOptions) {
+		o.Headers = mergeHeaders(o.Headers, h)
+	}
+}
+
+// WithHeader returns a RequestOption that sets a single header applied to every request.
+func WithHeader(key, value string) RequestOption {
+	return func(o *RequestOptions) {
+		o.Headers = mergeHeaders(o.Headers, http.Header{key: []string{value}})
+	}
+}
+
+// WithDefaultHeader returns a RequestOption that sets a header only if missing or empty.
+func WithDefaultHeader(key, value string) RequestOption {
+	return func(o *RequestOptions) {
+		o.Headers = ensureHeader(o.Headers, key, value)
+	}
+}
+
+func cloneHeader(h http.Header) http.Header {
+	if len(h) == 0 {
+		return nil
+	}
+	out := make(http.Header, len(h))
+	for k, v := range h {
+		key := textproto.CanonicalMIMEHeaderKey(k)
+		out[key] = append([]string(nil), v...)
+	}
+	return out
+}
+
+func mergeHeaders(base http.Header, override http.Header) http.Header {
+	if len(base) == 0 && len(override) == 0 {
+		return nil
+	}
+	out := cloneHeader(base)
+	if out == nil {
+		out = make(http.Header, len(override))
+	}
+	for k, v := range override {
+		key := textproto.CanonicalMIMEHeaderKey(k)
+		out[key] = append([]string(nil), v...)
+	}
+	return out
 }

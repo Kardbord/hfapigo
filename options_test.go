@@ -15,7 +15,7 @@ func TestWithHTTPClientNil(t *testing.T) {
 		t.Fatal("expected nil transport when http client is nil")
 	}
 
-	_, err := request.Do(opts, http.MethodGet, "/test", nil, nil)
+	_, err := request.Do(opts, http.MethodGet, "/test", nil)
 	if err == nil {
 		t.Fatal("expected error when transport is nil")
 	}

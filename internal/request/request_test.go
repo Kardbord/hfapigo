@@ -50,7 +50,6 @@ func TestDo(t *testing.T) {
 		method      string
 		path        string
 		body        io.Reader
-		headers     map[string]string
 		wantErr     bool
 		validateReq func(t *testing.T, req *http.Request)
 		validateErr func(t *testing.T, err error)
@@ -63,12 +62,12 @@ func TestDo(t *testing.T) {
 					o.BaseURL = "https://example.com"
 					o.Token = "abc123"
 					o.Transport = mt
+					o.Headers = http.Header{"X-Test": []string{"yes"}}
 				})
 			},
 			method:  http.MethodGet,
 			path:    "/test",
 			body:    nil,
-			headers: map[string]string{"X-Test": "yes"},
 			wantErr: false,
 			validateReq: func(t *testing.T, req *http.Request) {
 				assertURL(t, req.URL.String(), &url.URL{
@@ -99,7 +98,6 @@ func TestDo(t *testing.T) {
 			method:  http.MethodGet,
 			path:    "v1/chat/completions",
 			body:    nil,
-			headers: nil,
 			wantErr: false,
 			validateReq: func(t *testing.T, req *http.Request) {
 				assertURL(t, req.URL.String(), &url.URL{
@@ -123,7 +121,6 @@ func TestDo(t *testing.T) {
 			method:  http.MethodGet,
 			path:    "/test",
 			body:    nil,
-			headers: nil,
 			wantErr: true,
 			validateErr: func(t *testing.T, err error) {
 				if err == nil {
@@ -143,7 +140,6 @@ func TestDo(t *testing.T) {
 			method:  http.MethodGet,
 			path:    "/test",
 			body:    nil,
-			headers: nil,
 			wantErr: false,
 			validateReq: func(t *testing.T, req *http.Request) {
 				if req.Context() == nil {
@@ -165,7 +161,6 @@ func TestDo(t *testing.T) {
 			method:  http.MethodGet,
 			path:    "/test",
 			body:    nil,
-			headers: nil,
 			wantErr: true,
 			validateErr: func(t *testing.T, err error) {
 				var apiErr *internalErrors.APIError
@@ -187,12 +182,12 @@ func TestDo(t *testing.T) {
 				return NewRequestOptions().With(func(o *RequestOptions) {
 					o.Token = "default"
 					o.Transport = mt
+					o.Headers = http.Header{"Authorization": []string{"Bearer override"}}
 				})
 			},
 			method:  http.MethodGet,
 			path:    "/test",
 			body:    nil,
-			headers: map[string]string{"Authorization": "Bearer override"},
 			wantErr: false,
 			validateReq: func(t *testing.T, req *http.Request) {
 				if got := req.Header.Get("Authorization"); got != "Bearer override" {
@@ -212,7 +207,6 @@ func TestDo(t *testing.T) {
 			method:  http.MethodGet,
 			path:    "/test",
 			body:    nil,
-			headers: nil,
 			wantErr: true,
 			validateErr: func(t *testing.T, err error) {
 				var sdkErr *internalErrors.SDKError
@@ -235,7 +229,6 @@ func TestDo(t *testing.T) {
 			method:  "GET\n",
 			path:    "/test",
 			body:    nil,
-			headers: nil,
 			wantErr: true,
 			validateErr: func(t *testing.T, err error) {
 				var sdkErr *internalErrors.SDKError
@@ -264,7 +257,6 @@ func TestDo(t *testing.T) {
 			method:  http.MethodGet,
 			path:    "/test",
 			body:    nil,
-			headers: nil,
 			wantErr: true,
 			validateErr: func(t *testing.T, err error) {
 				var sdkErr *internalErrors.SDKError
@@ -286,7 +278,6 @@ func TestDo(t *testing.T) {
 			method:  http.MethodGet,
 			path:    "/test",
 			body:    nil,
-			headers: nil,
 			wantErr: true,
 			validateErr: func(t *testing.T, err error) {
 				var sdkErr *internalErrors.SDKError
@@ -310,7 +301,6 @@ func TestDo(t *testing.T) {
 			method:  http.MethodGet,
 			path:    "/test",
 			body:    nil,
-			headers: nil,
 			wantErr: true,
 			validateErr: func(t *testing.T, err error) {
 				var apiErr *internalErrors.APIError
@@ -334,7 +324,7 @@ func TestDo(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			opts := tt.setupOpts()
 
-			resp, err := Do(opts, tt.method, tt.path, tt.body, tt.headers)
+			resp, err := Do(opts, tt.method, tt.path, tt.body)
 
 			// Check error expectation
 			if (err != nil) != tt.wantErr {
@@ -418,7 +408,7 @@ func TestDoBytes(t *testing.T) {
 				o.Transport = mt
 			})
 
-			_, err := DoBytes(opts, http.MethodPost, "/test", tt.data, nil)
+			_, err := DoBytes(opts, http.MethodPost, "/test", tt.data)
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
@@ -428,6 +418,33 @@ func TestDoBytes(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestDoRaw(t *testing.T) {
+	t.Run("returns response on non-2xx without closing body", func(t *testing.T) {
+		tracker := &closeTracker{}
+		mt := &mockTransport{
+			Response: &http.Response{
+				StatusCode: http.StatusUnauthorized,
+				Body:       tracker,
+				Header:     make(http.Header),
+			},
+		}
+		opts := NewRequestOptions().With(func(o *RequestOptions) {
+			o.Transport = mt
+		})
+
+		resp, err := DoRaw(opts, http.MethodGet, "/test", nil)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if resp == nil || resp.StatusCode != http.StatusUnauthorized {
+			t.Fatalf("expected status 401 response, got %#v", resp)
+		}
+		if tracker.closed {
+			t.Fatal("expected response body to remain open")
+		}
+	})
 }
 
 type closeTracker struct {
@@ -457,7 +474,7 @@ func TestDo_ClosesResponseOnTransportError(t *testing.T) {
 		o.Transport = mt
 	})
 
-	_, err := Do(opts, http.MethodGet, "/test", nil, nil)
+	_, err := Do(opts, http.MethodGet, "/test", nil)
 	if err == nil {
 		t.Fatal("expected error")
 	}

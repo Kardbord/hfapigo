@@ -226,6 +226,50 @@ func TestDoJSON(t *testing.T) {
 			},
 		},
 		{
+			name: "rejects non-JSON Content-Type override",
+			setupOpts: func() RequestOptions {
+				return NewRequestOptions().With(
+					WithHeader("Content-Type", "text/plain"),
+					func(o *RequestOptions) {
+						o.Transport = newMockTransport(http.StatusOK, `{}`, nil)
+					},
+				)
+			},
+			method:  http.MethodPost,
+			path:    "/test",
+			reqBody: req{},
+			wantErr: true,
+			validateErr: func(t *testing.T, err error) {
+				var sdkErr *internalErrors.SDKError
+				if !errors.As(err, &sdkErr) {
+					t.Fatalf("expected SDKError, got %T", err)
+				}
+				if sdkErr.Kind != internalErrors.SDKErrorKindSerialization {
+					t.Errorf("expected serialization SDKError, got %q", sdkErr.Kind)
+				}
+			},
+		},
+		{
+			name: "fills empty Content-Type override",
+			setupOpts: func() RequestOptions {
+				return NewRequestOptions().With(
+					WithHeader("Content-Type", ""),
+					func(o *RequestOptions) {
+						o.Transport = newMockTransport(http.StatusOK, `{}`, nil)
+					},
+				)
+			},
+			method:  http.MethodPost,
+			path:    "/test",
+			reqBody: req{},
+			wantErr: false,
+			validateReq: func(t *testing.T, req *http.Request) {
+				if got := req.Header.Get("Content-Type"); got != "application/json" {
+					t.Errorf("expected Content-Type 'application/json', got %q", got)
+				}
+			},
+		},
+		{
 			name: "returns zero value on error",
 			setupOpts: func() RequestOptions {
 				return NewRequestOptions().With(func(o *RequestOptions) {

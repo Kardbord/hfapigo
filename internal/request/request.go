@@ -20,7 +20,46 @@ func Do(
 	method string,
 	path string,
 	body io.Reader,
-	headers map[string]string,
+) (*http.Response, error) {
+	resp, err := DoRaw(opts, method, path, body)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode >= 400 {
+		b, truncated, readErr := readResponseBodyTruncated(resp.Body, opts.MaxResponseBodyBytes)
+		_ = resp.Body.Close()
+		if readErr != nil {
+			return nil, &errors.SDKError{
+				Kind:    errors.SDKErrorKindInternal,
+				Message: "failed to read error response body",
+				Err:     readErr,
+			}
+		}
+		msg := string(b)
+		if truncated {
+			msg = msg + " [truncated]"
+		}
+		return nil, &errors.APIError{
+			StatusCode: resp.StatusCode,
+			Message:    msg,
+			Body:       b,
+			Method:     method,
+			URL:        resp.Request.URL.String(),
+			RequestID:  resp.Header.Get("X-Request-ID"),
+		}
+	}
+
+	return resp, nil
+}
+
+// DoRaw performs an HTTP request with the provided options and returns the response
+// without translating non-2xx status codes into SDK errors.
+func DoRaw(
+	opts RequestOptions,
+	method string,
+	path string,
+	body io.Reader,
 ) (*http.Response, error) {
 	if opts.Transport == nil {
 		return nil, &errors.SDKError{
@@ -64,10 +103,8 @@ func Do(
 		req.Header.Set("Authorization", "Bearer "+opts.Token)
 	}
 
-	// Set custom headers (can override defaults if needed)
-	for k, v := range headers {
-		req.Header.Set(k, v)
-	}
+	// Set custom headers (can override defaults if needed).
+	req.Header = mergeHeaders(req.Header, opts.Headers)
 
 	resp, err := opts.Transport.Do(req)
 	if err != nil {
@@ -81,28 +118,8 @@ func Do(
 		}
 	}
 
-	if resp.StatusCode >= 400 {
-		b, truncated, readErr := readResponseBodyTruncated(resp.Body, opts.MaxResponseBodyBytes)
-		_ = resp.Body.Close()
-		if readErr != nil {
-			return nil, &errors.SDKError{
-				Kind:    errors.SDKErrorKindInternal,
-				Message: "failed to read error response body",
-				Err:     readErr,
-			}
-		}
-		msg := string(b)
-		if truncated {
-			msg = msg + " [truncated]"
-		}
-		return nil, &errors.APIError{
-			StatusCode: resp.StatusCode,
-			Message:    msg,
-			Body:       b,
-			Method:     method,
-			URL:        req.URL.String(),
-			RequestID:  resp.Header.Get("X-Request-ID"),
-		}
+	if resp != nil && resp.Request == nil {
+		resp.Request = req
 	}
 
 	return resp, nil
@@ -115,9 +132,20 @@ func DoBytes(
 	method string,
 	path string,
 	data []byte,
-	headers map[string]string,
 ) (*http.Response, error) {
-	return Do(opts, method, path, bytes.NewReader(data), headers)
+	return Do(opts, method, path, bytes.NewReader(data))
+}
+
+// DoBytesRaw performs an HTTP request with a byte slice body and returns the response
+// without translating non-2xx status codes into SDK errors.
+// It is a convenience wrapper around DoRaw that converts the byte slice to an io.Reader.
+func DoBytesRaw(
+	opts RequestOptions,
+	method string,
+	path string,
+	data []byte,
+) (*http.Response, error) {
+	return DoRaw(opts, method, path, bytes.NewReader(data))
 }
 
 func readResponseBodyLimited(r io.Reader, maxBytes int64) ([]byte, error) {
