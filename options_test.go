@@ -10,7 +10,7 @@ import (
 )
 
 func TestWithHTTPClientNil(t *testing.T) {
-	opts := request.NewRequestOptions().With(WithHTTPClient(nil))
+	opts := request.NewRequestOptions().WithHTTPClient(nil)
 	if opts.Transport != nil {
 		t.Fatal("expected nil transport when http client is nil")
 	}

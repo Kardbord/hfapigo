@@ -2,7 +2,6 @@ package hfapigo
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 
 	"github.com/Kardbord/hfapigo/v4/internal/request"
@@ -11,49 +10,49 @@ import (
 // WithBaseURL returns a RequestOption that sets the base URL for API requests.
 // The base URL is the root endpoint for all HuggingFace API calls.
 func WithBaseURL(u string) request.RequestOption {
-	return func(o *request.RequestOptions) { o.BaseURL = u }
+	return request.WithBaseURL(u)
 }
 
 // WithToken returns a RequestOption that sets the authentication token for API requests.
 // The token is used for Bearer authentication with the HuggingFace API.
 func WithToken(t string) request.RequestOption {
-	return func(o *request.RequestOptions) { o.Token = t }
+	return request.WithToken(t)
 }
 
 // WithModel returns a RequestOption that sets the model to use for API requests.
 // The model specifies which HuggingFace model should process the request.
 func WithModel(m string) request.RequestOption {
-	return func(o *request.RequestOptions) { o.Model = m }
+	return request.WithModel(m)
 }
 
 // WithProvider returns a RequestOption that sets the provider for API requests.
 // The provider specifies which inference provider should handle the request.
 func WithProvider(p string) request.RequestOption {
-	return func(o *request.RequestOptions) { o.Provider = p }
+	return request.WithProvider(p)
 }
 
 // WithHTTPClient returns a RequestOption that sets a custom HTTP client for API requests.
 // This allows customization of transport settings, timeouts, and other HTTP client configurations.
 func WithHTTPClient(c *http.Client) request.RequestOption {
-	return func(o *request.RequestOptions) { o.Transport = request.NewHTTPTransport(c) }
+	return request.WithHTTPClient(c)
 }
 
 // WithContext returns a RequestOption that sets the context for API requests.
 // The context can be used for cancellation, timeouts, and passing request-scoped values.
 // If a nil context is provided, the SDK will fall back to context.Background().
 func WithContext(ctx context.Context) request.RequestOption {
-	return func(o *request.RequestOptions) { o.Ctx = ctx }
+	return request.WithContext(ctx)
 }
 
 // WithUserAgentSuffix returns a RequestOption that appends a suffix to the SDK user agent string.
 func WithUserAgentSuffix(s string) request.RequestOption {
-	return func(o *request.RequestOptions) { o.UserAgent = fmt.Sprintf("%s %s", UserAgent(), s) }
+	return request.WithUserAgentSuffix(s)
 }
 
 // WithMaxResponseBodyBytes returns a RequestOption that sets the maximum number of bytes
 // read from any response body. Values <= 0 fall back to the default.
 func WithMaxResponseBodyBytes(n int64) request.RequestOption {
-	return func(o *request.RequestOptions) { o.MaxResponseBodyBytes = n }
+	return request.WithMaxResponseBodyBytes(n)
 }
 
 // WithHeaders returns a RequestOption that sets custom headers applied to every request.

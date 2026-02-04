@@ -40,9 +40,7 @@ func DoJSON[TReq any, TResp any](
 		}
 	}
 
-	opts = opts.With(func(o *RequestOptions) {
-		o.Headers = ensureHeader(o.Headers, "Content-Type", "application/json")
-	})
+	opts = opts.WithDefaultHeader("Content-Type", "application/json")
 
 	if err := validateJSONContentType(opts.Headers); err != nil {
 		return zero, err

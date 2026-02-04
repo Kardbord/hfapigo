@@ -2,6 +2,7 @@ package request
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/textproto"
 
@@ -68,6 +69,66 @@ func (o RequestOptions) With(opts ...RequestOption) RequestOptions {
 	return o
 }
 
+// WithBaseURL returns a new RequestOptions instance with the base URL updated.
+func (o RequestOptions) WithBaseURL(u string) RequestOptions {
+	o.BaseURL = u
+	return o
+}
+
+// WithToken returns a new RequestOptions instance with the authentication token updated.
+func (o RequestOptions) WithToken(t string) RequestOptions {
+	o.Token = t
+	return o
+}
+
+// WithModel returns a new RequestOptions instance with the model updated.
+func (o RequestOptions) WithModel(m string) RequestOptions {
+	o.Model = m
+	return o
+}
+
+// WithProvider returns a new RequestOptions instance with the provider updated.
+func (o RequestOptions) WithProvider(p string) RequestOptions {
+	o.Provider = p
+	return o
+}
+
+// WithUserAgent returns a new RequestOptions instance with the User-Agent value updated.
+func (o RequestOptions) WithUserAgent(ua string) RequestOptions {
+	o.UserAgent = ua
+	return o
+}
+
+// WithUserAgentSuffix returns a new RequestOptions instance with a suffix appended to the SDK User-Agent.
+func (o RequestOptions) WithUserAgentSuffix(s string) RequestOptions {
+	o.UserAgent = fmt.Sprintf("%s %s", version.UserAgent(), s)
+	return o
+}
+
+// WithMaxResponseBodyBytes returns a new RequestOptions instance with the response size cap updated.
+func (o RequestOptions) WithMaxResponseBodyBytes(n int64) RequestOptions {
+	o.MaxResponseBodyBytes = n
+	return o
+}
+
+// WithContext returns a new RequestOptions instance with the context updated.
+func (o RequestOptions) WithContext(ctx context.Context) RequestOptions {
+	o.Ctx = ctx
+	return o
+}
+
+// WithHTTPClient returns a new RequestOptions instance with the transport updated from the HTTP client.
+func (o RequestOptions) WithHTTPClient(c *http.Client) RequestOptions {
+	o.Transport = NewHTTPTransport(c)
+	return o
+}
+
+// WithTransport returns a new RequestOptions instance with the transport updated.
+func (o RequestOptions) WithTransport(t Transport) RequestOptions {
+	o.Transport = t
+	return o
+}
+
 // WithHeaders returns a new RequestOptions instance with the provided headers merged in.
 func (o RequestOptions) WithHeaders(h http.Header) RequestOptions {
 	o.Headers = mergeHeaders(o.Headers, h)
@@ -85,6 +146,76 @@ func (o RequestOptions) WithHeader(key, value string) RequestOptions {
 func (o RequestOptions) WithDefaultHeader(key, value string) RequestOptions {
 	o.Headers = ensureHeader(o.Headers, key, value)
 	return o
+}
+
+// WithBaseURL returns a RequestOption that sets the base URL for API requests.
+func WithBaseURL(u string) RequestOption {
+	return func(o *RequestOptions) {
+		o.BaseURL = u
+	}
+}
+
+// WithToken returns a RequestOption that sets the authentication token for API requests.
+func WithToken(t string) RequestOption {
+	return func(o *RequestOptions) {
+		o.Token = t
+	}
+}
+
+// WithModel returns a RequestOption that sets the model to use for API requests.
+func WithModel(m string) RequestOption {
+	return func(o *RequestOptions) {
+		o.Model = m
+	}
+}
+
+// WithProvider returns a RequestOption that sets the provider for API requests.
+func WithProvider(p string) RequestOption {
+	return func(o *RequestOptions) {
+		o.Provider = p
+	}
+}
+
+// WithUserAgent returns a RequestOption that sets the User-Agent header value.
+func WithUserAgent(ua string) RequestOption {
+	return func(o *RequestOptions) {
+		o.UserAgent = ua
+	}
+}
+
+// WithUserAgentSuffix returns a RequestOption that appends a suffix to the SDK user agent string.
+func WithUserAgentSuffix(s string) RequestOption {
+	return func(o *RequestOptions) {
+		o.UserAgent = fmt.Sprintf("%s %s", version.UserAgent(), s)
+	}
+}
+
+// WithMaxResponseBodyBytes returns a RequestOption that sets the maximum response size to read.
+func WithMaxResponseBodyBytes(n int64) RequestOption {
+	return func(o *RequestOptions) {
+		o.MaxResponseBodyBytes = n
+	}
+}
+
+// WithContext returns a RequestOption that sets the context for API requests.
+func WithContext(ctx context.Context) RequestOption {
+	return func(o *RequestOptions) {
+		o.Ctx = ctx
+	}
+}
+
+// WithHTTPClient returns a RequestOption that sets a custom HTTP client for API requests.
+func WithHTTPClient(c *http.Client) RequestOption {
+	return func(o *RequestOptions) {
+		o.Transport = NewHTTPTransport(c)
+	}
+}
+
+// WithTransport returns a RequestOption that sets a custom transport for API requests.
+func WithTransport(t Transport) RequestOption {
+	return func(o *RequestOptions) {
+		o.Transport = t
+	}
 }
 
 // WithHeaders returns a RequestOption that sets custom headers applied to every request.

@@ -1,6 +1,7 @@
 package request
 
 import (
+	"context"
 	"net/http"
 	"testing"
 
@@ -18,7 +19,7 @@ func TestRequestOptions_With(t *testing.T) {
 			name:    "is immutable",
 			initial: NewRequestOptions(),
 			options: []RequestOption{
-				func(o *RequestOptions) { o.Token = "secret" },
+				WithToken("secret"),
 			},
 			validate: func(t *testing.T, orig, updated RequestOptions) {
 				if orig.Token != "" {
@@ -33,8 +34,8 @@ func TestRequestOptions_With(t *testing.T) {
 			name:    "duplicate options - last wins",
 			initial: NewRequestOptions(),
 			options: []RequestOption{
-				func(o *RequestOptions) { o.Token = "first" },
-				func(o *RequestOptions) { o.Token = "second" },
+				WithToken("first"),
+				WithToken("second"),
 			},
 			validate: func(t *testing.T, orig, updated RequestOptions) {
 				if updated.Token != "second" {
@@ -46,10 +47,10 @@ func TestRequestOptions_With(t *testing.T) {
 			name:    "multiple fields",
 			initial: NewRequestOptions(),
 			options: []RequestOption{
-				func(o *RequestOptions) { o.Token = "token123" },
-				func(o *RequestOptions) { o.Model = "llama-3" },
-				func(o *RequestOptions) { o.Provider = "aws" },
-				func(o *RequestOptions) { o.UserAgent = "myapp/1.2.3" },
+				WithToken("token123"),
+				WithModel("llama-3"),
+				WithProvider("aws"),
+				WithUserAgent("myapp/1.2.3"),
 			},
 			validate: func(t *testing.T, orig, updated RequestOptions) {
 				if updated.Token != "token123" {
@@ -77,6 +78,50 @@ func TestRequestOptions_With(t *testing.T) {
 				tt.validate(t, orig, updated)
 			}
 		})
+	}
+}
+
+func TestRequestOptions_WithHelpers(t *testing.T) {
+	ctx := context.WithValue(context.Background(), struct{}{}, "ok")
+	mt := newMockTransport(http.StatusOK, `{}`, nil)
+
+	opts := NewRequestOptions().
+		WithBaseURL("https://example.com").
+		WithToken("token").
+		WithModel("model").
+		WithProvider("provider").
+		WithContext(ctx).
+		WithMaxResponseBodyBytes(42).
+		WithTransport(mt)
+
+	if opts.BaseURL != "https://example.com" {
+		t.Errorf("expected BaseURL to be set, got %q", opts.BaseURL)
+	}
+	if opts.Token != "token" {
+		t.Errorf("expected Token to be set, got %q", opts.Token)
+	}
+	if opts.Model != "model" {
+		t.Errorf("expected Model to be set, got %q", opts.Model)
+	}
+	if opts.Provider != "provider" {
+		t.Errorf("expected Provider to be set, got %q", opts.Provider)
+	}
+	if opts.Ctx != ctx {
+		t.Error("expected context to be set")
+	}
+	if opts.MaxResponseBodyBytes != 42 {
+		t.Errorf("expected MaxResponseBodyBytes to be 42, got %d", opts.MaxResponseBodyBytes)
+	}
+	if opts.Transport != mt {
+		t.Error("expected Transport to be set")
+	}
+}
+
+func TestWithUserAgentSuffix(t *testing.T) {
+	opts := NewRequestOptions().WithUserAgentSuffix("custom/1.0")
+	want := version.UserAgent() + " custom/1.0"
+	if opts.UserAgent != want {
+		t.Errorf("expected UserAgent %q, got %q", want, opts.UserAgent)
 	}
 }
 
