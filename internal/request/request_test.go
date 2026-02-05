@@ -521,6 +521,36 @@ func TestJoinURL(t *testing.T) {
 			path:    "https://evil.example.com/override",
 			wantErr: true,
 		},
+		{
+			name:    "rejects base URL without scheme",
+			baseURL: "example.com/api",
+			path:    "/v1/chat",
+			wantErr: true,
+		},
+		{
+			name:    "rejects base URL without host",
+			baseURL: "https:///api",
+			path:    "/v1/chat",
+			wantErr: true,
+		},
+		{
+			name:    "rejects base URL with query",
+			baseURL: "https://example.com/api?token=abc",
+			path:    "/v1/chat",
+			wantErr: true,
+		},
+		{
+			name:    "rejects base URL with fragment",
+			baseURL: "https://example.com/api#section",
+			path:    "/v1/chat",
+			wantErr: true,
+		},
+		{
+			name:    "rejects base URL with query and fragment",
+			baseURL: "https://example.com/api?token=abc#section",
+			path:    "/v1/chat",
+			wantErr: true,
+		},
 	}
 
 	for _, tt := range tests {
