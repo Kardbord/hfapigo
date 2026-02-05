@@ -347,8 +347,8 @@ func TestDo(t *testing.T) {
 				}
 			},
 		},
-			{
-				name: "returns APIError on nil error response body",
+		{
+			name: "returns APIError on nil error response body",
 			setupOpts: func() RequestOptions {
 				mt := &mockTransport{
 					Response: &http.Response{
@@ -363,18 +363,18 @@ func TestDo(t *testing.T) {
 			path:    "/test",
 			body:    nil,
 			wantErr: true,
-				validateErr: func(t *testing.T, err error) {
-					var apiErr *internalErrors.APIError
-					if !errors.As(err, &apiErr) {
-						t.Fatalf("expected APIError, got %T", err)
-					}
-					if apiErr.StatusCode != http.StatusBadRequest {
-						t.Errorf("expected status %d, got %d", http.StatusBadRequest, apiErr.StatusCode)
-					}
-				},
+			validateErr: func(t *testing.T, err error) {
+				var apiErr *internalErrors.APIError
+				if !errors.As(err, &apiErr) {
+					t.Fatalf("expected APIError, got %T", err)
+				}
+				if apiErr.StatusCode != http.StatusBadRequest {
+					t.Errorf("expected status %d, got %d", http.StatusBadRequest, apiErr.StatusCode)
+				}
 			},
-			{
-				name: "returns APIError on http.NoBody error response",
+		},
+		{
+			name: "returns APIError on http.NoBody error response",
 			setupOpts: func() RequestOptions {
 				mt := &mockTransport{
 					Response: &http.Response{
@@ -389,16 +389,16 @@ func TestDo(t *testing.T) {
 			path:    "/test",
 			body:    nil,
 			wantErr: true,
-				validateErr: func(t *testing.T, err error) {
-					var apiErr *internalErrors.APIError
-					if !errors.As(err, &apiErr) {
-						t.Fatalf("expected APIError, got %T", err)
-					}
-					if apiErr.StatusCode != http.StatusBadRequest {
-						t.Errorf("expected status %d, got %d", http.StatusBadRequest, apiErr.StatusCode)
-					}
-				},
+			validateErr: func(t *testing.T, err error) {
+				var apiErr *internalErrors.APIError
+				if !errors.As(err, &apiErr) {
+					t.Fatalf("expected APIError, got %T", err)
+				}
+				if apiErr.StatusCode != http.StatusBadRequest {
+					t.Errorf("expected status %d, got %d", http.StatusBadRequest, apiErr.StatusCode)
+				}
 			},
+		},
 		{
 			name: "returns configuration SDKError when transport is nil",
 			setupOpts: func() RequestOptions {
