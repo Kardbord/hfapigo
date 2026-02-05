@@ -15,7 +15,7 @@ func newRawService(opts request.RequestOptions) RawService {
 	return RawService{opts: opts}
 }
 
-// Do performs an HTTP request and applies SDK error interpretation on non-2xx responses.
+// Do performs a raw HTTP request and applies SDK error interpretation on non-2xx responses.
 func (r RawService) Do(
 	requestBody []byte,
 	method string,
@@ -30,7 +30,7 @@ func (r RawService) Do(
 	)
 }
 
-// DoRaw performs an HTTP request without translating non-2xx responses into SDK errors.
+// DoRaw performs a raw HTTP request without translating non-2xx responses into SDK errors.
 func (r RawService) DoRaw(
 	requestBody []byte,
 	method string,

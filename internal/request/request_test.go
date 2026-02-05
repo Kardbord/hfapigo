@@ -459,6 +459,7 @@ func TestJoinURL(t *testing.T) {
 		baseURL string
 		path    string
 		want    *url.URL
+		wantErr bool
 	}{
 		{
 			name:    "empty path returns base URL",
@@ -514,11 +515,23 @@ func TestJoinURL(t *testing.T) {
 				Fragment: "section",
 			},
 		},
+		{
+			name:    "rejects full URL path",
+			baseURL: "https://example.com/api",
+			path:    "https://evil.example.com/override",
+			wantErr: true,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := joinURL(tt.baseURL, tt.path)
+			if tt.wantErr {
+				if err == nil {
+					t.Fatal("expected joinURL error")
+				}
+				return
+			}
 			if err != nil {
 				t.Fatalf("joinURL error: %v", err)
 			}

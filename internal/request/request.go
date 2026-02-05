@@ -133,6 +133,9 @@ func joinURL(baseURL string, path string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	if parsedPath.Scheme != "" || parsedPath.Host != "" {
+		return "", fmt.Errorf("path must be relative, got %q", path)
+	}
 	joined, err := url.JoinPath(baseURL, parsedPath.Path)
 	if err != nil {
 		return "", err

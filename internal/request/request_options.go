@@ -83,6 +83,7 @@ func (o RequestOptions) With(opts ...RequestOption) RequestOptions {
 }
 
 // WithBaseURL returns a new RequestOptions instance with the base URL updated.
+// The base URL must not include query parameters or fragments.
 func (o RequestOptions) WithBaseURL(u string) RequestOptions {
 	o = o.clone()
 	o.BaseURL = u
@@ -180,6 +181,7 @@ func (o RequestOptions) WithDefaultHeader(key, value string) RequestOptions {
 }
 
 // WithBaseURL returns a RequestOption that sets the base URL for API requests.
+// The base URL must not include query parameters or fragments.
 func WithBaseURL(u string) RequestOption {
 	return func(o *RequestOptions) {
 		o.BaseURL = u

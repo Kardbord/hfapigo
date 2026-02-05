@@ -8,7 +8,8 @@ import (
 )
 
 // WithBaseURL returns a RequestOption that sets the base URL for API requests.
-// The base URL is the root endpoint for all HuggingFace API calls.
+// The base URL is the root endpoint for all HuggingFace API calls and must not
+// include query parameters or fragments.
 func WithBaseURL(u string) request.RequestOption {
 	return request.WithBaseURL(u)
 }

@@ -27,7 +27,7 @@ func (c Client) Chat() ChatService {
 }
 
 // Raw returns a RawService instance configured with this client's options.
-// The raw service provides methods for sending raw JSON requests to any desired endpoint.
+// The raw service provides methods for sending raw HTTP requests to any desired endpoint.
 // Service configurations are captured at creation time and do not change if the client options change later.
 func (c Client) Raw() RawService {
 	return newRawService(c.opts)
