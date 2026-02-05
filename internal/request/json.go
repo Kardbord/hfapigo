@@ -6,6 +6,7 @@ import (
 	"io"
 	"mime"
 	"net/http"
+	"strings"
 
 	"github.com/Kardbord/hfapigo/v4/internal/errors"
 )
@@ -43,7 +44,7 @@ func DoJSON[TReq any, TResp any](
 	opts = opts.WithDefaultHeader("Content-Type", "application/json")
 	opts = opts.WithDefaultHeader("Accept", "application/json")
 
-	if err := validateJSONContentType(opts.Headers); err != nil {
+	if err := validateJSONRequestContentType(opts.Headers); err != nil {
 		return zero, err
 	}
 
@@ -62,6 +63,8 @@ func DoJSON[TReq any, TResp any](
 		return zero, nil
 	}
 	if err := validateJSONResponseContentType(resp.Header); err != nil {
+		// Drain the remainder so the underlying HTTP connection can be reused.
+		_, _ = io.Copy(io.Discard, resp.Body)
 		return zero, err
 	}
 
@@ -106,7 +109,7 @@ func ensureHeader(h http.Header, key string, value string) http.Header {
 	return out
 }
 
-func validateJSONContentType(headers http.Header) error {
+func validateJSONRequestContentType(headers http.Header) error {
 	ct := headers.Get("Content-Type")
 	if ct == "" {
 		return nil
@@ -144,11 +147,18 @@ func validateJSONResponseContentType(headers http.Header) error {
 			Err:     err,
 		}
 	}
-	if mediatype != "application/json" {
+	if !isJSONMediaType(mediatype) {
 		return &errors.SDKError{
 			Kind:    errors.SDKErrorKindSerialization,
 			Message: "response Content-Type must be application/json",
 		}
 	}
 	return nil
+}
+
+func isJSONMediaType(mediatype string) bool {
+	if mediatype == "application/json" {
+		return true
+	}
+	return strings.HasSuffix(mediatype, "+json")
 }

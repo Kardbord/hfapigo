@@ -354,6 +354,21 @@ func TestDoJSON(t *testing.T) {
 			},
 		},
 		{
+			name: "accepts +json response Content-Type",
+			setupOpts: func() RequestOptions {
+				mt := newMockTransport(http.StatusOK, `{"generated_text":"hello"}`, nil)
+				mt.Response.Header.Set("Content-Type", "application/problem+json")
+				return NewRequestOptions().WithTransport(mt)
+			},
+			method:  http.MethodGet,
+			path:    "/test",
+			reqBody: req{},
+			wantErr: false,
+			wantResp: &resp{
+				GeneratedText: "hello",
+			},
+		},
+		{
 			name: "returns zero value on 204 No Content",
 			setupOpts: func() RequestOptions {
 				return NewRequestOptions().WithTransport(
