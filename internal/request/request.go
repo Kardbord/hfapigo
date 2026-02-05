@@ -61,11 +61,8 @@ func DoRaw(
 	path string,
 	body io.Reader,
 ) (*http.Response, error) {
-	if opts.Transport == nil {
-		return nil, &errors.SDKError{
-			Kind:    errors.SDKErrorKindConfiguration,
-			Message: "transport is nil",
-		}
+	if err := opts.Validate(); err != nil {
+		return nil, err
 	}
 
 	ctx := opts.Ctx
@@ -126,16 +123,6 @@ func DoRaw(
 }
 
 func joinURL(baseURL string, path string) (string, error) {
-	parsedBase, err := url.Parse(baseURL)
-	if err != nil {
-		return "", err
-	}
-	if parsedBase.Scheme == "" || parsedBase.Host == "" {
-		return "", fmt.Errorf("base URL must include scheme and host, got %q", baseURL)
-	}
-	if parsedBase.RawQuery != "" || parsedBase.Fragment != "" {
-		return "", fmt.Errorf("base URL must not include query or fragment, got %q", baseURL)
-	}
 	if path == "" {
 		return baseURL, nil
 	}

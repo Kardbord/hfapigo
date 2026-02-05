@@ -236,6 +236,72 @@ func TestDo(t *testing.T) {
 			},
 		},
 		{
+			name: "returns configuration SDKError on base URL with query",
+			setupOpts: func() RequestOptions {
+				mt := newMockTransport(http.StatusOK, `{}`, nil)
+				return NewRequestOptions().
+					WithBaseURL("https://example.com/api?token=abc").
+					WithTransport(mt)
+			},
+			method:  http.MethodGet,
+			path:    "/test",
+			body:    nil,
+			wantErr: true,
+			validateErr: func(t *testing.T, err error) {
+				var sdkErr *internalErrors.SDKError
+				if !errors.As(err, &sdkErr) {
+					t.Fatalf("expected SDKError, got %T", err)
+				}
+				if sdkErr.Kind != internalErrors.SDKErrorKindConfiguration {
+					t.Errorf("expected configuration SDKError, got %q", sdkErr.Kind)
+				}
+			},
+		},
+		{
+			name: "returns configuration SDKError on base URL with fragment",
+			setupOpts: func() RequestOptions {
+				mt := newMockTransport(http.StatusOK, `{}`, nil)
+				return NewRequestOptions().
+					WithBaseURL("https://example.com/api#section").
+					WithTransport(mt)
+			},
+			method:  http.MethodGet,
+			path:    "/test",
+			body:    nil,
+			wantErr: true,
+			validateErr: func(t *testing.T, err error) {
+				var sdkErr *internalErrors.SDKError
+				if !errors.As(err, &sdkErr) {
+					t.Fatalf("expected SDKError, got %T", err)
+				}
+				if sdkErr.Kind != internalErrors.SDKErrorKindConfiguration {
+					t.Errorf("expected configuration SDKError, got %q", sdkErr.Kind)
+				}
+			},
+		},
+		{
+			name: "returns configuration SDKError on base URL with query and fragment",
+			setupOpts: func() RequestOptions {
+				mt := newMockTransport(http.StatusOK, `{}`, nil)
+				return NewRequestOptions().
+					WithBaseURL("https://example.com/api?token=abc#section").
+					WithTransport(mt)
+			},
+			method:  http.MethodGet,
+			path:    "/test",
+			body:    nil,
+			wantErr: true,
+			validateErr: func(t *testing.T, err error) {
+				var sdkErr *internalErrors.SDKError
+				if !errors.As(err, &sdkErr) {
+					t.Fatalf("expected SDKError, got %T", err)
+				}
+				if sdkErr.Kind != internalErrors.SDKErrorKindConfiguration {
+					t.Errorf("expected configuration SDKError, got %q", sdkErr.Kind)
+				}
+			},
+		},
+		{
 			name: "returns internal SDKError on invalid method",
 			setupOpts: func() RequestOptions {
 				mt := newMockTransport(http.StatusOK, `{}`, nil)
@@ -519,36 +585,6 @@ func TestJoinURL(t *testing.T) {
 			name:    "rejects full URL path",
 			baseURL: "https://example.com/api",
 			path:    "https://evil.example.com/override",
-			wantErr: true,
-		},
-		{
-			name:    "rejects base URL without scheme",
-			baseURL: "example.com/api",
-			path:    "/v1/chat",
-			wantErr: true,
-		},
-		{
-			name:    "rejects base URL without host",
-			baseURL: "https:///api",
-			path:    "/v1/chat",
-			wantErr: true,
-		},
-		{
-			name:    "rejects base URL with query",
-			baseURL: "https://example.com/api?token=abc",
-			path:    "/v1/chat",
-			wantErr: true,
-		},
-		{
-			name:    "rejects base URL with fragment",
-			baseURL: "https://example.com/api#section",
-			path:    "/v1/chat",
-			wantErr: true,
-		},
-		{
-			name:    "rejects base URL with query and fragment",
-			baseURL: "https://example.com/api?token=abc#section",
-			path:    "/v1/chat",
 			wantErr: true,
 		},
 	}

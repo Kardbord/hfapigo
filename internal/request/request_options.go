@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"net/http"
 	"net/textproto"
+	"net/url"
 
+	"github.com/Kardbord/hfapigo/v4/internal/errors"
 	"github.com/Kardbord/hfapigo/v4/internal/version"
 )
 
@@ -65,6 +67,37 @@ func (o *RequestOptions) apply(opts ...RequestOption) {
 	for _, opt := range opts {
 		opt(o)
 	}
+}
+
+// Validate returns a configuration error if the options are invalid.
+func (o RequestOptions) Validate() error {
+	if o.Transport == nil {
+		return &errors.SDKError{
+			Kind:    errors.SDKErrorKindConfiguration,
+			Message: "transport is nil",
+		}
+	}
+	parsedBase, err := url.Parse(o.BaseURL)
+	if err != nil {
+		return &errors.SDKError{
+			Kind:    errors.SDKErrorKindConfiguration,
+			Message: fmt.Sprintf("invalid base URL %q", o.BaseURL),
+			Err:     err,
+		}
+	}
+	if parsedBase.Scheme == "" || parsedBase.Host == "" {
+		return &errors.SDKError{
+			Kind:    errors.SDKErrorKindConfiguration,
+			Message: fmt.Sprintf("base URL must include scheme and host, got %q", o.BaseURL),
+		}
+	}
+	if parsedBase.RawQuery != "" || parsedBase.Fragment != "" {
+		return &errors.SDKError{
+			Kind:    errors.SDKErrorKindConfiguration,
+			Message: fmt.Sprintf("base URL must not include query or fragment, got %q", o.BaseURL),
+		}
+	}
+	return nil
 }
 
 // clone returns a shallow copy with reference types safely duplicated where possible.

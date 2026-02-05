@@ -2,9 +2,11 @@ package request
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"testing"
 
+	internalErrors "github.com/Kardbord/hfapigo/v4/internal/errors"
 	"github.com/Kardbord/hfapigo/v4/internal/version"
 )
 
@@ -405,6 +407,75 @@ func TestNewRequestOptions(t *testing.T) {
 			opts := NewRequestOptions()
 			if tt.validate != nil {
 				tt.validate(t, opts)
+			}
+		})
+	}
+}
+
+func TestRequestOptions_Validate(t *testing.T) {
+	tests := []struct {
+		name    string
+		opts    RequestOptions
+		wantErr bool
+		kind    internalErrors.SDKErrorKind
+	}{
+		{
+			name:    "valid options",
+			opts:    NewRequestOptions(),
+			wantErr: false,
+		},
+		{
+			name:    "nil transport",
+			opts:    NewRequestOptions().WithTransport(nil),
+			wantErr: true,
+			kind:    internalErrors.SDKErrorKindConfiguration,
+		},
+		{
+			name:    "invalid base URL",
+			opts:    NewRequestOptions().WithBaseURL("http://[::1"),
+			wantErr: true,
+			kind:    internalErrors.SDKErrorKindConfiguration,
+		},
+		{
+			name:    "base URL missing scheme",
+			opts:    NewRequestOptions().WithBaseURL("example.com/api"),
+			wantErr: true,
+			kind:    internalErrors.SDKErrorKindConfiguration,
+		},
+		{
+			name:    "base URL missing host",
+			opts:    NewRequestOptions().WithBaseURL("https:///api"),
+			wantErr: true,
+			kind:    internalErrors.SDKErrorKindConfiguration,
+		},
+		{
+			name:    "base URL with query",
+			opts:    NewRequestOptions().WithBaseURL("https://example.com/api?token=abc"),
+			wantErr: true,
+			kind:    internalErrors.SDKErrorKindConfiguration,
+		},
+		{
+			name:    "base URL with fragment",
+			opts:    NewRequestOptions().WithBaseURL("https://example.com/api#section"),
+			wantErr: true,
+			kind:    internalErrors.SDKErrorKindConfiguration,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.opts.Validate()
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("Validate() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if tt.wantErr {
+				var sdkErr *internalErrors.SDKError
+				if !errors.As(err, &sdkErr) {
+					t.Fatalf("expected SDKError, got %T", err)
+				}
+				if sdkErr.Kind != tt.kind {
+					t.Fatalf("expected SDKError kind %q, got %q", tt.kind, sdkErr.Kind)
+				}
 			}
 		})
 	}
