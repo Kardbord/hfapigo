@@ -292,24 +292,16 @@ func TestDoJSON(t *testing.T) {
 			},
 		},
 		{
-			name: "errors on missing response Content-Type",
+			name: "allows missing response Content-Type",
 			setupOpts: func() RequestOptions {
 				mt := newMockTransport(http.StatusOK, `{}`, nil)
 				return NewRequestOptions().WithTransport(mt)
 			},
-			method:  http.MethodGet,
-			path:    "/test",
-			reqBody: req{},
-			wantErr: true,
-			validateErr: func(t *testing.T, err error) {
-				var sdkErr *internalErrors.SDKError
-				if !errors.As(err, &sdkErr) {
-					t.Fatalf("expected SDKError, got %T", err)
-				}
-				if sdkErr.Kind != internalErrors.SDKErrorKindSerialization {
-					t.Errorf("expected serialization SDKError, got %q", sdkErr.Kind)
-				}
-			},
+			method:   http.MethodGet,
+			path:     "/test",
+			reqBody:  req{},
+			wantErr:  false,
+			wantResp: &resp{},
 		},
 		{
 			name: "errors on non-JSON response Content-Type",

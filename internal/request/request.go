@@ -29,9 +29,12 @@ func Do(
 
 	if resp.StatusCode >= 400 {
 		if resp.Body == nil || resp.Body == http.NoBody {
-			return nil, &errors.SDKError{
-				Kind:    errors.SDKErrorKindInternal,
-				Message: "error response body is missing",
+			return nil, &errors.APIError{
+				StatusCode: resp.StatusCode,
+				Message:    "error response body is missing",
+				Method:     method,
+				URL:        resp.Request.URL.String(),
+				RequestID:  resp.Header.Get("X-Request-ID"),
 			}
 		}
 		b, truncated, readErr := readResponseBodyTruncated(resp.Body, opts.MaxResponseBodyBytes)
@@ -206,7 +209,7 @@ func readResponseBodyLimited(r io.Reader, maxBytes int64) ([]byte, error) {
 	if int64(len(b)) > maxBytes {
 		return nil, &errors.SDKError{
 			Kind:    errors.SDKErrorKindInternal,
-			Message: "response body exceeds max size",
+			Message: fmt.Sprintf("response body exceeds max size (limit %d bytes)", maxBytes),
 		}
 	}
 	return b, nil

@@ -134,10 +134,7 @@ func validateJSONRequestContentType(headers http.Header) error {
 func validateJSONResponseContentType(headers http.Header) error {
 	ct := headers.Get("Content-Type")
 	if ct == "" {
-		return &errors.SDKError{
-			Kind:    errors.SDKErrorKindSerialization,
-			Message: "missing Content-Type header on response",
-		}
+		return nil
 	}
 	mediatype, _, err := mime.ParseMediaType(ct)
 	if err != nil {
