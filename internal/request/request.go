@@ -73,7 +73,7 @@ func DoRaw(
 		ctx = context.Background()
 	}
 
-	reqURL, err := url.JoinPath(opts.BaseURL, path)
+	reqURL, err := joinURL(opts.BaseURL, path)
 	if err != nil {
 		return nil, &errors.SDKError{
 			Kind:    errors.SDKErrorKindConfiguration,
@@ -123,6 +123,27 @@ func DoRaw(
 	}
 
 	return resp, nil
+}
+
+func joinURL(baseURL string, path string) (string, error) {
+	if path == "" {
+		return baseURL, nil
+	}
+	parsedPath, err := url.Parse(path)
+	if err != nil {
+		return "", err
+	}
+	joined, err := url.JoinPath(baseURL, parsedPath.Path)
+	if err != nil {
+		return "", err
+	}
+	joinedURL, err := url.Parse(joined)
+	if err != nil {
+		return "", err
+	}
+	joinedURL.RawQuery = parsedPath.RawQuery
+	joinedURL.Fragment = parsedPath.Fragment
+	return joinedURL.String(), nil
 }
 
 // DoBytes performs an HTTP request with a byte slice body.

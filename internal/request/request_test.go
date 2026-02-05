@@ -41,6 +41,9 @@ func assertURL(t *testing.T, raw string, want *url.URL) {
 	if got.RawQuery != want.RawQuery {
 		t.Errorf("unexpected query: %s", got.RawQuery)
 	}
+	if got.Fragment != want.Fragment {
+		t.Errorf("unexpected fragment: %s", got.Fragment)
+	}
 }
 
 func TestDo(t *testing.T) {
@@ -102,6 +105,28 @@ func TestDo(t *testing.T) {
 					Scheme: "https",
 					Host:   "example.com",
 					Path:   "/api/v1/chat/completions",
+				})
+			},
+		},
+		{
+			name: "preserves query string and fragment",
+			setupOpts: func() RequestOptions {
+				mt := newMockTransport(http.StatusOK, `{}`, nil)
+				return NewRequestOptions().
+					WithBaseURL("https://example.com/api").
+					WithTransport(mt)
+			},
+			method:  http.MethodGet,
+			path:    "/v1/chat/completions?model=foo#section",
+			body:    nil,
+			wantErr: false,
+			validateReq: func(t *testing.T, req *http.Request) {
+				assertURL(t, req.URL.String(), &url.URL{
+					Scheme:   "https",
+					Host:     "example.com",
+					Path:     "/api/v1/chat/completions",
+					RawQuery: "model=foo",
+					Fragment: "section",
 				})
 			},
 		},
@@ -426,6 +451,80 @@ func TestDoRaw(t *testing.T) {
 			t.Fatal("expected response body to remain open")
 		}
 	})
+}
+
+func TestJoinURL(t *testing.T) {
+	tests := []struct {
+		name    string
+		baseURL string
+		path    string
+		want    *url.URL
+	}{
+		{
+			name:    "empty path returns base URL",
+			baseURL: "https://example.com/api",
+			path:    "",
+			want: &url.URL{
+				Scheme: "https",
+				Host:   "example.com",
+				Path:   "/api",
+			},
+		},
+		{
+			name:    "path only joins with base",
+			baseURL: "https://example.com/api",
+			path:    "v1/chat",
+			want: &url.URL{
+				Scheme: "https",
+				Host:   "example.com",
+				Path:   "/api/v1/chat",
+			},
+		},
+		{
+			name:    "query only preserves base path",
+			baseURL: "https://example.com/api",
+			path:    "?model=foo",
+			want: &url.URL{
+				Scheme:   "https",
+				Host:     "example.com",
+				Path:     "/api",
+				RawQuery: "model=foo",
+			},
+		},
+		{
+			name:    "fragment only preserves base path",
+			baseURL: "https://example.com/api",
+			path:    "#section",
+			want: &url.URL{
+				Scheme:   "https",
+				Host:     "example.com",
+				Path:     "/api",
+				Fragment: "section",
+			},
+		},
+		{
+			name:    "path with query and fragment",
+			baseURL: "https://example.com/api",
+			path:    "/v1/chat?model=foo#section",
+			want: &url.URL{
+				Scheme:   "https",
+				Host:     "example.com",
+				Path:     "/api/v1/chat",
+				RawQuery: "model=foo",
+				Fragment: "section",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := joinURL(tt.baseURL, tt.path)
+			if err != nil {
+				t.Fatalf("joinURL error: %v", err)
+			}
+			assertURL(t, got, tt.want)
+		})
+	}
 }
 
 type closeTracker struct {
