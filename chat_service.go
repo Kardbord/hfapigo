@@ -15,10 +15,6 @@ type chatRequest struct {
 	Inputs string `json:"inputs"`
 }
 
-type chatService struct {
-	opts request.RequestOptions
-}
-
 // ChatService provides methods for interacting with chat completion endpoints.
 type ChatService struct {
 	opts request.RequestOptions
