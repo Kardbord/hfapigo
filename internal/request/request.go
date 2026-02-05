@@ -15,6 +15,7 @@ import (
 // It creates a new HTTP request with the given method, path, and body, adds authorization
 // and custom headers, and executes the request using the configured transport.
 // For HTTP status codes >= 400, it returns an *errors.APIError.
+// The caller must close resp.Body on success.
 func Do(
 	opts RequestOptions,
 	method string,
@@ -27,8 +28,18 @@ func Do(
 	}
 
 	if resp.StatusCode >= 400 {
+		if resp.Body == nil {
+			return nil, &errors.SDKError{
+				Kind:    errors.SDKErrorKindInternal,
+				Message: "error response body is nil",
+			}
+		}
 		b, truncated, readErr := readResponseBodyTruncated(resp.Body, opts.MaxResponseBodyBytes)
-		_ = resp.Body.Close()
+		if resp.Body != nil {
+			// Drain the remainder so the underlying HTTP connection can be reused.
+			_, _ = io.Copy(io.Discard, resp.Body)
+			_ = resp.Body.Close()
+		}
 		if readErr != nil {
 			return nil, &errors.SDKError{
 				Kind:    errors.SDKErrorKindInternal,
@@ -55,6 +66,7 @@ func Do(
 
 // DoRaw performs an HTTP request with the provided options and returns the response
 // without translating non-2xx status codes into SDK errors.
+// The caller must close resp.Body on success.
 func DoRaw(
 	opts RequestOptions,
 	method string,
@@ -114,8 +126,14 @@ func DoRaw(
 			Err:     err,
 		}
 	}
+	if resp == nil {
+		return nil, &errors.SDKError{
+			Kind:    errors.SDKErrorKindTransport,
+			Message: "transport returned nil response without error",
+		}
+	}
 
-	if resp != nil && resp.Request == nil {
+	if resp.Request == nil {
 		resp.Request = req
 	}
 

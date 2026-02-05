@@ -18,6 +18,7 @@ func newRawService(opts request.RequestOptions) RawService {
 }
 
 // Do performs a raw HTTP request with a byte slice body and applies SDK error interpretation on non-2xx responses.
+// The caller must close resp.Body on success.
 func (r RawService) Do(
 	requestBody []byte,
 	method string,
@@ -28,6 +29,7 @@ func (r RawService) Do(
 }
 
 // DoRaw performs a raw HTTP request with a byte slice body without translating non-2xx responses into SDK errors.
+// The caller must close resp.Body on success.
 func (r RawService) DoRaw(
 	requestBody []byte,
 	method string,
@@ -38,6 +40,7 @@ func (r RawService) DoRaw(
 }
 
 // DoReader performs a raw HTTP request with a streaming body and applies SDK error interpretation on non-2xx responses.
+// The caller must close resp.Body on success.
 func (r RawService) DoReader(
 	requestBody io.Reader,
 	method string,
@@ -53,6 +56,7 @@ func (r RawService) DoReader(
 }
 
 // DoRawReader performs a raw HTTP request with a streaming body without translating non-2xx responses into SDK errors.
+// The caller must close resp.Body on success.
 func (r RawService) DoRawReader(
 	requestBody io.Reader,
 	method string,

@@ -348,6 +348,32 @@ func TestDo(t *testing.T) {
 			},
 		},
 		{
+			name: "returns internal SDKError on nil error response body",
+			setupOpts: func() RequestOptions {
+				mt := &mockTransport{
+					Response: &http.Response{
+						StatusCode: http.StatusBadRequest,
+						Body:       nil,
+						Header:     make(http.Header),
+					},
+				}
+				return NewRequestOptions().WithTransport(mt)
+			},
+			method:  http.MethodGet,
+			path:    "/test",
+			body:    nil,
+			wantErr: true,
+			validateErr: func(t *testing.T, err error) {
+				var sdkErr *internalErrors.SDKError
+				if !errors.As(err, &sdkErr) {
+					t.Fatalf("expected SDKError, got %T", err)
+				}
+				if sdkErr.Kind != internalErrors.SDKErrorKindInternal {
+					t.Errorf("expected internal SDKError, got %q", sdkErr.Kind)
+				}
+			},
+		},
+		{
 			name: "returns configuration SDKError when transport is nil",
 			setupOpts: func() RequestOptions {
 				return NewRequestOptions().WithTransport(nil)
@@ -427,6 +453,32 @@ func TestDo(t *testing.T) {
 				resp.Body.Close()
 			}
 		})
+	}
+}
+
+func TestDo_DrainsErrorResponseBody(t *testing.T) {
+	data := strings.Repeat("a", 10)
+	tracker := &readTracker{data: []byte(data)}
+	mt := &mockTransport{
+		Response: &http.Response{
+			StatusCode: http.StatusBadRequest,
+			Body:       tracker,
+			Header:     make(http.Header),
+		},
+	}
+	opts := NewRequestOptions().
+		WithTransport(mt).
+		WithMaxResponseBodyBytes(4)
+
+	_, err := Do(opts, http.MethodGet, "/test", nil)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if tracker.read != len(data) {
+		t.Fatalf("expected body to be drained, read %d bytes, want %d", tracker.read, len(data))
+	}
+	if !tracker.closed {
+		t.Fatal("expected response body to be closed")
 	}
 }
 
@@ -515,6 +567,22 @@ func TestDoRaw(t *testing.T) {
 		}
 		if tracker.closed {
 			t.Fatal("expected response body to remain open")
+		}
+	})
+	t.Run("returns error when transport returns nil response without error", func(t *testing.T) {
+		mt := &mockTransport{}
+		opts := NewRequestOptions().WithTransport(mt)
+
+		_, err := DoRaw(opts, http.MethodGet, "/test", nil)
+		if err == nil {
+			t.Fatal("expected error")
+		}
+		var sdkErr *internalErrors.SDKError
+		if !errors.As(err, &sdkErr) {
+			t.Fatalf("expected SDKError, got %T", err)
+		}
+		if sdkErr.Kind != internalErrors.SDKErrorKindTransport {
+			t.Errorf("expected transport SDKError, got %q", sdkErr.Kind)
 		}
 	})
 }
@@ -616,6 +684,28 @@ func (c *closeTracker) Read([]byte) (int, error) {
 
 func (c *closeTracker) Close() error {
 	c.closed = true
+	return nil
+}
+
+type readTracker struct {
+	data   []byte
+	offset int
+	read   int
+	closed bool
+}
+
+func (r *readTracker) Read(p []byte) (int, error) {
+	if r.offset >= len(r.data) {
+		return 0, io.EOF
+	}
+	n := copy(p, r.data[r.offset:])
+	r.offset += n
+	r.read += n
+	return n, nil
+}
+
+func (r *readTracker) Close() error {
+	r.closed = true
 	return nil
 }
 
