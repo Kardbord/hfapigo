@@ -39,9 +39,7 @@ func Do(
 		}
 		b, truncated, readErr := readResponseBodyTruncated(resp.Body, opts.MaxResponseBodyBytes)
 		if resp.Body != nil {
-			// Drain the remainder so the underlying HTTP connection can be reused.
-			_, _ = io.Copy(io.Discard, resp.Body)
-			_ = resp.Body.Close()
+			drainAndCloseBody(resp.Body)
 		}
 		if readErr != nil {
 			return nil, &errors.SDKError{
@@ -196,17 +194,11 @@ func DoBytesRaw(
 }
 
 func readResponseBodyLimited(r io.Reader, maxBytes int64) ([]byte, error) {
-	if maxBytes <= 0 {
-		maxBytes = DefaultMaxResponseBodyBytes
-	}
-	// LimitReader doesn't error on overflow; it just stops at the limit and returns EOF.
-	// Read one extra byte so we can detect truncation by checking len(b) > maxBytes.
-	limitReader := io.LimitReader(r, maxBytes+1)
-	b, err := io.ReadAll(limitReader)
+	b, truncated, err := readResponseBodyTruncated(r, maxBytes)
 	if err != nil {
 		return nil, err
 	}
-	if int64(len(b)) > maxBytes {
+	if truncated {
 		return nil, &errors.SDKError{
 			Kind:    errors.SDKErrorKindInternal,
 			Message: fmt.Sprintf("response body exceeds max size (limit %d bytes)", maxBytes),
@@ -230,4 +222,13 @@ func readResponseBodyTruncated(r io.Reader, maxBytes int64) ([]byte, bool, error
 		return b[:maxBytes], true, nil
 	}
 	return b, false, nil
+}
+
+func drainAndCloseBody(body io.ReadCloser) {
+	if body == nil || body == http.NoBody {
+		return
+	}
+	// Drain the remainder so the underlying HTTP connection can be reused.
+	_, _ = io.Copy(io.Discard, body)
+	_ = body.Close()
 }

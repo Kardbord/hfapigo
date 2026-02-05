@@ -63,16 +63,14 @@ func DoJSON[TReq any, TResp any](
 		return zero, nil
 	}
 	if err := validateJSONResponseContentType(resp.Header); err != nil {
-		// Drain the remainder so the underlying HTTP connection can be reused.
-		_, _ = io.Copy(io.Discard, resp.Body)
+		drainAndCloseBody(resp.Body)
 		return zero, err
 	}
 
 	var out TResp
 	body, err := readResponseBodyLimited(resp.Body, opts.MaxResponseBodyBytes)
 	if err != nil {
-		// Drain the remainder so the underlying HTTP connection can be reused.
-		_, _ = io.Copy(io.Discard, resp.Body)
+		drainAndCloseBody(resp.Body)
 		return zero, err
 	}
 	if len(body) == 0 {
