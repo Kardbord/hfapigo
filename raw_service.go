@@ -23,7 +23,7 @@ func (r RawService) Do(
 	requestBody []byte,
 	method string,
 	path string,
-	opts ...request.RequestOption,
+	opts ...RequestOption,
 ) (*http.Response, error) {
 	return r.DoReader(bytes.NewReader(requestBody), method, path, opts...)
 }
@@ -34,7 +34,7 @@ func (r RawService) DoRaw(
 	requestBody []byte,
 	method string,
 	path string,
-	opts ...request.RequestOption,
+	opts ...RequestOption,
 ) (*http.Response, error) {
 	return r.DoRawReader(bytes.NewReader(requestBody), method, path, opts...)
 }
@@ -45,7 +45,7 @@ func (r RawService) DoReader(
 	requestBody io.Reader,
 	method string,
 	path string,
-	opts ...request.RequestOption,
+	opts ...RequestOption,
 ) (*http.Response, error) {
 	return request.Do(
 		r.opts.With(opts...),
@@ -61,7 +61,7 @@ func (r RawService) DoRawReader(
 	requestBody io.Reader,
 	method string,
 	path string,
-	opts ...request.RequestOption,
+	opts ...RequestOption,
 ) (*http.Response, error) {
 	return request.DoRaw(
 		r.opts.With(opts...),

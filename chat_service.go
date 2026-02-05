@@ -24,7 +24,7 @@ func newChatService(opts request.RequestOptions) ChatService {
 	return ChatService{opts: opts}
 }
 
-func (s ChatService) Complete(prompt string, opts ...request.RequestOption) (ChatResponse, error) {
+func (s ChatService) Complete(prompt string, opts ...RequestOption) (ChatResponse, error) {
 	return request.DoJSON[chatRequest, ChatResponse](
 		s.opts.With(opts...),
 		http.MethodPost,

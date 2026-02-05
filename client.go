@@ -13,7 +13,7 @@ type Client struct {
 
 // NewClient creates a new Client instance with the provided request options.
 // If no options are provided, default options will be used.
-func NewClient(opts ...request.RequestOption) Client {
+func NewClient(opts ...RequestOption) Client {
 	return Client{
 		opts: request.NewRequestOptions().With(opts...),
 	}
