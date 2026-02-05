@@ -374,6 +374,32 @@ func TestDo(t *testing.T) {
 			},
 		},
 		{
+			name: "returns internal SDKError on http.NoBody error response",
+			setupOpts: func() RequestOptions {
+				mt := &mockTransport{
+					Response: &http.Response{
+						StatusCode: http.StatusBadRequest,
+						Body:       http.NoBody,
+						Header:     make(http.Header),
+					},
+				}
+				return NewRequestOptions().WithTransport(mt)
+			},
+			method:  http.MethodGet,
+			path:    "/test",
+			body:    nil,
+			wantErr: true,
+			validateErr: func(t *testing.T, err error) {
+				var sdkErr *internalErrors.SDKError
+				if !errors.As(err, &sdkErr) {
+					t.Fatalf("expected SDKError, got %T", err)
+				}
+				if sdkErr.Kind != internalErrors.SDKErrorKindInternal {
+					t.Errorf("expected internal SDKError, got %q", sdkErr.Kind)
+				}
+			},
+		},
+		{
 			name: "returns configuration SDKError when transport is nil",
 			setupOpts: func() RequestOptions {
 				return NewRequestOptions().WithTransport(nil)
@@ -567,6 +593,27 @@ func TestDoRaw(t *testing.T) {
 		}
 		if tracker.closed {
 			t.Fatal("expected response body to remain open")
+		}
+	})
+	t.Run("normalizes nil body to http.NoBody", func(t *testing.T) {
+		mt := &mockTransport{
+			Response: &http.Response{
+				StatusCode: http.StatusOK,
+				Body:       nil,
+				Header:     make(http.Header),
+			},
+		}
+		opts := NewRequestOptions().WithTransport(mt)
+
+		resp, err := DoRaw(opts, http.MethodGet, "/test", nil)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if resp.Body == nil {
+			t.Fatal("expected non-nil response body")
+		}
+		if resp.Body != http.NoBody {
+			t.Errorf("expected response body to be http.NoBody, got %T", resp.Body)
 		}
 	})
 	t.Run("returns error when transport returns nil response without error", func(t *testing.T) {

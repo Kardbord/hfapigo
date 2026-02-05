@@ -28,10 +28,10 @@ func Do(
 	}
 
 	if resp.StatusCode >= 400 {
-		if resp.Body == nil {
+		if resp.Body == nil || resp.Body == http.NoBody {
 			return nil, &errors.SDKError{
 				Kind:    errors.SDKErrorKindInternal,
-				Message: "error response body is nil",
+				Message: "error response body is missing",
 			}
 		}
 		b, truncated, readErr := readResponseBodyTruncated(resp.Body, opts.MaxResponseBodyBytes)
@@ -136,6 +136,9 @@ func DoRaw(
 	if resp.Request == nil {
 		resp.Request = req
 	}
+	if resp.Body == nil {
+		resp.Body = http.NoBody
+	}
 
 	return resp, nil
 }
@@ -166,6 +169,7 @@ func joinURL(baseURL string, path string) (string, error) {
 
 // DoBytes performs an HTTP request with a byte slice body.
 // It is a convenience wrapper around Do that converts the byte slice to an io.Reader.
+// The caller must close resp.Body on success.
 func DoBytes(
 	opts RequestOptions,
 	method string,
@@ -178,6 +182,7 @@ func DoBytes(
 // DoBytesRaw performs an HTTP request with a byte slice body and returns the response
 // without translating non-2xx status codes into SDK errors.
 // It is a convenience wrapper around DoRaw that converts the byte slice to an io.Reader.
+// The caller must close resp.Body on success.
 func DoBytesRaw(
 	opts RequestOptions,
 	method string,
