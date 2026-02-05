@@ -41,6 +41,7 @@ func DoJSON[TReq any, TResp any](
 	}
 
 	opts = opts.WithDefaultHeader("Content-Type", "application/json")
+	opts = opts.WithDefaultHeader("Accept", "application/json")
 
 	if err := validateJSONContentType(opts.Headers); err != nil {
 		return zero, err
@@ -57,15 +58,21 @@ func DoJSON[TReq any, TResp any](
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode == http.StatusNoContent || resp.StatusCode == http.StatusResetContent {
+		return zero, nil
+	}
+	if err := validateJSONResponseContentType(resp.Header); err != nil {
+		return zero, err
+	}
+
 	var out TResp
 	body, err := readResponseBodyLimited(resp.Body, opts.MaxResponseBodyBytes)
 	if err != nil {
+		// Drain the remainder so the underlying HTTP connection can be reused.
+		_, _ = io.Copy(io.Discard, resp.Body)
 		return zero, err
 	}
 	if len(body) == 0 {
-		if resp.StatusCode == http.StatusNoContent || resp.StatusCode == http.StatusResetContent {
-			return zero, nil
-		}
 		return zero, &errors.SDKError{
 			Kind:    errors.SDKErrorKindSerialization,
 			Message: "empty response body",
@@ -116,6 +123,31 @@ func validateJSONContentType(headers http.Header) error {
 		return &errors.SDKError{
 			Kind:    errors.SDKErrorKindSerialization,
 			Message: "Content-Type must be application/json for DoJSON requests",
+		}
+	}
+	return nil
+}
+
+func validateJSONResponseContentType(headers http.Header) error {
+	ct := headers.Get("Content-Type")
+	if ct == "" {
+		return &errors.SDKError{
+			Kind:    errors.SDKErrorKindSerialization,
+			Message: "missing Content-Type header on response",
+		}
+	}
+	mediatype, _, err := mime.ParseMediaType(ct)
+	if err != nil {
+		return &errors.SDKError{
+			Kind:    errors.SDKErrorKindSerialization,
+			Message: "invalid Content-Type header on response",
+			Err:     err,
+		}
+	}
+	if mediatype != "application/json" {
+		return &errors.SDKError{
+			Kind:    errors.SDKErrorKindSerialization,
+			Message: "response Content-Type must be application/json",
 		}
 	}
 	return nil
