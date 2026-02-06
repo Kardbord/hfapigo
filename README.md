@@ -19,7 +19,7 @@ See the [examples](./examples) directory.
 ## Resources
 
 - [Hugging Face](https://huggingface.co/)
-- [Inference API JSON Schema](https://huggingface.github.io/text-generation-inference/openapi.json)
+- [Inference API JSON Schemas](https://github.com/huggingface/huggingface.js/tree/main/packages/tasks/src/tasks)
 - [Model Hub](https://huggingface.co/models)
 - [Datasets](https://huggingface.co/datasets)
 - [Hugging Face Inference API](https://huggingface.co/docs/inference-providers/tasks/index)
