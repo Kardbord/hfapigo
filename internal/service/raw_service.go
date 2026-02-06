@@ -1,10 +1,11 @@
-package hfapigo
+package service
 
 import (
 	"bytes"
 	"io"
 	"net/http"
 
+	"github.com/Kardbord/hfapigo/v4/api"
 	"github.com/Kardbord/hfapigo/v4/internal/request"
 )
 
@@ -13,7 +14,7 @@ type RawService struct {
 	opts request.RequestOptions
 }
 
-func newRawService(opts request.RequestOptions) RawService {
+func NewRawService(opts request.RequestOptions) RawService {
 	return RawService{opts: opts}
 }
 
@@ -23,7 +24,7 @@ func (r RawService) Do(
 	requestBody []byte,
 	method string,
 	path string,
-	opts ...RequestOption,
+	opts ...api.RequestOption,
 ) (*http.Response, error) {
 	return r.DoReader(bytes.NewReader(requestBody), method, path, opts...)
 }
@@ -34,7 +35,7 @@ func (r RawService) DoRaw(
 	requestBody []byte,
 	method string,
 	path string,
-	opts ...RequestOption,
+	opts ...api.RequestOption,
 ) (*http.Response, error) {
 	return r.DoRawReader(bytes.NewReader(requestBody), method, path, opts...)
 }
@@ -45,7 +46,7 @@ func (r RawService) DoReader(
 	requestBody io.Reader,
 	method string,
 	path string,
-	opts ...RequestOption,
+	opts ...api.RequestOption,
 ) (*http.Response, error) {
 	return request.Do(
 		r.opts.With(opts...),
@@ -61,7 +62,7 @@ func (r RawService) DoRawReader(
 	requestBody io.Reader,
 	method string,
 	path string,
-	opts ...RequestOption,
+	opts ...api.RequestOption,
 ) (*http.Response, error) {
 	return request.DoRaw(
 		r.opts.With(opts...),
