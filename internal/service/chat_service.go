@@ -17,10 +17,18 @@ func NewChatService(opts request.RequestOptions) ChatService {
 }
 
 func (s ChatService) Complete(prompt string, opts ...api.RequestOption) (api.ChatResponse, error) {
+	content := api.ChatMessageContent{Text: &prompt}
 	return request.DoJSON[api.ChatRequest, api.ChatResponse](
 		s.opts.With(opts...),
 		http.MethodPost,
 		"/v1/chat/completions",
-		api.ChatRequest{Inputs: prompt},
+		api.ChatRequest{
+			Messages: []api.ChatMessage{
+				{
+					Role:    "user",
+					Content: content,
+				},
+			},
+		},
 	)
 }
