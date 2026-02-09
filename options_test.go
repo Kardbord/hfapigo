@@ -9,10 +9,10 @@ import (
 	"github.com/Kardbord/hfapigo/v4/internal/request"
 )
 
-func TestWithHTTPClientNil(t *testing.T) {
-	opts := request.NewRequestOptions().WithHTTPClient(nil)
-	if opts.Transport != nil {
-		t.Fatal("expected nil transport when http client is nil")
+func TestWithHTTPClientFactoryNil(t *testing.T) {
+	opts := request.NewRequestOptions().WithHTTPClientFactory(nil)
+	if opts.HTTPClient != nil {
+		t.Fatal("expected nil http client when factory returns nil")
 	}
 
 	_, err := request.Do(opts, http.MethodGet, "/test", nil)
@@ -25,5 +25,12 @@ func TestWithHTTPClientNil(t *testing.T) {
 	}
 	if sdkErr.Kind != internalErrors.SDKErrorKindConfiguration {
 		t.Fatalf("expected configuration SDKError, got %q", sdkErr.Kind)
+	}
+}
+
+func TestWithDefaultHTTPClient(t *testing.T) {
+	opts := request.NewRequestOptions().WithHTTPClientFactory(nil).With(WithDefaultHTTPClient())
+	if opts.HTTPClient == nil {
+		t.Fatal("expected default http client, got nil")
 	}
 }

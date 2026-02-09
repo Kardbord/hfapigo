@@ -13,7 +13,7 @@ import (
 
 // RequestOptions holds configuration settings for API requests.
 // Built-in option helpers return a new value and defensively clone headers,
-// while context and transport are shared as-is. Custom options should avoid
+// while context and the HTTP client are shared as-is. Custom options should avoid
 // reusing mutable header maps if they want the same defensive-copy behavior.
 type RequestOptions struct {
 	Ctx                  context.Context
@@ -24,7 +24,7 @@ type RequestOptions struct {
 	UserAgent            string
 	Headers              http.Header
 	MaxResponseBodyBytes int64
-	Transport            Transport
+	HTTPClient           *http.Client
 }
 
 const (
@@ -40,6 +40,15 @@ const (
 	DefaultMaxResponseBodyBytes int64 = 1 << 20 // 1 MiB
 )
 
+// DefaultHTTPClient returns a new HTTP client configured with a cloned default transport.
+func DefaultHTTPClient() *http.Client {
+	defaultTransport, ok := http.DefaultTransport.(*http.Transport)
+	if !ok {
+		return &http.Client{}
+	}
+	return &http.Client{Transport: defaultTransport.Clone()}
+}
+
 // NewRequestOptions creates a new RequestOptions instance with default values.
 // The returned options use a background context, default endpoints, and the default HTTP client.
 func NewRequestOptions() RequestOptions {
@@ -52,7 +61,7 @@ func NewRequestOptions() RequestOptions {
 		UserAgent:            version.UserAgent(),
 		Headers:              nil,
 		MaxResponseBodyBytes: DefaultMaxResponseBodyBytes,
-		Transport:            NewHTTPTransport(http.DefaultClient),
+		HTTPClient:           DefaultHTTPClient(),
 	}
 }
 
@@ -71,10 +80,10 @@ func (o *RequestOptions) apply(opts ...RequestOption) {
 
 // Validate returns a configuration error if the options are invalid.
 func (o RequestOptions) Validate() error {
-	if o.Transport == nil {
+	if o.HTTPClient == nil {
 		return &errors.SDKError{
 			Kind:    errors.SDKErrorKindConfiguration,
-			Message: "transport is nil",
+			Message: "http client is nil",
 		}
 	}
 	parsedBase, err := url.Parse(o.BaseURL)
@@ -101,7 +110,7 @@ func (o RequestOptions) Validate() error {
 }
 
 // clone returns a shallow copy with reference types safely duplicated where possible.
-// Headers are deep-copied; context and transport are shared by design.
+// Headers are deep-copied; context and HTTP client are shared by design.
 func (o RequestOptions) clone() RequestOptions {
 	o.Headers = cloneHeader(o.Headers)
 	return o
@@ -179,17 +188,24 @@ func (o RequestOptions) WithContext(ctx context.Context) RequestOptions {
 	return o
 }
 
-// WithHTTPClient returns a new RequestOptions instance with the transport updated from the HTTP client.
-func (o RequestOptions) WithHTTPClient(c *http.Client) RequestOptions {
+// WithDefaultHTTPClient returns a new RequestOptions instance that uses the default HTTP client.
+func (o RequestOptions) WithDefaultHTTPClient() RequestOptions {
 	o = o.clone()
-	o.Transport = NewHTTPTransport(c)
+	o.HTTPClient = DefaultHTTPClient()
 	return o
 }
 
-// WithTransport returns a new RequestOptions instance with the transport updated.
-func (o RequestOptions) WithTransport(t Transport) RequestOptions {
+// WithHTTPClientFactory returns a new RequestOptions instance with an http.Client created by the factory.
+// The factory should return a fresh client value; avoid sharing mutable internals like Transport unless synchronized.
+// If the factory is nil, the HTTP client is set to nil.
+func (o RequestOptions) WithHTTPClientFactory(factory func() http.Client) RequestOptions {
 	o = o.clone()
-	o.Transport = t
+	if factory == nil {
+		o.HTTPClient = nil
+		return o
+	}
+	client := factory()
+	o.HTTPClient = &client
 	return o
 }
 
@@ -277,17 +293,24 @@ func WithContext(ctx context.Context) RequestOption {
 	}
 }
 
-// WithHTTPClient returns a RequestOption that sets a custom HTTP client for API requests.
-func WithHTTPClient(c *http.Client) RequestOption {
+// WithDefaultHTTPClient returns a RequestOption that sets the default HTTP client.
+func WithDefaultHTTPClient() RequestOption {
 	return func(o *RequestOptions) {
-		o.Transport = NewHTTPTransport(c)
+		o.HTTPClient = DefaultHTTPClient()
 	}
 }
 
-// WithTransport returns a RequestOption that sets a custom transport for API requests.
-func WithTransport(t Transport) RequestOption {
+// WithHTTPClientFactory returns a RequestOption that sets a client created by the factory.
+// The factory should return a fresh client value; avoid sharing mutable internals like Transport unless synchronized.
+// If the factory is nil, the HTTP client is set to nil.
+func WithHTTPClientFactory(factory func() http.Client) RequestOption {
 	return func(o *RequestOptions) {
-		o.Transport = t
+		if factory == nil {
+			o.HTTPClient = nil
+			return
+		}
+		client := factory()
+		o.HTTPClient = &client
 	}
 }
 

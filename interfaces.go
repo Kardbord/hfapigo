@@ -18,7 +18,7 @@ import (
 //		Stream(prompt string, opts ...RequestOption) (<-chan ChatResponse, error)
 //	}
 //
-// For tests, it is recommended to use WithHTTPClient to inject a custom transport
+// For tests, it is recommended to use WithHTTPClientFactory to inject a custom HTTP client
 // instead of mocking this interface.
 type ChatService interface {
 	Complete(prompt string, opts ...RequestOption) (ChatResponse, error)
@@ -34,7 +34,7 @@ type ChatService interface {
 //		DoWithRetry(requestBody []byte, method string, path string, opts ...RequestOption) (*http.Response, error)
 //	}
 //
-// For tests, it is recommended to use WithHTTPClient to inject a custom transport
+// For tests, it is recommended to use WithHTTPClientFactory to inject a custom HTTP client
 // instead of mocking this interface.
 type RawService interface {
 	// Do performs a raw HTTP request with a byte slice body and applies SDK error interpretation on non-2xx responses.

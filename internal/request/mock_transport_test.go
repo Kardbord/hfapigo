@@ -6,7 +6,7 @@ import (
 	"net/http"
 )
 
-// mockTransport is a mock implementation of Transport for testing purposes.
+// mockTransport is a mock implementation of http.RoundTripper for testing purposes.
 // It captures the last request made and returns a predefined response and error.
 type mockTransport struct {
 	LastRequest *http.Request
@@ -14,12 +14,11 @@ type mockTransport struct {
 	Err         error
 }
 
-// Do executes a mock HTTP request, storing the request for inspection and returning
+// RoundTrip executes a mock HTTP request, storing the request for inspection and returning
 // the predefined response and error. It respects context cancellation.
-func (m *mockTransport) Do(req *http.Request) (*http.Response, error) {
+func (m *mockTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	m.LastRequest = req
 
-	// Transport implementations should respect req.Context() cancellation.
 	select {
 	case <-req.Context().Done():
 		return nil, req.Context().Err()
@@ -27,6 +26,16 @@ func (m *mockTransport) Do(req *http.Request) (*http.Response, error) {
 	}
 
 	return m.Response, m.Err
+}
+
+func newMockHTTPClient(mt *mockTransport) http.Client {
+	return http.Client{Transport: mt}
+}
+
+func withMockTransport(opts RequestOptions, mt *mockTransport) RequestOptions {
+	return opts.WithHTTPClientFactory(func() http.Client {
+		return newMockHTTPClient(mt)
+	})
 }
 
 // newMockTransport creates a new mock transport with the specified response status,

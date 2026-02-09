@@ -97,6 +97,46 @@ func TestRequestOptions_With(t *testing.T) {
 				}
 			},
 		},
+		{
+			name:    "http client factory replaces default client",
+			initial: NewRequestOptions(),
+			options: []RequestOption{
+				WithHTTPClientFactory(func() http.Client {
+					return newMockHTTPClient(newMockTransport(http.StatusOK, `{}`, nil))
+				}),
+			},
+			validate: func(t *testing.T, orig, updated RequestOptions) {
+				if orig.HTTPClient == nil || updated.HTTPClient == nil {
+					t.Fatal("expected http clients to be set")
+				}
+				if orig.HTTPClient == updated.HTTPClient {
+					t.Fatal("expected http client to be replaced")
+				}
+				if _, ok := updated.HTTPClient.Transport.(*mockTransport); !ok {
+					t.Fatal("expected updated http client to use mock transport")
+				}
+			},
+		},
+		{
+			name: "default http client resets custom client",
+			initial: NewRequestOptions().WithHTTPClientFactory(func() http.Client {
+				return newMockHTTPClient(newMockTransport(http.StatusOK, `{}`, nil))
+			}),
+			options: []RequestOption{
+				WithDefaultHTTPClient(),
+			},
+			validate: func(t *testing.T, orig, updated RequestOptions) {
+				if orig.HTTPClient == nil || updated.HTTPClient == nil {
+					t.Fatal("expected http clients to be set")
+				}
+				if _, ok := orig.HTTPClient.Transport.(*mockTransport); !ok {
+					t.Fatal("expected original http client to use mock transport")
+				}
+				if _, ok := updated.HTTPClient.Transport.(*mockTransport); ok {
+					t.Fatal("expected default http client to replace mock transport")
+				}
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -121,8 +161,11 @@ func TestRequestOptions_WithHelpers(t *testing.T) {
 		WithModel("model").
 		WithProvider("provider").
 		WithContext(ctx).
+		WithDefaultHTTPClient().
 		WithMaxResponseBodyBytes(42).
-		WithTransport(mt)
+		WithHTTPClientFactory(func() http.Client {
+			return newMockHTTPClient(mt)
+		})
 
 	if opts.BaseURL != "https://example.com" {
 		t.Errorf("expected BaseURL to be set, got %q", opts.BaseURL)
@@ -142,8 +185,15 @@ func TestRequestOptions_WithHelpers(t *testing.T) {
 	if opts.MaxResponseBodyBytes != 42 {
 		t.Errorf("expected MaxResponseBodyBytes to be 42, got %d", opts.MaxResponseBodyBytes)
 	}
-	if opts.Transport != mt {
-		t.Error("expected Transport to be set")
+	if opts.HTTPClient == nil || opts.HTTPClient.Transport != mt {
+		t.Error("expected HTTP client transport to be set")
+	}
+}
+
+func TestWithDefaultHTTPClient(t *testing.T) {
+	opts := NewRequestOptions().WithDefaultHTTPClient()
+	if opts.HTTPClient == nil {
+		t.Fatal("expected default http client, got nil")
 	}
 }
 
@@ -244,15 +294,11 @@ func TestRequestOptions_DefensiveHeaderClone(t *testing.T) {
 			},
 		},
 		{
-			name: "WithHTTPClient",
+			name: "WithHTTPClientFactory",
 			apply: func(opts RequestOptions) RequestOptions {
-				return opts.WithHTTPClient(http.DefaultClient)
-			},
-		},
-		{
-			name: "WithTransport",
-			apply: func(opts RequestOptions) RequestOptions {
-				return opts.WithTransport(mt)
+				return opts.WithHTTPClientFactory(func() http.Client {
+					return newMockHTTPClient(mt)
+				})
 			},
 		},
 		{
@@ -385,10 +431,10 @@ func TestNewRequestOptions(t *testing.T) {
 			},
 		},
 		{
-			name: "has default Transport",
+			name: "has default HTTP client",
 			validate: func(t *testing.T, opts RequestOptions) {
-				if opts.Transport == nil {
-					t.Error("expected default transport, got nil")
+				if opts.HTTPClient == nil {
+					t.Error("expected default http client, got nil")
 				}
 			},
 		},
@@ -425,8 +471,8 @@ func TestRequestOptions_Validate(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "nil transport",
-			opts:    NewRequestOptions().WithTransport(nil),
+			name:    "nil http client",
+			opts:    NewRequestOptions().WithHTTPClientFactory(nil),
 			wantErr: true,
 			kind:    internalErrors.SDKErrorKindConfiguration,
 		},

@@ -13,7 +13,7 @@ import (
 
 // Do performs an HTTP request with the provided options and returns the response.
 // It creates a new HTTP request with the given method, path, and body, adds authorization
-// and custom headers, and executes the request using the configured transport.
+// and custom headers, and executes the request using the configured HTTP client.
 // For HTTP status codes >= 400, it returns an *errors.APIError.
 // The caller must close resp.Body on success.
 func Do(
@@ -116,7 +116,7 @@ func DoRaw(
 	// Set custom headers (can override defaults if needed).
 	req.Header = overrideHeaders(req.Header, opts.Headers)
 
-	resp, err := opts.Transport.Do(req)
+	resp, err := opts.HTTPClient.Do(req)
 	if err != nil {
 		if resp != nil && resp.Body != nil {
 			_ = resp.Body.Close()
@@ -130,7 +130,7 @@ func DoRaw(
 	if resp == nil {
 		return nil, &errors.SDKError{
 			Kind:    errors.SDKErrorKindTransport,
-			Message: "transport returned nil response without error",
+			Message: "http client returned nil response without error",
 		}
 	}
 

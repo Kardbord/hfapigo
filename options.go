@@ -32,10 +32,13 @@ func WithProvider(p string) RequestOption {
 	return request.WithProvider(p)
 }
 
-// WithHTTPClient returns a RequestOption that sets a custom HTTP client for API requests.
-// This allows customization of transport settings, timeouts, and other HTTP client configurations.
-func WithHTTPClient(c *http.Client) RequestOption {
-	return request.WithHTTPClient(c)
+// WithHTTPClientFactory returns a RequestOption that sets a http.Client created by the factory.
+// The factory is invoked when request options are applied, so it can be used per request
+// or at client construction time.
+// The factory should return a fresh client value; avoid sharing mutable internals like Transport unless synchronized.
+// If the factory is nil, the HTTP client is set to nil.
+func WithHTTPClientFactory(factory func() http.Client) RequestOption {
+	return request.WithHTTPClientFactory(factory)
 }
 
 // WithContext returns a RequestOption that sets the context for API requests.
@@ -43,6 +46,11 @@ func WithHTTPClient(c *http.Client) RequestOption {
 // If a nil context is provided, the SDK will fall back to context.Background().
 func WithContext(ctx context.Context) RequestOption {
 	return request.WithContext(ctx)
+}
+
+// WithDefaultHTTPClient returns a RequestOption that sets the default HTTP client.
+func WithDefaultHTTPClient() RequestOption {
+	return request.WithDefaultHTTPClient()
 }
 
 // WithUserAgentSuffix returns a RequestOption that appends a suffix to the SDK user agent string.
