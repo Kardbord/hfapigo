@@ -1,10 +1,13 @@
 // Package hfapigo provides Go bindings for the Hugging Face Inference API.
 //
 // Design notes:
-// - Clients are immutable; options are fixed at creation time, and services capture a snapshot.
-// - Per-request options can override client defaults for a single call.
-// - HTTP client injection uses a value factory; return a fresh client value to avoid shared state.
-// - WithDefaultHTTPClient restores the default client; a nil factory is treated as a configuration error.
-// - Concurrency assumes externally supplied objects (for example, transports) are not mutated after use
-//   unless callers provide their own synchronization.
+//   - Clients are immutable; options are fixed at creation time, and services capture a snapshot.
+//   - Clients and services are safe for concurrent use by default or when configured with immutable or synchronized dependencies.
+//   - Per-request options can override client defaults for a single call.
+//   - Request options are applied by value with defensive header copies; contexts and HTTP clients are shared.
+//   - HTTP client injection uses a value factory; return a fresh client value to avoid shared state.
+//   - WithDefaultHTTPClient restores the default client; a nil factory is treated as a configuration error.
+//   - RawService exposes both error-interpreting and raw request paths (Do vs DoRaw).
+//   - Concurrency assumes externally supplied objects (for example, transports) are not mutated after use
+//     unless callers provide their own synchronization.
 package hfapigo
