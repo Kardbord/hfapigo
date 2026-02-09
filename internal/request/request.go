@@ -144,6 +144,7 @@ func DoRaw(
 	return resp, nil
 }
 
+// joinURL combines a base URL with a relative path while preserving query and fragment.
 func joinURL(baseURL string, path string) (string, error) {
 	if path == "" {
 		return baseURL, nil
@@ -193,6 +194,7 @@ func DoBytesRaw(
 	return DoRaw(opts, method, path, bytes.NewReader(data))
 }
 
+// readResponseBodyLimited reads up to maxBytes and returns an error if the body is larger.
 func readResponseBodyLimited(r io.Reader, maxBytes int64) ([]byte, error) {
 	b, truncated, err := readResponseBodyTruncated(r, maxBytes)
 	if err != nil {
@@ -207,6 +209,7 @@ func readResponseBodyLimited(r io.Reader, maxBytes int64) ([]byte, error) {
 	return b, nil
 }
 
+// readResponseBodyTruncated reads up to maxBytes and reports if truncation occurred.
 func readResponseBodyTruncated(r io.Reader, maxBytes int64) ([]byte, bool, error) {
 	if maxBytes <= 0 {
 		maxBytes = DefaultMaxResponseBodyBytes
@@ -224,6 +227,7 @@ func readResponseBodyTruncated(r io.Reader, maxBytes int64) ([]byte, bool, error
 	return b, false, nil
 }
 
+// drainAndCloseBody drains any remaining data and closes the body.
 func drainAndCloseBody(body io.ReadCloser) {
 	if body == nil || body == http.NoBody {
 		return

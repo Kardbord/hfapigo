@@ -8,11 +8,12 @@ import (
 	"github.com/Kardbord/hfapigo/v4/internal/request"
 )
 
-// RawService provides methods for sending raw HTTP requests, with optional SDK error interpretation.
+// rawService sends raw HTTP requests using the configured request options.
 type rawService struct {
 	opts request.RequestOptions
 }
 
+// newRawService builds a raw service with a snapshot of the provided options.
 func newRawService(opts request.RequestOptions) rawService {
 	return rawService{opts: opts}
 }

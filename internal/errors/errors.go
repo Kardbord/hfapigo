@@ -61,11 +61,16 @@ func (e *APIError) IsRateLimitError() bool {
 type SDKErrorKind string
 
 const (
-	SDKErrorKindValidation    SDKErrorKind = "validation"
+	// SDKErrorKindValidation indicates a validation error in inputs or payloads.
+	SDKErrorKindValidation SDKErrorKind = "validation"
+	// SDKErrorKindConfiguration indicates invalid or missing configuration.
 	SDKErrorKindConfiguration SDKErrorKind = "configuration"
+	// SDKErrorKindSerialization indicates a serialization or deserialization error.
 	SDKErrorKindSerialization SDKErrorKind = "serialization"
-	SDKErrorKindTransport     SDKErrorKind = "transport"
-	SDKErrorKindInternal      SDKErrorKind = "internal"
+	// SDKErrorKindTransport indicates a transport-layer failure.
+	SDKErrorKindTransport SDKErrorKind = "transport"
+	// SDKErrorKindInternal indicates an internal SDK error.
+	SDKErrorKindInternal SDKErrorKind = "internal"
 )
 
 // SDKError represents a client-side SDK error that occurred before

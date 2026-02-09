@@ -337,6 +337,7 @@ func WithDefaultHeader(key, value string) RequestOption {
 	}
 }
 
+// cloneHeader returns a deep copy of the provided headers with canonicalized keys.
 func cloneHeader(h http.Header) http.Header {
 	if len(h) == 0 {
 		return nil

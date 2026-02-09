@@ -6,15 +6,17 @@ import (
 	"github.com/Kardbord/hfapigo/v4/internal/request"
 )
 
-// ChatService provides methods for interacting with chat completion endpoints.
+// chatService implements chat completion calls using the configured request options.
 type chatService struct {
 	opts request.RequestOptions
 }
 
+// newChatService builds a chat service with a snapshot of the provided options.
 func newChatService(opts request.RequestOptions) chatService {
 	return chatService{opts: opts}
 }
 
+// Complete sends a basic chat completion with a single user prompt.
 func (s chatService) Complete(prompt string, opts ...RequestOption) (ChatResponse, error) {
 	content := ChatMessageContent{Text: &prompt}
 	return request.DoJSON[ChatRequest, ChatResponse](

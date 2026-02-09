@@ -258,7 +258,9 @@ type ChatImageURL struct {
 type MessageChunkType string
 
 const (
-	MessageChunkTypeText     MessageChunkType = "text"
+	// MessageChunkTypeText represents a text chunk.
+	MessageChunkTypeText MessageChunkType = "text"
+	// MessageChunkTypeImageURL represents an image_url chunk.
 	MessageChunkTypeImageURL MessageChunkType = "image_url"
 )
 
@@ -322,8 +324,11 @@ type ChatResponseFormat struct {
 type ResponseFormatType string
 
 const (
-	ResponseFormatTypeText       ResponseFormatType = "text"
+	// ResponseFormatTypeText requests a text response.
+	ResponseFormatTypeText ResponseFormatType = "text"
+	// ResponseFormatTypeJSONSchema requests a JSON schema response.
 	ResponseFormatTypeJSONSchema ResponseFormatType = "json_schema"
+	// ResponseFormatTypeJSONObject requests a JSON object response.
 	ResponseFormatTypeJSONObject ResponseFormatType = "json_object"
 )
 
@@ -441,11 +446,15 @@ type ChatToolChoice struct {
 type ToolChoiceMode string
 
 const (
-	ToolChoiceModeAuto     ToolChoiceMode = "auto"
-	ToolChoiceModeNone     ToolChoiceMode = "none"
+	// ToolChoiceModeAuto lets the provider decide the tool choice.
+	ToolChoiceModeAuto ToolChoiceMode = "auto"
+	// ToolChoiceModeNone disables tool usage.
+	ToolChoiceModeNone ToolChoiceMode = "none"
+	// ToolChoiceModeRequired requires tool usage.
 	ToolChoiceModeRequired ToolChoiceMode = "required"
 )
 
+// toolChoiceFunctionPayload is the JSON object shape for function tool choices.
 type toolChoiceFunctionPayload struct {
 	Function *ChatFunctionName `json:"function"`
 }

@@ -31,9 +31,14 @@ type SDKError = errors.SDKError
 type SDKErrorKind = errors.SDKErrorKind
 
 const (
-	SDKErrorKindValidation    = errors.SDKErrorKindValidation
+	// SDKErrorKindValidation indicates a validation error in inputs or payloads.
+	SDKErrorKindValidation = errors.SDKErrorKindValidation
+	// SDKErrorKindConfiguration indicates invalid or missing configuration.
 	SDKErrorKindConfiguration = errors.SDKErrorKindConfiguration
+	// SDKErrorKindSerialization indicates a serialization or deserialization error.
 	SDKErrorKindSerialization = errors.SDKErrorKindSerialization
-	SDKErrorKindTransport     = errors.SDKErrorKindTransport
-	SDKErrorKindInternal      = errors.SDKErrorKindInternal
+	// SDKErrorKindTransport indicates a transport-layer failure.
+	SDKErrorKindTransport = errors.SDKErrorKindTransport
+	// SDKErrorKindInternal indicates an internal SDK error.
+	SDKErrorKindInternal = errors.SDKErrorKindInternal
 )

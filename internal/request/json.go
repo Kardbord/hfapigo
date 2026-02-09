@@ -96,6 +96,7 @@ func DoJSON[TReq any, TResp any](
 	return out, nil
 }
 
+// ensureHeader returns a copy of headers with a default value set when missing or empty.
 func ensureHeader(h http.Header, key string, value string) http.Header {
 	out := cloneHeader(h)
 	if out == nil {
@@ -107,6 +108,7 @@ func ensureHeader(h http.Header, key string, value string) http.Header {
 	return out
 }
 
+// validateJSONRequestContentType validates that Content-Type is application/json when provided.
 func validateJSONRequestContentType(headers http.Header) error {
 	ct := headers.Get("Content-Type")
 	if ct == "" {
@@ -129,6 +131,7 @@ func validateJSONRequestContentType(headers http.Header) error {
 	return nil
 }
 
+// validateJSONResponseContentType validates that the response Content-Type indicates JSON.
 func validateJSONResponseContentType(headers http.Header) error {
 	ct := headers.Get("Content-Type")
 	if ct == "" {
@@ -151,6 +154,7 @@ func validateJSONResponseContentType(headers http.Header) error {
 	return nil
 }
 
+// isJSONMediaType reports whether the media type is JSON or a +json subtype.
 func isJSONMediaType(mediatype string) bool {
 	if mediatype == "application/json" {
 		return true
