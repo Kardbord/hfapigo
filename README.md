@@ -16,6 +16,12 @@ See the [examples](./examples) directory.
 
 > Coming soon!
 
+### Design notes
+
+- `Client` values are immutable; options are fixed at creation time to keep concurrency simple and request behavior predictable.
+- Service values capture a snapshot of client options when created for deterministic behavior.
+- Options that accept pointers assume the referenced values are not mutated after client creation (or are synchronized by callers).
+
 ## Resources
 
 - [Hugging Face](https://huggingface.co/)

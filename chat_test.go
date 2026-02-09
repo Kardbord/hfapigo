@@ -1,4 +1,4 @@
-package api
+package hfapigo
 
 // TODO: Review these AI-generated tests
 
