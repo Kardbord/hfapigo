@@ -57,20 +57,18 @@ func DoJSON[TReq any, TResp any](
 	if err != nil {
 		return zero, err
 	}
-	defer resp.Body.Close()
+	defer drainAndCloseBody(resp.Body)
 
 	if resp.StatusCode == http.StatusNoContent || resp.StatusCode == http.StatusResetContent {
 		return zero, nil
 	}
 	if err := validateJSONResponseContentType(resp.Header); err != nil {
-		drainAndCloseBody(resp.Body)
 		return zero, err
 	}
 
 	var out TResp
 	body, err := readResponseBodyLimited(resp.Body, opts.MaxResponseBodyBytes)
 	if err != nil {
-		drainAndCloseBody(resp.Body)
 		return zero, err
 	}
 	if len(body) == 0 {
