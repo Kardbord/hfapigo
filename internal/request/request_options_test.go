@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	internalErrors "github.com/Kardbord/hfapigo/v4/internal/errors"
+	"github.com/Kardbord/hfapigo/v4/internal/testutils"
 	"github.com/Kardbord/hfapigo/v4/internal/version"
 )
 
@@ -102,7 +103,7 @@ func TestRequestOptions_With(t *testing.T) {
 			initial: NewRequestOptions(),
 			options: []RequestOption{
 				WithHTTPClientFactory(func() http.Client {
-					return newMockHTTPClient(newMockTransport(http.StatusOK, `{}`, nil))
+					return testutils.NewMockHTTPClient(testutils.NewMockTransport(http.StatusOK, `{}`, nil))
 				}),
 			},
 			validate: func(t *testing.T, orig, updated RequestOptions) {
@@ -112,7 +113,7 @@ func TestRequestOptions_With(t *testing.T) {
 				if orig.HTTPClient == updated.HTTPClient {
 					t.Fatal("expected http client to be replaced")
 				}
-				if _, ok := updated.HTTPClient.Transport.(*mockTransport); !ok {
+				if _, ok := updated.HTTPClient.Transport.(*testutils.MockTransport); !ok {
 					t.Fatal("expected updated http client to use mock transport")
 				}
 			},
@@ -120,7 +121,7 @@ func TestRequestOptions_With(t *testing.T) {
 		{
 			name: "default http client resets custom client",
 			initial: NewRequestOptions().WithHTTPClientFactory(func() http.Client {
-				return newMockHTTPClient(newMockTransport(http.StatusOK, `{}`, nil))
+				return testutils.NewMockHTTPClient(testutils.NewMockTransport(http.StatusOK, `{}`, nil))
 			}),
 			options: []RequestOption{
 				WithDefaultHTTPClient(),
@@ -129,10 +130,10 @@ func TestRequestOptions_With(t *testing.T) {
 				if orig.HTTPClient == nil || updated.HTTPClient == nil {
 					t.Fatal("expected http clients to be set")
 				}
-				if _, ok := orig.HTTPClient.Transport.(*mockTransport); !ok {
+				if _, ok := orig.HTTPClient.Transport.(*testutils.MockTransport); !ok {
 					t.Fatal("expected original http client to use mock transport")
 				}
-				if _, ok := updated.HTTPClient.Transport.(*mockTransport); ok {
+				if _, ok := updated.HTTPClient.Transport.(*testutils.MockTransport); ok {
 					t.Fatal("expected default http client to replace mock transport")
 				}
 			},
@@ -153,7 +154,7 @@ func TestRequestOptions_With(t *testing.T) {
 
 func TestRequestOptions_WithHelpers(t *testing.T) {
 	ctx := context.WithValue(context.Background(), struct{}{}, "ok")
-	mt := newMockTransport(http.StatusOK, `{}`, nil)
+	mt := testutils.NewMockTransport(http.StatusOK, `{}`, nil)
 
 	opts := NewRequestOptions().
 		WithBaseURL("https://example.com").
@@ -164,7 +165,7 @@ func TestRequestOptions_WithHelpers(t *testing.T) {
 		WithDefaultHTTPClient().
 		WithMaxResponseBodyBytes(42).
 		WithHTTPClientFactory(func() http.Client {
-			return newMockHTTPClient(mt)
+			return testutils.NewMockHTTPClient(mt)
 		})
 
 	if opts.BaseURL != "https://example.com" {
@@ -187,13 +188,6 @@ func TestRequestOptions_WithHelpers(t *testing.T) {
 	}
 	if opts.HTTPClient == nil || opts.HTTPClient.Transport != mt {
 		t.Error("expected HTTP client transport to be set")
-	}
-}
-
-func TestWithDefaultHTTPClient(t *testing.T) {
-	opts := NewRequestOptions().WithDefaultHTTPClient()
-	if opts.HTTPClient == nil {
-		t.Fatal("expected default http client, got nil")
 	}
 }
 
@@ -233,7 +227,7 @@ func TestWithHeaders_CopiesMap(t *testing.T) {
 }
 
 func TestRequestOptions_DefensiveHeaderClone(t *testing.T) {
-	mt := newMockTransport(http.StatusOK, `{}`, nil)
+	mt := testutils.NewMockTransport(http.StatusOK, `{}`, nil)
 
 	tests := []struct {
 		name  string
@@ -297,7 +291,7 @@ func TestRequestOptions_DefensiveHeaderClone(t *testing.T) {
 			name: "WithHTTPClientFactory",
 			apply: func(opts RequestOptions) RequestOptions {
 				return opts.WithHTTPClientFactory(func() http.Client {
-					return newMockHTTPClient(mt)
+					return testutils.NewMockHTTPClient(mt)
 				})
 			},
 		},

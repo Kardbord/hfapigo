@@ -10,41 +10,9 @@ import (
 	"testing"
 
 	internalErrors "github.com/Kardbord/hfapigo/v4/internal/errors"
+	"github.com/Kardbord/hfapigo/v4/internal/testutils"
 	"github.com/Kardbord/hfapigo/v4/internal/version"
 )
-
-type errorReadCloser struct{}
-
-func (e errorReadCloser) Read([]byte) (int, error) {
-	return 0, errors.New("read failed")
-}
-
-func (e errorReadCloser) Close() error { return nil }
-
-func assertURL(t *testing.T, raw string, want *url.URL) {
-	t.Helper()
-
-	got, err := url.Parse(raw)
-	if err != nil {
-		t.Fatalf("failed to parse URL %q: %v", raw, err)
-	}
-
-	if got.Scheme != want.Scheme {
-		t.Errorf("unexpected scheme: %s", got.Scheme)
-	}
-	if got.Host != want.Host {
-		t.Errorf("unexpected host: %s", got.Host)
-	}
-	if got.Path != want.Path {
-		t.Errorf("unexpected path: %s", got.Path)
-	}
-	if got.RawQuery != want.RawQuery {
-		t.Errorf("unexpected query: %s", got.RawQuery)
-	}
-	if got.Fragment != want.Fragment {
-		t.Errorf("unexpected fragment: %s", got.Fragment)
-	}
-}
 
 func TestDo(t *testing.T) {
 	tests := []struct {
@@ -60,11 +28,10 @@ func TestDo(t *testing.T) {
 		{
 			name: "builds request correctly",
 			setupOpts: func() RequestOptions {
-				mt := newMockTransport(http.StatusOK, `{}`, nil)
-				return NewRequestOptions().
+				mt := testutils.NewMockTransport(http.StatusOK, `{}`, nil)
+				return withMockTransport(NewRequestOptions(), mt).
 					WithBaseURL("https://example.com").
 					WithToken("abc123").
-					WithHTTPClientFactory(func() http.Client { return newMockHTTPClient(mt) }).
 					WithHeaders(http.Header{"X-Test": []string{"yes"}})
 			},
 			method:  http.MethodGet,
@@ -72,7 +39,7 @@ func TestDo(t *testing.T) {
 			body:    nil,
 			wantErr: false,
 			validateReq: func(t *testing.T, req *http.Request) {
-				assertURL(t, req.URL.String(), &url.URL{
+				testutils.AssertURL(t, req.URL.String(), &url.URL{
 					Scheme: "https",
 					Host:   "example.com",
 					Path:   "/test",
@@ -91,17 +58,16 @@ func TestDo(t *testing.T) {
 		{
 			name: "joins base URL path with relative path",
 			setupOpts: func() RequestOptions {
-				mt := newMockTransport(http.StatusOK, `{}`, nil)
-				return NewRequestOptions().
-					WithBaseURL("https://example.com/api").
-					WithHTTPClientFactory(func() http.Client { return newMockHTTPClient(mt) })
+				mt := testutils.NewMockTransport(http.StatusOK, `{}`, nil)
+				return withMockTransport(NewRequestOptions(), mt).
+					WithBaseURL("https://example.com/api")
 			},
 			method:  http.MethodGet,
 			path:    "v1/chat/completions",
 			body:    nil,
 			wantErr: false,
 			validateReq: func(t *testing.T, req *http.Request) {
-				assertURL(t, req.URL.String(), &url.URL{
+				testutils.AssertURL(t, req.URL.String(), &url.URL{
 					Scheme: "https",
 					Host:   "example.com",
 					Path:   "/api/v1/chat/completions",
@@ -111,17 +77,16 @@ func TestDo(t *testing.T) {
 		{
 			name: "preserves query string and fragment",
 			setupOpts: func() RequestOptions {
-				mt := newMockTransport(http.StatusOK, `{}`, nil)
-				return NewRequestOptions().
-					WithBaseURL("https://example.com/api").
-					WithHTTPClientFactory(func() http.Client { return newMockHTTPClient(mt) })
+				mt := testutils.NewMockTransport(http.StatusOK, `{}`, nil)
+				return withMockTransport(NewRequestOptions(), mt).
+					WithBaseURL("https://example.com/api")
 			},
 			method:  http.MethodGet,
 			path:    "/v1/chat/completions?model=foo#section",
 			body:    nil,
 			wantErr: false,
 			validateReq: func(t *testing.T, req *http.Request) {
-				assertURL(t, req.URL.String(), &url.URL{
+				testutils.AssertURL(t, req.URL.String(), &url.URL{
 					Scheme:   "https",
 					Host:     "example.com",
 					Path:     "/api/v1/chat/completions",
@@ -135,10 +100,9 @@ func TestDo(t *testing.T) {
 			setupOpts: func() RequestOptions {
 				ctx, cancel := context.WithCancel(context.Background())
 				cancel()
-				mt := newMockTransport(http.StatusOK, `{}`, nil)
-				return NewRequestOptions().
-					WithContext(ctx).
-					WithHTTPClientFactory(func() http.Client { return newMockHTTPClient(mt) })
+				mt := testutils.NewMockTransport(http.StatusOK, `{}`, nil)
+				return withMockTransport(NewRequestOptions(), mt).
+					WithContext(ctx)
 			},
 			method:  http.MethodGet,
 			path:    "/test",
@@ -153,10 +117,9 @@ func TestDo(t *testing.T) {
 		{
 			name: "nil context uses background",
 			setupOpts: func() RequestOptions {
-				mt := newMockTransport(http.StatusOK, `{}`, nil)
-				return NewRequestOptions().
-					WithContext(nil).
-					WithHTTPClientFactory(func() http.Client { return newMockHTTPClient(mt) })
+				mt := testutils.NewMockTransport(http.StatusOK, `{}`, nil)
+				return withMockTransport(NewRequestOptions(), mt).
+					WithContext(nil)
 			},
 			method:  http.MethodGet,
 			path:    "/test",
@@ -174,21 +137,15 @@ func TestDo(t *testing.T) {
 		{
 			name: "returns API error on non-2xx response",
 			setupOpts: func() RequestOptions {
-				mt := newMockTransport(http.StatusUnauthorized, `unauthorized`, nil)
-				return NewRequestOptions().WithHTTPClientFactory(func() http.Client { return newMockHTTPClient(mt) })
+				mt := testutils.NewMockTransport(http.StatusUnauthorized, `unauthorized`, nil)
+				return withMockTransport(NewRequestOptions(), mt)
 			},
 			method:  http.MethodGet,
 			path:    "/test",
 			body:    nil,
 			wantErr: true,
 			validateErr: func(t *testing.T, err error) {
-				var apiErr *internalErrors.APIError
-				if !errors.As(err, &apiErr) {
-					t.Fatalf("expected APIError, got %T", err)
-				}
-				if apiErr.StatusCode != http.StatusUnauthorized {
-					t.Errorf("expected status 401, got %d", apiErr.StatusCode)
-				}
+				apiErr := testutils.AssertAPIErrorStatus(t, err, http.StatusUnauthorized)
 				if apiErr.Message == "" {
 					t.Errorf("expected non-empty API error message")
 				}
@@ -197,10 +154,9 @@ func TestDo(t *testing.T) {
 		{
 			name: "header override",
 			setupOpts: func() RequestOptions {
-				mt := newMockTransport(http.StatusOK, `{}`, nil)
-				return NewRequestOptions().
+				mt := testutils.NewMockTransport(http.StatusOK, `{}`, nil)
+				return withMockTransport(NewRequestOptions(), mt).
 					WithToken("default").
-					WithHTTPClientFactory(func() http.Client { return newMockHTTPClient(mt) }).
 					WithHeaders(http.Header{"Authorization": []string{"Bearer override"}})
 			},
 			method:  http.MethodGet,
@@ -216,187 +172,135 @@ func TestDo(t *testing.T) {
 		{
 			name: "returns configuration SDKError on bad base URL",
 			setupOpts: func() RequestOptions {
-				mt := newMockTransport(http.StatusOK, `{}`, nil)
-				return NewRequestOptions().
-					WithBaseURL("http://[::1").
-					WithHTTPClientFactory(func() http.Client { return newMockHTTPClient(mt) })
+				mt := testutils.NewMockTransport(http.StatusOK, `{}`, nil)
+				return withMockTransport(NewRequestOptions(), mt).
+					WithBaseURL("http://[::1")
 			},
 			method:  http.MethodGet,
 			path:    "/test",
 			body:    nil,
 			wantErr: true,
 			validateErr: func(t *testing.T, err error) {
-				var sdkErr *internalErrors.SDKError
-				if !errors.As(err, &sdkErr) {
-					t.Fatalf("expected SDKError, got %T", err)
-				}
-				if sdkErr.Kind != internalErrors.SDKErrorKindConfiguration {
-					t.Errorf("expected configuration SDKError, got %q", sdkErr.Kind)
-				}
+				testutils.AssertSDKErrorKind(t, err, internalErrors.SDKErrorKindConfiguration)
 			},
 		},
 		{
 			name: "returns configuration SDKError on base URL with query",
 			setupOpts: func() RequestOptions {
-				mt := newMockTransport(http.StatusOK, `{}`, nil)
-				return NewRequestOptions().
-					WithBaseURL("https://example.com/api?token=abc").
-					WithHTTPClientFactory(func() http.Client { return newMockHTTPClient(mt) })
+				mt := testutils.NewMockTransport(http.StatusOK, `{}`, nil)
+				return withMockTransport(NewRequestOptions(), mt).
+					WithBaseURL("https://example.com/api?token=abc")
 			},
 			method:  http.MethodGet,
 			path:    "/test",
 			body:    nil,
 			wantErr: true,
 			validateErr: func(t *testing.T, err error) {
-				var sdkErr *internalErrors.SDKError
-				if !errors.As(err, &sdkErr) {
-					t.Fatalf("expected SDKError, got %T", err)
-				}
-				if sdkErr.Kind != internalErrors.SDKErrorKindConfiguration {
-					t.Errorf("expected configuration SDKError, got %q", sdkErr.Kind)
-				}
+				testutils.AssertSDKErrorKind(t, err, internalErrors.SDKErrorKindConfiguration)
 			},
 		},
 		{
 			name: "returns configuration SDKError on base URL with fragment",
 			setupOpts: func() RequestOptions {
-				mt := newMockTransport(http.StatusOK, `{}`, nil)
-				return NewRequestOptions().
-					WithBaseURL("https://example.com/api#section").
-					WithHTTPClientFactory(func() http.Client { return newMockHTTPClient(mt) })
+				mt := testutils.NewMockTransport(http.StatusOK, `{}`, nil)
+				return withMockTransport(NewRequestOptions(), mt).
+					WithBaseURL("https://example.com/api#section")
 			},
 			method:  http.MethodGet,
 			path:    "/test",
 			body:    nil,
 			wantErr: true,
 			validateErr: func(t *testing.T, err error) {
-				var sdkErr *internalErrors.SDKError
-				if !errors.As(err, &sdkErr) {
-					t.Fatalf("expected SDKError, got %T", err)
-				}
-				if sdkErr.Kind != internalErrors.SDKErrorKindConfiguration {
-					t.Errorf("expected configuration SDKError, got %q", sdkErr.Kind)
-				}
+				testutils.AssertSDKErrorKind(t, err, internalErrors.SDKErrorKindConfiguration)
 			},
 		},
 		{
 			name: "returns configuration SDKError on base URL with query and fragment",
 			setupOpts: func() RequestOptions {
-				mt := newMockTransport(http.StatusOK, `{}`, nil)
-				return NewRequestOptions().
-					WithBaseURL("https://example.com/api?token=abc#section").
-					WithHTTPClientFactory(func() http.Client { return newMockHTTPClient(mt) })
+				mt := testutils.NewMockTransport(http.StatusOK, `{}`, nil)
+				return withMockTransport(NewRequestOptions(), mt).
+					WithBaseURL("https://example.com/api?token=abc#section")
 			},
 			method:  http.MethodGet,
 			path:    "/test",
 			body:    nil,
 			wantErr: true,
 			validateErr: func(t *testing.T, err error) {
-				var sdkErr *internalErrors.SDKError
-				if !errors.As(err, &sdkErr) {
-					t.Fatalf("expected SDKError, got %T", err)
-				}
-				if sdkErr.Kind != internalErrors.SDKErrorKindConfiguration {
-					t.Errorf("expected configuration SDKError, got %q", sdkErr.Kind)
-				}
+				testutils.AssertSDKErrorKind(t, err, internalErrors.SDKErrorKindConfiguration)
 			},
 		},
 		{
 			name: "returns internal SDKError on invalid method",
 			setupOpts: func() RequestOptions {
-				mt := newMockTransport(http.StatusOK, `{}`, nil)
-				return NewRequestOptions().WithHTTPClientFactory(func() http.Client { return newMockHTTPClient(mt) })
+				mt := testutils.NewMockTransport(http.StatusOK, `{}`, nil)
+				return withMockTransport(NewRequestOptions(), mt)
 			},
 			method:  "GET\n",
 			path:    "/test",
 			body:    nil,
 			wantErr: true,
 			validateErr: func(t *testing.T, err error) {
-				var sdkErr *internalErrors.SDKError
-				if !errors.As(err, &sdkErr) {
-					t.Fatalf("expected SDKError, got %T", err)
-				}
-				if sdkErr.Kind != internalErrors.SDKErrorKindInternal {
-					t.Errorf("expected internal SDKError, got %q", sdkErr.Kind)
-				}
+				testutils.AssertSDKErrorKind(t, err, internalErrors.SDKErrorKindInternal)
 			},
 		},
 		{
 			name: "returns internal SDKError when reading error response fails",
 			setupOpts: func() RequestOptions {
-				mt := &mockTransport{
+				mt := &testutils.MockTransport{
 					Response: &http.Response{
 						StatusCode: http.StatusBadRequest,
-						Body:       errorReadCloser{},
+						Body:       testutils.ErrorReadCloser{},
 						Header:     make(http.Header),
 					},
 				}
-				return NewRequestOptions().WithHTTPClientFactory(func() http.Client { return newMockHTTPClient(mt) })
+				return withMockTransport(NewRequestOptions(), mt)
 			},
 			method:  http.MethodGet,
 			path:    "/test",
 			body:    nil,
 			wantErr: true,
 			validateErr: func(t *testing.T, err error) {
-				var sdkErr *internalErrors.SDKError
-				if !errors.As(err, &sdkErr) {
-					t.Fatalf("expected SDKError, got %T", err)
-				}
-				if sdkErr.Kind != internalErrors.SDKErrorKindInternal {
-					t.Errorf("expected internal SDKError, got %q", sdkErr.Kind)
-				}
+				testutils.AssertSDKErrorKind(t, err, internalErrors.SDKErrorKindInternal)
 			},
 		},
 		{
 			name: "returns APIError on nil error response body",
 			setupOpts: func() RequestOptions {
-				mt := &mockTransport{
+				mt := &testutils.MockTransport{
 					Response: &http.Response{
 						StatusCode: http.StatusBadRequest,
 						Body:       nil,
 						Header:     make(http.Header),
 					},
 				}
-				return NewRequestOptions().WithHTTPClientFactory(func() http.Client { return newMockHTTPClient(mt) })
+				return withMockTransport(NewRequestOptions(), mt)
 			},
 			method:  http.MethodGet,
 			path:    "/test",
 			body:    nil,
 			wantErr: true,
 			validateErr: func(t *testing.T, err error) {
-				var apiErr *internalErrors.APIError
-				if !errors.As(err, &apiErr) {
-					t.Fatalf("expected APIError, got %T", err)
-				}
-				if apiErr.StatusCode != http.StatusBadRequest {
-					t.Errorf("expected status %d, got %d", http.StatusBadRequest, apiErr.StatusCode)
-				}
+				testutils.AssertAPIErrorStatus(t, err, http.StatusBadRequest)
 			},
 		},
 		{
 			name: "returns APIError on http.NoBody error response",
 			setupOpts: func() RequestOptions {
-				mt := &mockTransport{
+				mt := &testutils.MockTransport{
 					Response: &http.Response{
 						StatusCode: http.StatusBadRequest,
 						Body:       http.NoBody,
 						Header:     make(http.Header),
 					},
 				}
-				return NewRequestOptions().WithHTTPClientFactory(func() http.Client { return newMockHTTPClient(mt) })
+				return withMockTransport(NewRequestOptions(), mt)
 			},
 			method:  http.MethodGet,
 			path:    "/test",
 			body:    nil,
 			wantErr: true,
 			validateErr: func(t *testing.T, err error) {
-				var apiErr *internalErrors.APIError
-				if !errors.As(err, &apiErr) {
-					t.Fatalf("expected APIError, got %T", err)
-				}
-				if apiErr.StatusCode != http.StatusBadRequest {
-					t.Errorf("expected status %d, got %d", http.StatusBadRequest, apiErr.StatusCode)
-				}
+				testutils.AssertAPIErrorStatus(t, err, http.StatusBadRequest)
 			},
 		},
 		{
@@ -409,35 +313,22 @@ func TestDo(t *testing.T) {
 			body:    nil,
 			wantErr: true,
 			validateErr: func(t *testing.T, err error) {
-				var sdkErr *internalErrors.SDKError
-				if !errors.As(err, &sdkErr) {
-					t.Fatalf("expected SDKError, got %T", err)
-				}
-				if sdkErr.Kind != internalErrors.SDKErrorKindConfiguration {
-					t.Errorf("expected configuration SDKError, got %q", sdkErr.Kind)
-				}
+				testutils.AssertSDKErrorKind(t, err, internalErrors.SDKErrorKindConfiguration)
 			},
 		},
 		{
 			name: "returns API error with truncated body on oversized error response",
 			setupOpts: func() RequestOptions {
-				mt := newMockTransport(http.StatusTooManyRequests, strings.Repeat("x", 10), nil)
-				return NewRequestOptions().
-					WithMaxResponseBodyBytes(5).
-					WithHTTPClientFactory(func() http.Client { return newMockHTTPClient(mt) })
+				mt := testutils.NewMockTransport(http.StatusTooManyRequests, strings.Repeat("x", 10), nil)
+				return withMockTransport(NewRequestOptions(), mt).
+					WithMaxResponseBodyBytes(5)
 			},
 			method:  http.MethodGet,
 			path:    "/test",
 			body:    nil,
 			wantErr: true,
 			validateErr: func(t *testing.T, err error) {
-				var apiErr *internalErrors.APIError
-				if !errors.As(err, &apiErr) {
-					t.Fatalf("expected APIError, got %T", err)
-				}
-				if apiErr.StatusCode != http.StatusTooManyRequests {
-					t.Errorf("expected status 429, got %d", apiErr.StatusCode)
-				}
+				apiErr := testutils.AssertAPIErrorStatus(t, err, http.StatusTooManyRequests)
 				if apiErr.Message != strings.Repeat("x", 5)+" [truncated]" {
 					t.Errorf("unexpected message: %q", apiErr.Message)
 				}
@@ -470,7 +361,7 @@ func TestDo(t *testing.T) {
 				if opts.HTTPClient == nil {
 					t.Fatal("expected http client")
 				}
-				if mt, ok := opts.HTTPClient.Transport.(*mockTransport); ok && mt.LastRequest != nil {
+				if mt, ok := opts.HTTPClient.Transport.(*testutils.MockTransport); ok && mt.LastRequest != nil {
 					tt.validateReq(t, mt.LastRequest)
 				} else {
 					t.Fatal("expected mock transport with LastRequest")
@@ -487,26 +378,23 @@ func TestDo(t *testing.T) {
 
 func TestDo_DrainsErrorResponseBody(t *testing.T) {
 	data := strings.Repeat("a", 10)
-	tracker := &readTracker{data: []byte(data)}
-	mt := &mockTransport{
+	tracker := &testutils.ReadTracker{Data: []byte(data)}
+	mt := &testutils.MockTransport{
 		Response: &http.Response{
 			StatusCode: http.StatusBadRequest,
 			Body:       tracker,
 			Header:     make(http.Header),
 		},
 	}
-	opts := NewRequestOptions().
-		WithHTTPClientFactory(func() http.Client { return newMockHTTPClient(mt) }).
+	opts := withMockTransport(NewRequestOptions(), mt).
 		WithMaxResponseBodyBytes(4)
 
 	_, err := Do(opts, http.MethodGet, "/test", nil)
-	if err == nil {
-		t.Fatal("expected error")
+	testutils.RequireError(t, err)
+	if tracker.ReadBytes != len(data) {
+		t.Fatalf("expected body to be drained, read %d bytes, want %d", tracker.ReadBytes, len(data))
 	}
-	if tracker.read != len(data) {
-		t.Fatalf("expected body to be drained, read %d bytes, want %d", tracker.read, len(data))
-	}
-	if !tracker.closed {
+	if !tracker.Closed {
 		t.Fatal("expected response body to be closed")
 	}
 }
@@ -560,13 +448,11 @@ func TestDoBytes(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mt := newMockTransport(http.StatusOK, `{}`, nil)
-			opts := NewRequestOptions().WithHTTPClientFactory(func() http.Client { return newMockHTTPClient(mt) })
+			mt := testutils.NewMockTransport(http.StatusOK, `{}`, nil)
+			opts := withMockTransport(NewRequestOptions(), mt)
 
 			_, err := DoBytes(opts, http.MethodPost, "/test", tt.data)
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
+			testutils.RequireNoError(t, err)
 
 			if tt.validateReq != nil && mt.LastRequest != nil {
 				tt.validateReq(t, mt.LastRequest)
@@ -577,60 +463,48 @@ func TestDoBytes(t *testing.T) {
 
 func TestDoRaw(t *testing.T) {
 	t.Run("returns response on non-2xx without closing body", func(t *testing.T) {
-		tracker := &closeTracker{}
-		mt := &mockTransport{
+		tracker := &testutils.CloseTracker{}
+		mt := &testutils.MockTransport{
 			Response: &http.Response{
 				StatusCode: http.StatusUnauthorized,
 				Body:       tracker,
 				Header:     make(http.Header),
 			},
 		}
-		opts := NewRequestOptions().WithHTTPClientFactory(func() http.Client { return newMockHTTPClient(mt) })
+		opts := withMockTransport(NewRequestOptions(), mt)
 
 		resp, err := DoRaw(opts, http.MethodGet, "/test", nil)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		testutils.RequireNoError(t, err)
 		if resp == nil || resp.StatusCode != http.StatusUnauthorized {
 			t.Fatalf("expected status 401 response, got %#v", resp)
 		}
-		if tracker.closed {
+		if tracker.Closed {
 			t.Fatal("expected response body to remain open")
 		}
 	})
 	t.Run("normalizes nil body to non-nil response body", func(t *testing.T) {
-		mt := &mockTransport{
+		mt := &testutils.MockTransport{
 			Response: &http.Response{
 				StatusCode: http.StatusOK,
 				Body:       nil,
 				Header:     make(http.Header),
 			},
 		}
-		opts := NewRequestOptions().WithHTTPClientFactory(func() http.Client { return newMockHTTPClient(mt) })
+		opts := withMockTransport(NewRequestOptions(), mt)
 
 		resp, err := DoRaw(opts, http.MethodGet, "/test", nil)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		testutils.RequireNoError(t, err)
 		if resp.Body == nil {
 			t.Fatal("expected non-nil response body")
 		}
 	})
 	t.Run("returns error when client transport returns nil response without error", func(t *testing.T) {
-		mt := &mockTransport{}
-		opts := NewRequestOptions().WithHTTPClientFactory(func() http.Client { return newMockHTTPClient(mt) })
+		mt := &testutils.MockTransport{}
+		opts := withMockTransport(NewRequestOptions(), mt)
 
 		_, err := DoRaw(opts, http.MethodGet, "/test", nil)
-		if err == nil {
-			t.Fatal("expected error")
-		}
-		var sdkErr *internalErrors.SDKError
-		if !errors.As(err, &sdkErr) {
-			t.Fatalf("expected SDKError, got %T", err)
-		}
-		if sdkErr.Kind != internalErrors.SDKErrorKindTransport {
-			t.Errorf("expected transport SDKError, got %q", sdkErr.Kind)
-		}
+		testutils.RequireError(t, err)
+		testutils.AssertSDKErrorKind(t, err, internalErrors.SDKErrorKindTransport)
 	})
 }
 
@@ -716,49 +590,14 @@ func TestJoinURL(t *testing.T) {
 			if err != nil {
 				t.Fatalf("joinURL error: %v", err)
 			}
-			assertURL(t, got, tt.want)
+			testutils.AssertURL(t, got, tt.want)
 		})
 	}
 }
 
-type closeTracker struct {
-	closed bool
-}
-
-func (c *closeTracker) Read([]byte) (int, error) {
-	return 0, io.EOF
-}
-
-func (c *closeTracker) Close() error {
-	c.closed = true
-	return nil
-}
-
-type readTracker struct {
-	data   []byte
-	offset int
-	read   int
-	closed bool
-}
-
-func (r *readTracker) Read(p []byte) (int, error) {
-	if r.offset >= len(r.data) {
-		return 0, io.EOF
-	}
-	n := copy(p, r.data[r.offset:])
-	r.offset += n
-	r.read += n
-	return n, nil
-}
-
-func (r *readTracker) Close() error {
-	r.closed = true
-	return nil
-}
-
 func TestDo_IgnoresResponseOnTransportError(t *testing.T) {
-	tracker := &readTracker{data: []byte("ignored")}
-	mt := &mockTransport{
+	tracker := &testutils.ReadTracker{Data: []byte("ignored")}
+	mt := &testutils.MockTransport{
 		Response: &http.Response{
 			StatusCode: http.StatusOK,
 			Body:       tracker,
@@ -766,16 +605,14 @@ func TestDo_IgnoresResponseOnTransportError(t *testing.T) {
 		},
 		Err: errors.New("boom"),
 	}
-	opts := NewRequestOptions().WithHTTPClientFactory(func() http.Client { return newMockHTTPClient(mt) })
+	opts := withMockTransport(NewRequestOptions(), mt)
 
 	_, err := Do(opts, http.MethodGet, "/test", nil)
-	if err == nil {
-		t.Fatal("expected error")
+	testutils.RequireError(t, err)
+	if tracker.ReadBytes != 0 {
+		t.Fatalf("expected response body to be ignored, read %d bytes", tracker.ReadBytes)
 	}
-	if tracker.read != 0 {
-		t.Fatalf("expected response body to be ignored, read %d bytes", tracker.read)
-	}
-	if tracker.closed {
+	if tracker.Closed {
 		t.Fatal("expected response body to remain open")
 	}
 }
