@@ -21,7 +21,7 @@ import (
 // For tests, it is recommended to use WithHTTPClientFactory to inject a custom HTTP client
 // instead of mocking this interface.
 type ChatService interface {
-	Complete(prompt string, opts ...RequestOption) (ChatResponse, error)
+	Complete(request ChatRequest, opts ...RequestOption) (ChatResponse, error)
 }
 
 // RawService provides methods for sending raw HTTP requests, with optional SDK error interpretation.

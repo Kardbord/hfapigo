@@ -16,20 +16,12 @@ func newChatService(opts request.RequestOptions) chatService {
 	return chatService{opts: opts}
 }
 
-// Complete sends a basic chat completion with a single user prompt.
-func (s chatService) Complete(prompt string, opts ...RequestOption) (ChatResponse, error) {
-	content := ChatMessageContent{Text: &prompt}
+// Complete sends a chat completion request and returns a chat completion response.
+func (s chatService) Complete(req ChatRequest, opts ...RequestOption) (ChatResponse, error) {
 	return request.DoJSON[ChatRequest, ChatResponse](
 		s.opts.With(opts...),
 		http.MethodPost,
 		"/v1/chat/completions",
-		ChatRequest{
-			Messages: []ChatMessage{
-				{
-					Role:    "user",
-					Content: content,
-				},
-			},
-		},
+		req,
 	)
 }
