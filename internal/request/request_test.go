@@ -29,7 +29,7 @@ func TestDo(t *testing.T) {
 			name: "builds request correctly",
 			setupOpts: func() RequestOptions {
 				mt := testutils.NewMockTransport(http.StatusOK, `{}`, nil)
-				return withMockTransport(NewRequestOptions(), mt).
+				return NewRequestOptions().WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }).
 					WithBaseURL("https://example.com").
 					WithToken("abc123").
 					WithHeaders(http.Header{"X-Test": []string{"yes"}})
@@ -59,7 +59,7 @@ func TestDo(t *testing.T) {
 			name: "joins base URL path with relative path",
 			setupOpts: func() RequestOptions {
 				mt := testutils.NewMockTransport(http.StatusOK, `{}`, nil)
-				return withMockTransport(NewRequestOptions(), mt).
+				return NewRequestOptions().WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }).
 					WithBaseURL("https://example.com/api")
 			},
 			method:  http.MethodGet,
@@ -78,7 +78,7 @@ func TestDo(t *testing.T) {
 			name: "preserves query string and fragment",
 			setupOpts: func() RequestOptions {
 				mt := testutils.NewMockTransport(http.StatusOK, `{}`, nil)
-				return withMockTransport(NewRequestOptions(), mt).
+				return NewRequestOptions().WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }).
 					WithBaseURL("https://example.com/api")
 			},
 			method:  http.MethodGet,
@@ -101,7 +101,7 @@ func TestDo(t *testing.T) {
 				ctx, cancel := context.WithCancel(context.Background())
 				cancel()
 				mt := testutils.NewMockTransport(http.StatusOK, `{}`, nil)
-				return withMockTransport(NewRequestOptions(), mt).
+				return NewRequestOptions().WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }).
 					WithContext(ctx)
 			},
 			method:  http.MethodGet,
@@ -118,7 +118,7 @@ func TestDo(t *testing.T) {
 			name: "nil context uses background",
 			setupOpts: func() RequestOptions {
 				mt := testutils.NewMockTransport(http.StatusOK, `{}`, nil)
-				return withMockTransport(NewRequestOptions(), mt).
+				return NewRequestOptions().WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }).
 					WithContext(nil)
 			},
 			method:  http.MethodGet,
@@ -138,7 +138,7 @@ func TestDo(t *testing.T) {
 			name: "returns API error on non-2xx response",
 			setupOpts: func() RequestOptions {
 				mt := testutils.NewMockTransport(http.StatusUnauthorized, `unauthorized`, nil)
-				return withMockTransport(NewRequestOptions(), mt)
+				return NewRequestOptions().WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) })
 			},
 			method:  http.MethodGet,
 			path:    "/test",
@@ -155,7 +155,7 @@ func TestDo(t *testing.T) {
 			name: "header override",
 			setupOpts: func() RequestOptions {
 				mt := testutils.NewMockTransport(http.StatusOK, `{}`, nil)
-				return withMockTransport(NewRequestOptions(), mt).
+				return NewRequestOptions().WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }).
 					WithToken("default").
 					WithHeaders(http.Header{"Authorization": []string{"Bearer override"}})
 			},
@@ -173,7 +173,7 @@ func TestDo(t *testing.T) {
 			name: "returns configuration SDKError on bad base URL",
 			setupOpts: func() RequestOptions {
 				mt := testutils.NewMockTransport(http.StatusOK, `{}`, nil)
-				return withMockTransport(NewRequestOptions(), mt).
+				return NewRequestOptions().WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }).
 					WithBaseURL("http://[::1")
 			},
 			method:  http.MethodGet,
@@ -188,7 +188,7 @@ func TestDo(t *testing.T) {
 			name: "returns configuration SDKError on base URL with query",
 			setupOpts: func() RequestOptions {
 				mt := testutils.NewMockTransport(http.StatusOK, `{}`, nil)
-				return withMockTransport(NewRequestOptions(), mt).
+				return NewRequestOptions().WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }).
 					WithBaseURL("https://example.com/api?token=abc")
 			},
 			method:  http.MethodGet,
@@ -203,7 +203,7 @@ func TestDo(t *testing.T) {
 			name: "returns configuration SDKError on base URL with fragment",
 			setupOpts: func() RequestOptions {
 				mt := testutils.NewMockTransport(http.StatusOK, `{}`, nil)
-				return withMockTransport(NewRequestOptions(), mt).
+				return NewRequestOptions().WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }).
 					WithBaseURL("https://example.com/api#section")
 			},
 			method:  http.MethodGet,
@@ -218,7 +218,7 @@ func TestDo(t *testing.T) {
 			name: "returns configuration SDKError on base URL with query and fragment",
 			setupOpts: func() RequestOptions {
 				mt := testutils.NewMockTransport(http.StatusOK, `{}`, nil)
-				return withMockTransport(NewRequestOptions(), mt).
+				return NewRequestOptions().WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }).
 					WithBaseURL("https://example.com/api?token=abc#section")
 			},
 			method:  http.MethodGet,
@@ -233,7 +233,7 @@ func TestDo(t *testing.T) {
 			name: "returns internal SDKError on invalid method",
 			setupOpts: func() RequestOptions {
 				mt := testutils.NewMockTransport(http.StatusOK, `{}`, nil)
-				return withMockTransport(NewRequestOptions(), mt)
+				return NewRequestOptions().WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) })
 			},
 			method:  "GET\n",
 			path:    "/test",
@@ -253,7 +253,7 @@ func TestDo(t *testing.T) {
 						Header:     make(http.Header),
 					},
 				}
-				return withMockTransport(NewRequestOptions(), mt)
+				return NewRequestOptions().WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) })
 			},
 			method:  http.MethodGet,
 			path:    "/test",
@@ -273,7 +273,7 @@ func TestDo(t *testing.T) {
 						Header:     make(http.Header),
 					},
 				}
-				return withMockTransport(NewRequestOptions(), mt)
+				return NewRequestOptions().WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) })
 			},
 			method:  http.MethodGet,
 			path:    "/test",
@@ -293,7 +293,7 @@ func TestDo(t *testing.T) {
 						Header:     make(http.Header),
 					},
 				}
-				return withMockTransport(NewRequestOptions(), mt)
+				return NewRequestOptions().WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) })
 			},
 			method:  http.MethodGet,
 			path:    "/test",
@@ -320,7 +320,7 @@ func TestDo(t *testing.T) {
 			name: "returns API error with truncated body on oversized error response",
 			setupOpts: func() RequestOptions {
 				mt := testutils.NewMockTransport(http.StatusTooManyRequests, strings.Repeat("x", 10), nil)
-				return withMockTransport(NewRequestOptions(), mt).
+				return NewRequestOptions().WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }).
 					WithMaxResponseBodyBytes(5)
 			},
 			method:  http.MethodGet,
@@ -386,7 +386,7 @@ func TestDo_DrainsErrorResponseBody(t *testing.T) {
 			Header:     make(http.Header),
 		},
 	}
-	opts := withMockTransport(NewRequestOptions(), mt).
+	opts := NewRequestOptions().WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }).
 		WithMaxResponseBodyBytes(4)
 
 	_, err := Do(opts, http.MethodGet, "/test", nil)
@@ -449,7 +449,7 @@ func TestDoBytes(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mt := testutils.NewMockTransport(http.StatusOK, `{}`, nil)
-			opts := withMockTransport(NewRequestOptions(), mt)
+			opts := NewRequestOptions().WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) })
 
 			_, err := DoBytes(opts, http.MethodPost, "/test", tt.data)
 			testutils.RequireNoError(t, err)
@@ -471,7 +471,7 @@ func TestDoRaw(t *testing.T) {
 				Header:     make(http.Header),
 			},
 		}
-		opts := withMockTransport(NewRequestOptions(), mt)
+		opts := NewRequestOptions().WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) })
 
 		resp, err := DoRaw(opts, http.MethodGet, "/test", nil)
 		testutils.RequireNoError(t, err)
@@ -490,7 +490,7 @@ func TestDoRaw(t *testing.T) {
 				Header:     make(http.Header),
 			},
 		}
-		opts := withMockTransport(NewRequestOptions(), mt)
+		opts := NewRequestOptions().WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) })
 
 		resp, err := DoRaw(opts, http.MethodGet, "/test", nil)
 		testutils.RequireNoError(t, err)
@@ -500,7 +500,7 @@ func TestDoRaw(t *testing.T) {
 	})
 	t.Run("returns error when client transport returns nil response without error", func(t *testing.T) {
 		mt := &testutils.MockTransport{}
-		opts := withMockTransport(NewRequestOptions(), mt)
+		opts := NewRequestOptions().WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) })
 
 		_, err := DoRaw(opts, http.MethodGet, "/test", nil)
 		testutils.RequireError(t, err)
@@ -605,7 +605,7 @@ func TestDo_IgnoresResponseOnTransportError(t *testing.T) {
 		},
 		Err: errors.New("boom"),
 	}
-	opts := withMockTransport(NewRequestOptions(), mt)
+	opts := NewRequestOptions().WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) })
 
 	_, err := Do(opts, http.MethodGet, "/test", nil)
 	testutils.RequireError(t, err)
