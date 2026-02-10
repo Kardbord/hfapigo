@@ -1,6 +1,3 @@
-//go:build test
-// +build test
-
 package testutils
 
 // Ptr returns a pointer to the provided value.
