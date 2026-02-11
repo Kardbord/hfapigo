@@ -109,12 +109,16 @@ func TestChatMessageContent_Unmarshal(t *testing.T) {
 				if got.Text == nil || *got.Text != *tc.wantText {
 					t.Fatalf("unexpected text: %+v", got.Text)
 				}
+				testutils.RequireNil(t, got.Chunks)
 			}
 			if tc.wantChunk && len(got.Chunks) == 0 {
 				t.Fatalf("expected chunks")
 			}
 			if !tc.wantChunk && len(got.Chunks) > 0 {
 				t.Fatalf("unexpected chunks")
+			}
+			if tc.wantChunk {
+				testutils.RequireNil(t, got.Text)
 			}
 		})
 	}
@@ -334,6 +338,7 @@ func TestChatMessage_UnmarshalSuccess(t *testing.T) {
 				if got.Content.Text == nil || *got.Content.Text != *tc.wantContent {
 					t.Fatalf("unexpected content: %+v", got.Content.Text)
 				}
+				testutils.RequireNil(t, got.Content.Chunks)
 			}
 			if tc.wantChunks > 0 {
 				if len(got.Content.Chunks) != tc.wantChunks {
@@ -342,6 +347,7 @@ func TestChatMessage_UnmarshalSuccess(t *testing.T) {
 				if got.Content.Chunks[0].Type != tc.wantChunkType {
 					t.Fatalf("unexpected chunk type: %+v", got.Content.Chunks[0].Type)
 				}
+				testutils.RequireNil(t, got.Content.Text)
 			}
 			if tc.wantToolCalls > 0 {
 				if len(got.ToolCalls) != tc.wantToolCalls {
@@ -350,6 +356,11 @@ func TestChatMessage_UnmarshalSuccess(t *testing.T) {
 				if got.ToolCalls[0].ID != "id" || got.ToolCalls[0].Type != "function" || got.ToolCalls[0].Function.Name != "fn" {
 					t.Fatalf("unexpected tool call: %+v", got.ToolCalls[0])
 				}
+				testutils.RequireNil(t, got.Content.Text)
+				testutils.RequireNil(t, got.Content.Chunks)
+			}
+			if tc.wantToolCalls == 0 && len(got.ToolCalls) > 0 {
+				t.Fatalf("unexpected tool calls: %+v", got.ToolCalls)
 			}
 		})
 	}
@@ -496,6 +507,11 @@ func TestChatToolChoice_Unmarshal(t *testing.T) {
 		{
 			name:      "array payload",
 			unmarshal: `[]`,
+			wantErr:   true,
+		},
+		{
+			name:      "empty payload",
+			unmarshal: ``,
 			wantErr:   true,
 		},
 		{
@@ -828,11 +844,17 @@ func TestChatStreamDelta_UnmarshalSuccess(t *testing.T) {
 				if got.Role == nil || *got.Role != *tc.wantRole {
 					t.Fatalf("unexpected role: %+v", got.Role)
 				}
+				testutils.RequireNil(t, got.Content)
+				testutils.RequireNil(t, got.ToolCallID)
+				testutils.RequireNil(t, got.ToolCalls)
 			}
 			if tc.wantContent != nil {
 				if got.Content == nil || *got.Content != *tc.wantContent {
 					t.Fatalf("unexpected content: %+v", got.Content)
 				}
+				testutils.RequireNil(t, got.Role)
+				testutils.RequireNil(t, got.ToolCallID)
+				testutils.RequireNil(t, got.ToolCalls)
 			}
 			if tc.wantToolCalls > 0 {
 				if len(got.ToolCalls) != tc.wantToolCalls {
@@ -842,6 +864,8 @@ func TestChatStreamDelta_UnmarshalSuccess(t *testing.T) {
 				if call.ID != "id" || call.Type != "function" || call.Index != 0 || call.Function.Name != "fn" || call.Function.Arguments != "{}" {
 					t.Fatalf("unexpected tool call: %+v", call)
 				}
+				testutils.RequireNil(t, got.Content)
+				testutils.RequireNil(t, got.ToolCallID)
 			}
 		})
 	}

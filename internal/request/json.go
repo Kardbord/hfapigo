@@ -34,6 +34,10 @@ func DoJSON[TReq any, TResp any](
 
 	buf, err := json.Marshal(reqBody)
 	if err != nil {
+		var sdkErr *errors.SDKError
+		if stderrors.As(err, &sdkErr) {
+			return zero, sdkErr
+		}
 		return zero, &errors.SDKError{
 			Kind:    errors.SDKErrorKindSerialization,
 			Message: "failed to marshal request body",

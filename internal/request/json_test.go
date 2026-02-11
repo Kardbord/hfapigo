@@ -445,3 +445,28 @@ func TestDoJSON_MarshalError(t *testing.T) {
 		t.Fatalf("expected serialization SDKError, got %q", sdkErr.Kind)
 	}
 }
+
+type validationReq struct{}
+
+func (validationReq) MarshalJSON() ([]byte, error) {
+	return nil, &internalErrors.SDKError{
+		Kind:    internalErrors.SDKErrorKindValidation,
+		Message: "invalid payload",
+	}
+}
+
+func TestDoJSON_MarshalValidationError(t *testing.T) {
+	opts := NewRequestOptions()
+
+	_, err := DoJSON[validationReq, struct{}](
+		opts,
+		http.MethodPost,
+		"/test",
+		validationReq{},
+	)
+
+	if err == nil {
+		t.Fatal("expected marshal error, got nil")
+	}
+	testutils.AssertSDKErrorKind(t, err, internalErrors.SDKErrorKindValidation)
+}

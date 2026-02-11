@@ -97,14 +97,28 @@ type ChatMessage struct {
 	ToolCalls []ChatToolCall `json:"tool_calls,omitempty"`
 }
 
-// MarshalJSON enforces the union shape for ChatMessage.
-func (m ChatMessage) MarshalJSON() ([]byte, error) {
+// Validate enforces the union shape for ChatMessage.
+func (m ChatMessage) Validate() error {
 	contentSet := m.Content.Text != nil || m.Content.Chunks != nil
 	if contentSet && len(m.ToolCalls) > 0 {
-		return nil, fmt.Errorf("chat message: content and tool_calls are mutually exclusive")
+		return &SDKError{
+			Kind:    SDKErrorKindValidation,
+			Message: "chat message: content and tool_calls are mutually exclusive",
+		}
 	}
 	if !contentSet && len(m.ToolCalls) == 0 {
-		return nil, fmt.Errorf("chat message: either content or tool_calls must be set")
+		return &SDKError{
+			Kind:    SDKErrorKindValidation,
+			Message: "chat message: either content or tool_calls must be set",
+		}
+	}
+	return nil
+}
+
+// MarshalJSON enforces the union shape for ChatMessage.
+func (m ChatMessage) MarshalJSON() ([]byte, error) {
+	if err := m.Validate(); err != nil {
+		return nil, err
 	}
 	type alias ChatMessage
 	return json.Marshal(alias(m))
@@ -112,19 +126,19 @@ func (m ChatMessage) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON enforces the union shape for ChatMessage.
 func (m *ChatMessage) UnmarshalJSON(data []byte) error {
+	if m == nil {
+		return fmt.Errorf("chat message: nil receiver")
+	}
 	type alias ChatMessage
 	var tmp alias
 	if err := json.Unmarshal(data, &tmp); err != nil {
 		return err
 	}
-	contentSet := tmp.Content.Text != nil || tmp.Content.Chunks != nil
-	if contentSet && len(tmp.ToolCalls) > 0 {
-		return fmt.Errorf("chat message: content and tool_calls are mutually exclusive")
+	out := ChatMessage(tmp)
+	if err := out.Validate(); err != nil {
+		return err
 	}
-	if !contentSet && len(tmp.ToolCalls) == 0 {
-		return fmt.Errorf("chat message: either content or tool_calls must be set")
-	}
-	*m = ChatMessage(tmp)
+	*m = out
 	return nil
 }
 
@@ -140,10 +154,21 @@ type ChatMessageContent struct {
 	Chunks []ChatMessageChunk `json:"-"`
 }
 
+// Validate enforces the union shape for ChatMessageContent.
+func (c ChatMessageContent) Validate() error {
+	if c.Text != nil && len(c.Chunks) > 0 {
+		return &SDKError{
+			Kind:    SDKErrorKindValidation,
+			Message: "chat message content: both text and chunks set",
+		}
+	}
+	return nil
+}
+
 // MarshalJSON enforces the union shape for ChatMessageContent.
 func (c ChatMessageContent) MarshalJSON() ([]byte, error) {
-	if c.Text != nil && len(c.Chunks) > 0 {
-		return nil, fmt.Errorf("chat message content: both text and chunks set")
+	if err := c.Validate(); err != nil {
+		return nil, err
 	}
 	if c.Text != nil {
 		return json.Marshal(*c.Text)
@@ -156,6 +181,9 @@ func (c ChatMessageContent) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON enforces the union shape for ChatMessageContent.
 func (c *ChatMessageContent) UnmarshalJSON(data []byte) error {
+	if c == nil {
+		return fmt.Errorf("chat message content: nil receiver")
+	}
 	if string(data) == "null" {
 		return nil
 	}
@@ -170,7 +198,7 @@ func (c *ChatMessageContent) UnmarshalJSON(data []byte) error {
 		}
 		c.Text = &text
 		c.Chunks = nil
-		return nil
+		return c.Validate()
 	case '[':
 		var chunks []ChatMessageChunk
 		if err := json.Unmarshal(data, &chunks); err != nil {
@@ -178,7 +206,7 @@ func (c *ChatMessageContent) UnmarshalJSON(data []byte) error {
 		}
 		c.Text = nil
 		c.Chunks = chunks
-		return nil
+		return c.Validate()
 	default:
 		return fmt.Errorf("chat message content: expected string or array")
 	}
@@ -195,25 +223,48 @@ type ChatMessageChunk struct {
 	Type MessageChunkType `json:"type"`
 }
 
-// MarshalJSON enforces the union shape for ChatMessageChunk.
-func (c ChatMessageChunk) MarshalJSON() ([]byte, error) {
+// Validate enforces the union shape for ChatMessageChunk.
+func (c ChatMessageChunk) Validate() error {
 	switch c.Type {
 	case MessageChunkTypeText:
 		if c.Text == nil {
-			return nil, fmt.Errorf("chat message chunk: text requires text field")
+			return &SDKError{
+				Kind:    SDKErrorKindValidation,
+				Message: "chat message chunk: text requires text field",
+			}
 		}
 		if c.ImageURL != nil {
-			return nil, fmt.Errorf("chat message chunk: text cannot include image_url")
+			return &SDKError{
+				Kind:    SDKErrorKindValidation,
+				Message: "chat message chunk: text cannot include image_url",
+			}
 		}
 	case MessageChunkTypeImageURL:
 		if c.ImageURL == nil {
-			return nil, fmt.Errorf("chat message chunk: image_url requires image_url field")
+			return &SDKError{
+				Kind:    SDKErrorKindValidation,
+				Message: "chat message chunk: image_url requires image_url field",
+			}
 		}
 		if c.Text != nil {
-			return nil, fmt.Errorf("chat message chunk: image_url cannot include text")
+			return &SDKError{
+				Kind:    SDKErrorKindValidation,
+				Message: "chat message chunk: image_url cannot include text",
+			}
 		}
 	default:
-		return nil, fmt.Errorf("chat message chunk: type must be text or image_url")
+		return &SDKError{
+			Kind:    SDKErrorKindValidation,
+			Message: "chat message chunk: type must be text or image_url",
+		}
+	}
+	return nil
+}
+
+// MarshalJSON enforces the union shape for ChatMessageChunk.
+func (c ChatMessageChunk) MarshalJSON() ([]byte, error) {
+	if err := c.Validate(); err != nil {
+		return nil, err
 	}
 	type alias ChatMessageChunk
 	return json.Marshal(alias(c))
@@ -221,30 +272,19 @@ func (c ChatMessageChunk) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON enforces the union shape for ChatMessageChunk.
 func (c *ChatMessageChunk) UnmarshalJSON(data []byte) error {
+	if c == nil {
+		return fmt.Errorf("chat message chunk: nil receiver")
+	}
 	type alias ChatMessageChunk
 	var tmp alias
 	if err := json.Unmarshal(data, &tmp); err != nil {
 		return err
 	}
-	switch tmp.Type {
-	case MessageChunkTypeText:
-		if tmp.Text == nil {
-			return fmt.Errorf("chat message chunk: text requires text field")
-		}
-		if tmp.ImageURL != nil {
-			return fmt.Errorf("chat message chunk: text cannot include image_url")
-		}
-	case MessageChunkTypeImageURL:
-		if tmp.ImageURL == nil {
-			return fmt.Errorf("chat message chunk: image_url requires image_url field")
-		}
-		if tmp.Text != nil {
-			return fmt.Errorf("chat message chunk: image_url cannot include text")
-		}
-	default:
-		return fmt.Errorf("chat message chunk: type must be text or image_url")
+	out := ChatMessageChunk(tmp)
+	if err := out.Validate(); err != nil {
+		return err
 	}
-	*c = ChatMessageChunk(tmp)
+	*c = out
 	return nil
 }
 
@@ -276,11 +316,22 @@ type ChatToolCall struct {
 	Function ChatFunctionDefinition `json:"function"`
 }
 
-// MarshalJSON enforces the tool call shape for ChatToolCall.
-func (c ChatToolCall) MarshalJSON() ([]byte, error) {
+// Validate enforces the tool call shape for ChatToolCall.
+func (c ChatToolCall) Validate() error {
 	switch c.Type {
 	case "":
-		return nil, fmt.Errorf("chat tool call: type must be set")
+		return &SDKError{
+			Kind:    SDKErrorKindValidation,
+			Message: "chat tool call: type must be set",
+		}
+	}
+	return nil
+}
+
+// MarshalJSON enforces the tool call shape for ChatToolCall.
+func (c ChatToolCall) MarshalJSON() ([]byte, error) {
+	if err := c.Validate(); err != nil {
+		return nil, err
 	}
 	type alias ChatToolCall
 	return json.Marshal(alias(c))
@@ -288,16 +339,19 @@ func (c ChatToolCall) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON enforces the tool call shape for ChatToolCall.
 func (c *ChatToolCall) UnmarshalJSON(data []byte) error {
+	if c == nil {
+		return fmt.Errorf("chat tool call: nil receiver")
+	}
 	type alias ChatToolCall
 	var tmp alias
 	if err := json.Unmarshal(data, &tmp); err != nil {
 		return err
 	}
-	switch tmp.Type {
-	case "":
-		return fmt.Errorf("chat tool call: type must be set")
+	out := ChatToolCall(tmp)
+	if err := out.Validate(); err != nil {
+		return err
 	}
-	*c = ChatToolCall(tmp)
+	*c = out
 	return nil
 }
 
@@ -320,6 +374,32 @@ type ChatResponseFormat struct {
 	JSONSchema *ChatJSONSchemaConfig `json:"json_schema,omitempty"`
 }
 
+// Validate enforces the union shape for ChatResponseFormat.
+func (r ChatResponseFormat) Validate() error {
+	switch r.Type {
+	case ResponseFormatTypeJSONSchema:
+		if r.JSONSchema == nil {
+			return &SDKError{
+				Kind:    SDKErrorKindValidation,
+				Message: "chat response format: json_schema requires json_schema field",
+			}
+		}
+	case "":
+		return &SDKError{
+			Kind:    SDKErrorKindValidation,
+			Message: "chat response format: type must be set",
+		}
+	default:
+		if r.JSONSchema != nil {
+			return &SDKError{
+				Kind:    SDKErrorKindValidation,
+				Message: fmt.Sprintf("chat response format: %s cannot include json_schema field", r.Type),
+			}
+		}
+	}
+	return nil
+}
+
 // ResponseFormatType enumerates known response formats.
 type ResponseFormatType string
 
@@ -334,17 +414,8 @@ const (
 
 // MarshalJSON enforces the union shape for ChatResponseFormat.
 func (r ChatResponseFormat) MarshalJSON() ([]byte, error) {
-	switch r.Type {
-	case ResponseFormatTypeJSONSchema:
-		if r.JSONSchema == nil {
-			return nil, fmt.Errorf("chat response format: json_schema requires json_schema field")
-		}
-	case "":
-		return nil, fmt.Errorf("chat response format: type must be set")
-	default:
-		if r.JSONSchema != nil {
-			return nil, fmt.Errorf("chat response format: %s cannot include json_schema field", r.Type)
-		}
+	if err := r.Validate(); err != nil {
+		return nil, err
 	}
 	type alias ChatResponseFormat
 	return json.Marshal(alias(r))
@@ -352,24 +423,19 @@ func (r ChatResponseFormat) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON enforces the union shape for ChatResponseFormat.
 func (r *ChatResponseFormat) UnmarshalJSON(data []byte) error {
+	if r == nil {
+		return fmt.Errorf("chat response format: nil receiver")
+	}
 	type alias ChatResponseFormat
 	var tmp alias
 	if err := json.Unmarshal(data, &tmp); err != nil {
 		return err
 	}
-	switch tmp.Type {
-	case ResponseFormatTypeJSONSchema:
-		if tmp.JSONSchema == nil {
-			return fmt.Errorf("chat response format: json_schema requires json_schema field")
-		}
-	case "":
-		return fmt.Errorf("chat response format: type must be set")
-	default:
-		if tmp.JSONSchema != nil {
-			return fmt.Errorf("chat response format: %s cannot include json_schema field", tmp.Type)
-		}
+	out := ChatResponseFormat(tmp)
+	if err := out.Validate(); err != nil {
+		return err
 	}
-	*r = ChatResponseFormat(tmp)
+	*r = out
 	return nil
 }
 
@@ -404,11 +470,22 @@ type ChatTool struct {
 	Function ChatFunctionDefinition `json:"function"`
 }
 
-// MarshalJSON enforces the tool shape for ChatTool.
-func (t ChatTool) MarshalJSON() ([]byte, error) {
+// Validate enforces the tool shape for ChatTool.
+func (t ChatTool) Validate() error {
 	switch t.Type {
 	case "":
-		return nil, fmt.Errorf("chat tool: type must be set")
+		return &SDKError{
+			Kind:    SDKErrorKindValidation,
+			Message: "chat tool: type must be set",
+		}
+	}
+	return nil
+}
+
+// MarshalJSON enforces the tool shape for ChatTool.
+func (t ChatTool) MarshalJSON() ([]byte, error) {
+	if err := t.Validate(); err != nil {
+		return nil, err
 	}
 	type alias ChatTool
 	return json.Marshal(alias(t))
@@ -416,16 +493,19 @@ func (t ChatTool) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON enforces the tool shape for ChatTool.
 func (t *ChatTool) UnmarshalJSON(data []byte) error {
+	if t == nil {
+		return fmt.Errorf("chat tool: nil receiver")
+	}
 	type alias ChatTool
 	var tmp alias
 	if err := json.Unmarshal(data, &tmp); err != nil {
 		return err
 	}
-	switch tmp.Type {
-	case "":
-		return fmt.Errorf("chat tool: type must be set")
+	out := ChatTool(tmp)
+	if err := out.Validate(); err != nil {
+		return err
 	}
-	*t = ChatTool(tmp)
+	*t = out
 	return nil
 }
 
@@ -459,15 +539,29 @@ type toolChoiceFunctionPayload struct {
 	Function *ChatFunctionName `json:"function"`
 }
 
+// Validate enforces the union shape for ChatToolChoice.
+func (t ChatToolChoice) Validate() error {
+	if t.Mode != nil && t.Function != nil {
+		return &SDKError{
+			Kind:    SDKErrorKindValidation,
+			Message: "tool choice: mode and function are mutually exclusive",
+		}
+	}
+	if t.Mode != nil && *t.Mode == "" {
+		return &SDKError{
+			Kind:    SDKErrorKindValidation,
+			Message: "tool choice: mode must be set",
+		}
+	}
+	return nil
+}
+
 // MarshalJSON enforces the union shape for ChatToolChoice.
 func (t ChatToolChoice) MarshalJSON() ([]byte, error) {
-	if t.Mode != nil && t.Function != nil {
-		return nil, fmt.Errorf("tool choice: mode and function are mutually exclusive")
+	if err := t.Validate(); err != nil {
+		return nil, err
 	}
 	if t.Mode != nil {
-		if *t.Mode == "" {
-			return nil, fmt.Errorf("tool choice: mode must be set")
-		}
 		return json.Marshal(*t.Mode)
 	}
 	if t.Function != nil {
@@ -480,6 +574,9 @@ func (t ChatToolChoice) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON enforces the union shape for ChatToolChoice.
 func (t *ChatToolChoice) UnmarshalJSON(data []byte) error {
+	if t == nil {
+		return fmt.Errorf("tool choice: nil receiver")
+	}
 	if string(data) == "null" {
 		return nil
 	}
@@ -497,7 +594,7 @@ func (t *ChatToolChoice) UnmarshalJSON(data []byte) error {
 		}
 		t.Mode = &mode
 		t.Function = nil
-		return nil
+		return t.Validate()
 	case '{':
 		var payload toolChoiceFunctionPayload
 		if err := json.Unmarshal(data, &payload); err != nil {
@@ -508,7 +605,7 @@ func (t *ChatToolChoice) UnmarshalJSON(data []byte) error {
 		}
 		t.Mode = nil
 		t.Function = payload.Function
-		return nil
+		return t.Validate()
 	default:
 		return fmt.Errorf("tool choice: expected string or object")
 	}
@@ -585,17 +682,34 @@ type ChatCompletionMessage struct {
 	ToolCalls []ChatToolCallOutput `json:"tool_calls,omitempty"`
 }
 
-// MarshalJSON enforces the union shape for ChatCompletionMessage.
-func (m ChatCompletionMessage) MarshalJSON() ([]byte, error) {
+// Validate enforces the union shape for ChatCompletionMessage.
+func (m ChatCompletionMessage) Validate() error {
 	if m.Content != nil {
 		if len(m.ToolCalls) > 0 {
-			return nil, fmt.Errorf("completion message: content and tool_calls are mutually exclusive")
+			return &SDKError{
+				Kind:    SDKErrorKindValidation,
+				Message: "completion message: content and tool_calls are mutually exclusive",
+			}
 		}
 	} else if len(m.ToolCalls) == 0 {
-		return nil, fmt.Errorf("completion message: either content or tool_calls must be set")
+		return &SDKError{
+			Kind:    SDKErrorKindValidation,
+			Message: "completion message: either content or tool_calls must be set",
+		}
 	}
 	if m.Content == nil && m.ToolCallID != nil {
-		return nil, fmt.Errorf("completion message: tool_call_id requires content")
+		return &SDKError{
+			Kind:    SDKErrorKindValidation,
+			Message: "completion message: tool_call_id requires content",
+		}
+	}
+	return nil
+}
+
+// MarshalJSON enforces the union shape for ChatCompletionMessage.
+func (m ChatCompletionMessage) MarshalJSON() ([]byte, error) {
+	if err := m.Validate(); err != nil {
+		return nil, err
 	}
 	type alias ChatCompletionMessage
 	return json.Marshal(alias(m))
@@ -603,21 +717,19 @@ func (m ChatCompletionMessage) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON enforces the union shape for ChatCompletionMessage.
 func (m *ChatCompletionMessage) UnmarshalJSON(data []byte) error {
+	if m == nil {
+		return fmt.Errorf("completion message: nil receiver")
+	}
 	type alias ChatCompletionMessage
 	var tmp alias
 	if err := json.Unmarshal(data, &tmp); err != nil {
 		return err
 	}
-	if tmp.Content != nil && len(tmp.ToolCalls) > 0 {
-		return fmt.Errorf("completion message: content and tool_calls are mutually exclusive")
+	out := ChatCompletionMessage(tmp)
+	if err := out.Validate(); err != nil {
+		return err
 	}
-	if tmp.Content == nil && len(tmp.ToolCalls) == 0 {
-		return fmt.Errorf("completion message: either content or tool_calls must be set")
-	}
-	if tmp.Content == nil && tmp.ToolCallID != nil {
-		return fmt.Errorf("completion message: tool_call_id requires content")
-	}
-	*m = ChatCompletionMessage(tmp)
+	*m = out
 	return nil
 }
 
@@ -631,11 +743,22 @@ type ChatToolCallOutput struct {
 	Function ChatFunctionCall `json:"function"`
 }
 
-// MarshalJSON enforces the tool call shape for ChatToolCallOutput.
-func (c ChatToolCallOutput) MarshalJSON() ([]byte, error) {
+// Validate enforces the tool call shape for ChatToolCallOutput.
+func (c ChatToolCallOutput) Validate() error {
 	switch c.Type {
 	case "":
-		return nil, fmt.Errorf("chat tool call output: type must be set")
+		return &SDKError{
+			Kind:    SDKErrorKindValidation,
+			Message: "chat tool call output: type must be set",
+		}
+	}
+	return nil
+}
+
+// MarshalJSON enforces the tool call shape for ChatToolCallOutput.
+func (c ChatToolCallOutput) MarshalJSON() ([]byte, error) {
+	if err := c.Validate(); err != nil {
+		return nil, err
 	}
 	type alias ChatToolCallOutput
 	return json.Marshal(alias(c))
@@ -643,16 +766,19 @@ func (c ChatToolCallOutput) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON enforces the tool call shape for ChatToolCallOutput.
 func (c *ChatToolCallOutput) UnmarshalJSON(data []byte) error {
+	if c == nil {
+		return fmt.Errorf("chat tool call output: nil receiver")
+	}
 	type alias ChatToolCallOutput
 	var tmp alias
 	if err := json.Unmarshal(data, &tmp); err != nil {
 		return err
 	}
-	switch tmp.Type {
-	case "":
-		return fmt.Errorf("chat tool call output: type must be set")
+	out := ChatToolCallOutput(tmp)
+	if err := out.Validate(); err != nil {
+		return err
 	}
-	*c = ChatToolCallOutput(tmp)
+	*c = out
 	return nil
 }
 
@@ -710,12 +836,23 @@ type ChatStreamDelta struct {
 	ToolCalls []ChatStreamToolCall `json:"tool_calls,omitempty"`
 }
 
-// MarshalJSON enforces the union shape for ChatStreamDelta.
-func (d ChatStreamDelta) MarshalJSON() ([]byte, error) {
+// Validate enforces the union shape for ChatStreamDelta.
+func (d ChatStreamDelta) Validate() error {
 	if len(d.ToolCalls) > 0 {
 		if d.Content != nil || d.ToolCallID != nil {
-			return nil, fmt.Errorf("stream delta: tool_calls cannot include content or tool_call_id")
+			return &SDKError{
+				Kind:    SDKErrorKindValidation,
+				Message: "stream delta: tool_calls cannot include content or tool_call_id",
+			}
 		}
+	}
+	return nil
+}
+
+// MarshalJSON enforces the union shape for ChatStreamDelta.
+func (d ChatStreamDelta) MarshalJSON() ([]byte, error) {
+	if err := d.Validate(); err != nil {
+		return nil, err
 	}
 	type alias ChatStreamDelta
 	return json.Marshal(alias(d))
@@ -723,17 +860,19 @@ func (d ChatStreamDelta) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON enforces the union shape for ChatStreamDelta.
 func (d *ChatStreamDelta) UnmarshalJSON(data []byte) error {
+	if d == nil {
+		return fmt.Errorf("stream delta: nil receiver")
+	}
 	type alias ChatStreamDelta
 	var tmp alias
 	if err := json.Unmarshal(data, &tmp); err != nil {
 		return err
 	}
-	if len(tmp.ToolCalls) > 0 {
-		if tmp.Content != nil || tmp.ToolCallID != nil {
-			return fmt.Errorf("stream delta: tool_calls cannot include content or tool_call_id")
-		}
+	out := ChatStreamDelta(tmp)
+	if err := out.Validate(); err != nil {
+		return err
 	}
-	*d = ChatStreamDelta(tmp)
+	*d = out
 	return nil
 }
 
@@ -748,11 +887,22 @@ type ChatStreamToolCall struct {
 	Function ChatStreamFunction `json:"function"`
 }
 
-// MarshalJSON enforces the tool call shape for ChatStreamToolCall.
-func (c ChatStreamToolCall) MarshalJSON() ([]byte, error) {
+// Validate enforces the tool call shape for ChatStreamToolCall.
+func (c ChatStreamToolCall) Validate() error {
 	switch c.Type {
 	case "":
-		return nil, fmt.Errorf("chat stream tool call: type must be set")
+		return &SDKError{
+			Kind:    SDKErrorKindValidation,
+			Message: "chat stream tool call: type must be set",
+		}
+	}
+	return nil
+}
+
+// MarshalJSON enforces the tool call shape for ChatStreamToolCall.
+func (c ChatStreamToolCall) MarshalJSON() ([]byte, error) {
+	if err := c.Validate(); err != nil {
+		return nil, err
 	}
 	type alias ChatStreamToolCall
 	return json.Marshal(alias(c))
@@ -760,16 +910,19 @@ func (c ChatStreamToolCall) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON enforces the tool call shape for ChatStreamToolCall.
 func (c *ChatStreamToolCall) UnmarshalJSON(data []byte) error {
+	if c == nil {
+		return fmt.Errorf("chat stream tool call: nil receiver")
+	}
 	type alias ChatStreamToolCall
 	var tmp alias
 	if err := json.Unmarshal(data, &tmp); err != nil {
 		return err
 	}
-	switch tmp.Type {
-	case "":
-		return fmt.Errorf("chat stream tool call: type must be set")
+	out := ChatStreamToolCall(tmp)
+	if err := out.Validate(); err != nil {
+		return err
 	}
-	*c = ChatStreamToolCall(tmp)
+	*c = out
 	return nil
 }
 
