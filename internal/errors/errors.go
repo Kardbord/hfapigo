@@ -61,7 +61,7 @@ func (e *APIError) IsRateLimitError() bool {
 type SDKErrorKind string
 
 const (
-	// SDKErrorKindValidation indicates a validation error in inputs or payloads.
+	// SDKErrorKindValidation indicates a validation error in API responses.
 	SDKErrorKindValidation SDKErrorKind = "validation"
 	// SDKErrorKindConfiguration indicates invalid or missing configuration.
 	SDKErrorKindConfiguration SDKErrorKind = "configuration"
@@ -77,7 +77,7 @@ const (
 // a response was received from the API, or while trying to unmarshal
 // the response from the API.
 type SDKError struct {
-	// Kind is the category of error (validation/configuration/etc).
+	// Kind is the category of error (configuration/serialization/etc).
 	Kind SDKErrorKind
 
 	// Message is the human-readable error message.

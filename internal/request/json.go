@@ -119,14 +119,14 @@ func validateJSONRequestContentType(headers http.Header) error {
 	mediatype, _, err := mime.ParseMediaType(ct)
 	if err != nil {
 		return &errors.SDKError{
-			Kind:    errors.SDKErrorKindSerialization,
+			Kind:    errors.SDKErrorKindConfiguration,
 			Message: "invalid Content-Type header",
 			Err:     err,
 		}
 	}
 	if mediatype != "application/json" {
 		return &errors.SDKError{
-			Kind:    errors.SDKErrorKindSerialization,
+			Kind:    errors.SDKErrorKindConfiguration,
 			Message: "Content-Type must be application/json for DoJSON requests",
 		}
 	}

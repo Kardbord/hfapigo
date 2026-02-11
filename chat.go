@@ -102,13 +102,13 @@ func (m ChatMessage) Validate() error {
 	contentSet := m.Content.Text != nil || m.Content.Chunks != nil
 	if contentSet && len(m.ToolCalls) > 0 {
 		return &SDKError{
-			Kind:    SDKErrorKindValidation,
+			Kind:    SDKErrorKindConfiguration,
 			Message: "chat message: content and tool_calls are mutually exclusive",
 		}
 	}
 	if !contentSet && len(m.ToolCalls) == 0 {
 		return &SDKError{
-			Kind:    SDKErrorKindValidation,
+			Kind:    SDKErrorKindConfiguration,
 			Message: "chat message: either content or tool_calls must be set",
 		}
 	}
@@ -158,7 +158,7 @@ type ChatMessageContent struct {
 func (c ChatMessageContent) Validate() error {
 	if c.Text != nil && len(c.Chunks) > 0 {
 		return &SDKError{
-			Kind:    SDKErrorKindValidation,
+			Kind:    SDKErrorKindConfiguration,
 			Message: "chat message content: both text and chunks set",
 		}
 	}
@@ -229,32 +229,32 @@ func (c ChatMessageChunk) Validate() error {
 	case MessageChunkTypeText:
 		if c.Text == nil {
 			return &SDKError{
-				Kind:    SDKErrorKindValidation,
+				Kind:    SDKErrorKindConfiguration,
 				Message: "chat message chunk: text requires text field",
 			}
 		}
 		if c.ImageURL != nil {
 			return &SDKError{
-				Kind:    SDKErrorKindValidation,
+				Kind:    SDKErrorKindConfiguration,
 				Message: "chat message chunk: text cannot include image_url",
 			}
 		}
 	case MessageChunkTypeImageURL:
 		if c.ImageURL == nil {
 			return &SDKError{
-				Kind:    SDKErrorKindValidation,
+				Kind:    SDKErrorKindConfiguration,
 				Message: "chat message chunk: image_url requires image_url field",
 			}
 		}
 		if c.Text != nil {
 			return &SDKError{
-				Kind:    SDKErrorKindValidation,
+				Kind:    SDKErrorKindConfiguration,
 				Message: "chat message chunk: image_url cannot include text",
 			}
 		}
 	default:
 		return &SDKError{
-			Kind:    SDKErrorKindValidation,
+			Kind:    SDKErrorKindConfiguration,
 			Message: "chat message chunk: type must be text or image_url",
 		}
 	}
@@ -321,7 +321,7 @@ func (c ChatToolCall) Validate() error {
 	switch c.Type {
 	case "":
 		return &SDKError{
-			Kind:    SDKErrorKindValidation,
+			Kind:    SDKErrorKindConfiguration,
 			Message: "chat tool call: type must be set",
 		}
 	}
@@ -380,19 +380,19 @@ func (r ChatResponseFormat) Validate() error {
 	case ResponseFormatTypeJSONSchema:
 		if r.JSONSchema == nil {
 			return &SDKError{
-				Kind:    SDKErrorKindValidation,
+				Kind:    SDKErrorKindConfiguration,
 				Message: "chat response format: json_schema requires json_schema field",
 			}
 		}
 	case "":
 		return &SDKError{
-			Kind:    SDKErrorKindValidation,
+			Kind:    SDKErrorKindConfiguration,
 			Message: "chat response format: type must be set",
 		}
 	default:
 		if r.JSONSchema != nil {
 			return &SDKError{
-				Kind:    SDKErrorKindValidation,
+				Kind:    SDKErrorKindConfiguration,
 				Message: fmt.Sprintf("chat response format: %s cannot include json_schema field", r.Type),
 			}
 		}
@@ -475,7 +475,7 @@ func (t ChatTool) Validate() error {
 	switch t.Type {
 	case "":
 		return &SDKError{
-			Kind:    SDKErrorKindValidation,
+			Kind:    SDKErrorKindConfiguration,
 			Message: "chat tool: type must be set",
 		}
 	}
@@ -543,13 +543,13 @@ type toolChoiceFunctionPayload struct {
 func (t ChatToolChoice) Validate() error {
 	if t.Mode != nil && t.Function != nil {
 		return &SDKError{
-			Kind:    SDKErrorKindValidation,
+			Kind:    SDKErrorKindConfiguration,
 			Message: "tool choice: mode and function are mutually exclusive",
 		}
 	}
 	if t.Mode != nil && *t.Mode == "" {
 		return &SDKError{
-			Kind:    SDKErrorKindValidation,
+			Kind:    SDKErrorKindConfiguration,
 			Message: "tool choice: mode must be set",
 		}
 	}
@@ -687,19 +687,19 @@ func (m ChatCompletionMessage) Validate() error {
 	if m.Content != nil {
 		if len(m.ToolCalls) > 0 {
 			return &SDKError{
-				Kind:    SDKErrorKindValidation,
+				Kind:    SDKErrorKindConfiguration,
 				Message: "completion message: content and tool_calls are mutually exclusive",
 			}
 		}
 	} else if len(m.ToolCalls) == 0 {
 		return &SDKError{
-			Kind:    SDKErrorKindValidation,
+			Kind:    SDKErrorKindConfiguration,
 			Message: "completion message: either content or tool_calls must be set",
 		}
 	}
 	if m.Content == nil && m.ToolCallID != nil {
 		return &SDKError{
-			Kind:    SDKErrorKindValidation,
+			Kind:    SDKErrorKindConfiguration,
 			Message: "completion message: tool_call_id requires content",
 		}
 	}
@@ -748,7 +748,7 @@ func (c ChatToolCallOutput) Validate() error {
 	switch c.Type {
 	case "":
 		return &SDKError{
-			Kind:    SDKErrorKindValidation,
+			Kind:    SDKErrorKindConfiguration,
 			Message: "chat tool call output: type must be set",
 		}
 	}
@@ -841,7 +841,7 @@ func (d ChatStreamDelta) Validate() error {
 	if len(d.ToolCalls) > 0 {
 		if d.Content != nil || d.ToolCallID != nil {
 			return &SDKError{
-				Kind:    SDKErrorKindValidation,
+				Kind:    SDKErrorKindConfiguration,
 				Message: "stream delta: tool_calls cannot include content or tool_call_id",
 			}
 		}
@@ -892,7 +892,7 @@ func (c ChatStreamToolCall) Validate() error {
 	switch c.Type {
 	case "":
 		return &SDKError{
-			Kind:    SDKErrorKindValidation,
+			Kind:    SDKErrorKindConfiguration,
 			Message: "chat stream tool call: type must be set",
 		}
 	}

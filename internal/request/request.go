@@ -3,6 +3,7 @@ package request
 import (
 	"bytes"
 	"context"
+	stderrors "errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -85,6 +86,10 @@ func DoRaw(
 
 	reqURL, err := joinURL(opts.BaseURL, path)
 	if err != nil {
+		var sdkErr *errors.SDKError
+		if stderrors.As(err, &sdkErr) {
+			return nil, sdkErr
+		}
 		return nil, &errors.SDKError{
 			Kind:    errors.SDKErrorKindConfiguration,
 			Message: fmt.Sprintf("failed to join base URL %q with path %q", opts.BaseURL, path),
@@ -151,18 +156,33 @@ func joinURL(baseURL string, path string) (string, error) {
 	}
 	parsedPath, err := url.Parse(path)
 	if err != nil {
-		return "", err
+		return "", &errors.SDKError{
+			Kind:    errors.SDKErrorKindConfiguration,
+			Message: fmt.Sprintf("invalid path %q", path),
+			Err:     err,
+		}
 	}
 	if parsedPath.Scheme != "" || parsedPath.Host != "" {
-		return "", fmt.Errorf("path must be relative, got %q", path)
+		return "", &errors.SDKError{
+			Kind:    errors.SDKErrorKindConfiguration,
+			Message: fmt.Sprintf("path must be relative, got %q", path),
+		}
 	}
 	joined, err := url.JoinPath(baseURL, parsedPath.Path)
 	if err != nil {
-		return "", err
+		return "", &errors.SDKError{
+			Kind:    errors.SDKErrorKindConfiguration,
+			Message: fmt.Sprintf("failed to join base URL %q with path %q", baseURL, parsedPath.Path),
+			Err:     err,
+		}
 	}
 	joinedURL, err := url.Parse(joined)
 	if err != nil {
-		return "", err
+		return "", &errors.SDKError{
+			Kind:    errors.SDKErrorKindInternal,
+			Message: fmt.Sprintf("failed to parse joined URL %q", joined),
+			Err:     err,
+		}
 	}
 	joinedURL.RawQuery = parsedPath.RawQuery
 	joinedURL.Fragment = parsedPath.Fragment
@@ -202,7 +222,7 @@ func readResponseBodyLimited(r io.Reader, maxBytes int64) ([]byte, error) {
 	}
 	if truncated {
 		return nil, &errors.SDKError{
-			Kind:    errors.SDKErrorKindInternal,
+			Kind:    errors.SDKErrorKindConfiguration,
 			Message: fmt.Sprintf("response body exceeds max size (limit %d bytes)", maxBytes),
 		}
 	}

@@ -31,7 +31,7 @@ type SDKError = errors.SDKError
 type SDKErrorKind = errors.SDKErrorKind
 
 const (
-	// SDKErrorKindValidation indicates a validation error in inputs or payloads.
+	// SDKErrorKindValidation indicates a validation error in API responses.
 	SDKErrorKindValidation = errors.SDKErrorKindValidation
 	// SDKErrorKindConfiguration indicates invalid or missing configuration.
 	SDKErrorKindConfiguration = errors.SDKErrorKindConfiguration

@@ -158,7 +158,7 @@ func TestSDKError_Error(t *testing.T) {
 		{
 			name: "message only",
 			err: &SDKError{
-				Kind:    SDKErrorKindValidation,
+				Kind:    SDKErrorKindConfiguration,
 				Message: "token cannot be empty",
 			},
 		},

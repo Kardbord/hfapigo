@@ -144,7 +144,7 @@ func TestDoJSON(t *testing.T) {
 			reqBody: req{},
 			wantErr: true,
 			validateErr: func(t *testing.T, err error) {
-				testutils.AssertSDKErrorKind(t, err, internalErrors.SDKErrorKindInternal)
+				testutils.AssertSDKErrorKind(t, err, internalErrors.SDKErrorKindConfiguration)
 			},
 		},
 		{
@@ -193,7 +193,7 @@ func TestDoJSON(t *testing.T) {
 			reqBody: req{},
 			wantErr: true,
 			validateErr: func(t *testing.T, err error) {
-				testutils.AssertSDKErrorKind(t, err, internalErrors.SDKErrorKindSerialization)
+				testutils.AssertSDKErrorKind(t, err, internalErrors.SDKErrorKindConfiguration)
 			},
 		},
 		{
@@ -446,27 +446,27 @@ func TestDoJSON_MarshalError(t *testing.T) {
 	}
 }
 
-type validationReq struct{}
+type configurationReq struct{}
 
-func (validationReq) MarshalJSON() ([]byte, error) {
+func (configurationReq) MarshalJSON() ([]byte, error) {
 	return nil, &internalErrors.SDKError{
-		Kind:    internalErrors.SDKErrorKindValidation,
+		Kind:    internalErrors.SDKErrorKindConfiguration,
 		Message: "invalid payload",
 	}
 }
 
-func TestDoJSON_MarshalValidationError(t *testing.T) {
+func TestDoJSON_MarshalConfigurationError(t *testing.T) {
 	opts := NewRequestOptions()
 
-	_, err := DoJSON[validationReq, struct{}](
+	_, err := DoJSON[configurationReq, struct{}](
 		opts,
 		http.MethodPost,
 		"/test",
-		validationReq{},
+		configurationReq{},
 	)
 
 	if err == nil {
 		t.Fatal("expected marshal error, got nil")
 	}
-	testutils.AssertSDKErrorKind(t, err, internalErrors.SDKErrorKindValidation)
+	testutils.AssertSDKErrorKind(t, err, internalErrors.SDKErrorKindConfiguration)
 }
