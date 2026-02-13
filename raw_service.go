@@ -8,19 +8,19 @@ import (
 	"github.com/Kardbord/hfapigo/v4/internal/request"
 )
 
-// rawService sends raw HTTP requests using the configured request options.
-type rawService struct {
+// RawService sends raw HTTP requests using the configured request options.
+type RawService struct {
 	opts request.RequestOptions
 }
 
 // newRawService builds a raw service with a snapshot of the provided options.
-func newRawService(opts request.RequestOptions) rawService {
-	return rawService{opts: opts}
+func newRawService(opts request.RequestOptions) RawService {
+	return RawService{opts: opts}
 }
 
 // Do performs a raw HTTP request with a byte slice body and applies SDK error interpretation on non-2xx responses.
 // The caller must close resp.Body on success.
-func (r rawService) Do(
+func (r RawService) Do(
 	requestBody []byte,
 	method string,
 	path string,
@@ -31,7 +31,7 @@ func (r rawService) Do(
 
 // DoRaw performs a raw HTTP request with a byte slice body without translating non-2xx responses into SDK errors.
 // The caller must close resp.Body on success.
-func (r rawService) DoRaw(
+func (r RawService) DoRaw(
 	requestBody []byte,
 	method string,
 	path string,
@@ -42,7 +42,7 @@ func (r rawService) DoRaw(
 
 // DoReader performs a raw HTTP request with a streaming body and applies SDK error interpretation on non-2xx responses.
 // The caller must close resp.Body on success.
-func (r rawService) DoReader(
+func (r RawService) DoReader(
 	requestBody io.Reader,
 	method string,
 	path string,
@@ -58,7 +58,7 @@ func (r rawService) DoReader(
 
 // DoRawReader performs a raw HTTP request with a streaming body without translating non-2xx responses into SDK errors.
 // The caller must close resp.Body on success.
-func (r rawService) DoRawReader(
+func (r RawService) DoRawReader(
 	requestBody io.Reader,
 	method string,
 	path string,
