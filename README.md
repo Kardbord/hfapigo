@@ -26,6 +26,7 @@ See the [examples](./examples) directory.
 - `WithHTTPClientFactory` expects a fresh client value; avoid sharing mutable internals like transports unless synchronized to preserve safe concurrency.
 - `WithDefaultHTTPClient` restores the default client, while a nil factory is treated as a configuration error.
 - RawService exposes both error-interpreting and raw request paths (Do vs DoRaw).
+- DTO validation is enforced during JSON marshal/unmarshal. Invalid request payloads surface as configuration errors. For responses, invalid content type surfaces as validation errors, while malformed JSON surfaces as serialization errors.
 
 ## Resources
 

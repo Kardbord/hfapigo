@@ -9,6 +9,10 @@
 //   - The SDK favors upstream feature parity and uses DTOs closely aligned to the API; breaking changes are possible as the upstream API evolves.
 //   - WithDefaultHTTPClient restores the default client; a nil factory is treated as a configuration error.
 //   - RawService exposes both error-interpreting and raw request paths (Do vs DoRaw).
+//   - DTO validation is enforced during JSON marshal/unmarshal. Invalid request
+//     payloads surface as configuration errors. For responses, invalid content
+//     type surfaces as validation errors, while malformed JSON surfaces as
+//     serialization errors.
 //   - Concurrency assumes externally supplied objects (for example, transports) are not mutated after use
 //     unless callers provide their own synchronization.
 package hfapigo
