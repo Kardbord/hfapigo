@@ -49,12 +49,13 @@ linters:
       # Exclude some linters from running on tests files.
       - path: _test\.go
         linters:
+          - bodyclose
           - canonicalheader
           - cyclop
           - errcheck
+          - exhaustruct
           - gocyclo
           - varnamelen
-          - bodyclose
       # Run some linter only for test files by excluding its issues for everything else.
       - path-except: _test\.go
         linters:
