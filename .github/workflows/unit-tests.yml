@@ -1,12 +1,19 @@
+---
 name: Unit Tests
 
 on:
   push:
     branches: [main]
   pull_request:
-    branches: [main]
+    branches:
+      - main
+      - v4-draft
   schedule:
     - cron: "35 21 * * 3"
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   build:
@@ -16,12 +23,13 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
 
       - name: Set up Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v6
         with:
-          go-version: 1.25
+          cache: true
+          go-version-file: "go.mod"
 
       - name: Build
         run: go build -v ./...
