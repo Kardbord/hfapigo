@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+
+# NOTE: Configuration options may differ between development and CI.
+# This is a dev utility script, and should not be run in CI.
+
 set -e
 
 pushd "$(dirname "${BASH_SOURCE[0]}")/.." >/dev/null
@@ -11,6 +15,10 @@ go mod tidy
 
 echo "Vetting..."
 go vet ./...
+
+echo "Linting..."
+golangci-lint config verify
+golangci-lint run --fix .
 
 echo "Building ..."
 go build ./...

@@ -2,6 +2,7 @@ package hfapigo
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 )
 
@@ -112,6 +113,7 @@ func (m ChatMessage) validate() error {
 			Message: "chat message: either content or tool_calls must be set",
 		}
 	}
+
 	return nil
 }
 
@@ -121,13 +123,14 @@ func (m ChatMessage) MarshalJSON() ([]byte, error) {
 		return nil, err
 	}
 	type alias ChatMessage
+
 	return json.Marshal(alias(m))
 }
 
 // UnmarshalJSON enforces the union shape for ChatMessage.
 func (m *ChatMessage) UnmarshalJSON(data []byte) error {
 	if m == nil {
-		return fmt.Errorf("chat message: nil receiver")
+		return errors.New("chat message: nil receiver")
 	}
 	type alias ChatMessage
 	var tmp alias
@@ -139,6 +142,7 @@ func (m *ChatMessage) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	*m = out
+
 	return nil
 }
 
@@ -162,6 +166,7 @@ func (c ChatMessageContent) validate() error {
 			Message: "chat message content: both text and chunks set",
 		}
 	}
+
 	return nil
 }
 
@@ -176,19 +181,20 @@ func (c ChatMessageContent) MarshalJSON() ([]byte, error) {
 	if c.Chunks != nil {
 		return json.Marshal(c.Chunks)
 	}
+
 	return []byte("null"), nil
 }
 
 // UnmarshalJSON enforces the union shape for ChatMessageContent.
 func (c *ChatMessageContent) UnmarshalJSON(data []byte) error {
 	if c == nil {
-		return fmt.Errorf("chat message content: nil receiver")
+		return errors.New("chat message content: nil receiver")
 	}
 	if string(data) == "null" {
 		return nil
 	}
 	if len(data) == 0 {
-		return fmt.Errorf("chat message content: empty payload")
+		return errors.New("chat message content: empty payload")
 	}
 	switch data[0] {
 	case '"':
@@ -198,6 +204,7 @@ func (c *ChatMessageContent) UnmarshalJSON(data []byte) error {
 		}
 		c.Text = &text
 		c.Chunks = nil
+
 		return c.validate()
 	case '[':
 		var chunks []ChatMessageChunk
@@ -206,9 +213,10 @@ func (c *ChatMessageContent) UnmarshalJSON(data []byte) error {
 		}
 		c.Text = nil
 		c.Chunks = chunks
+
 		return c.validate()
 	default:
-		return fmt.Errorf("chat message content: expected string or array")
+		return errors.New("chat message content: expected string or array")
 	}
 }
 
@@ -258,6 +266,7 @@ func (c ChatMessageChunk) validate() error {
 			Message: "chat message chunk: type must be text or image_url",
 		}
 	}
+
 	return nil
 }
 
@@ -267,13 +276,14 @@ func (c ChatMessageChunk) MarshalJSON() ([]byte, error) {
 		return nil, err
 	}
 	type alias ChatMessageChunk
+
 	return json.Marshal(alias(c))
 }
 
 // UnmarshalJSON enforces the union shape for ChatMessageChunk.
 func (c *ChatMessageChunk) UnmarshalJSON(data []byte) error {
 	if c == nil {
-		return fmt.Errorf("chat message chunk: nil receiver")
+		return errors.New("chat message chunk: nil receiver")
 	}
 	type alias ChatMessageChunk
 	var tmp alias
@@ -285,6 +295,7 @@ func (c *ChatMessageChunk) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	*c = out
+
 	return nil
 }
 
@@ -325,6 +336,7 @@ func (c ChatToolCall) validate() error {
 			Message: "chat tool call: type must be set",
 		}
 	}
+
 	return nil
 }
 
@@ -334,13 +346,14 @@ func (c ChatToolCall) MarshalJSON() ([]byte, error) {
 		return nil, err
 	}
 	type alias ChatToolCall
+
 	return json.Marshal(alias(c))
 }
 
 // UnmarshalJSON enforces the tool call shape for ChatToolCall.
 func (c *ChatToolCall) UnmarshalJSON(data []byte) error {
 	if c == nil {
-		return fmt.Errorf("chat tool call: nil receiver")
+		return errors.New("chat tool call: nil receiver")
 	}
 	type alias ChatToolCall
 	var tmp alias
@@ -352,6 +365,7 @@ func (c *ChatToolCall) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	*c = out
+
 	return nil
 }
 
@@ -392,11 +406,15 @@ func (r ChatResponseFormat) validate() error {
 	default:
 		if r.JSONSchema != nil {
 			return &SDKError{
-				Kind:    SDKErrorKindConfiguration,
-				Message: fmt.Sprintf("chat response format: %s cannot include json_schema field", r.Type),
+				Kind: SDKErrorKindConfiguration,
+				Message: fmt.Sprintf(
+					"chat response format: %s cannot include json_schema field",
+					r.Type,
+				),
 			}
 		}
 	}
+
 	return nil
 }
 
@@ -418,13 +436,14 @@ func (r ChatResponseFormat) MarshalJSON() ([]byte, error) {
 		return nil, err
 	}
 	type alias ChatResponseFormat
+
 	return json.Marshal(alias(r))
 }
 
 // UnmarshalJSON enforces the union shape for ChatResponseFormat.
 func (r *ChatResponseFormat) UnmarshalJSON(data []byte) error {
 	if r == nil {
-		return fmt.Errorf("chat response format: nil receiver")
+		return errors.New("chat response format: nil receiver")
 	}
 	type alias ChatResponseFormat
 	var tmp alias
@@ -436,6 +455,7 @@ func (r *ChatResponseFormat) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	*r = out
+
 	return nil
 }
 
@@ -479,6 +499,7 @@ func (t ChatTool) validate() error {
 			Message: "chat tool: type must be set",
 		}
 	}
+
 	return nil
 }
 
@@ -488,13 +509,14 @@ func (t ChatTool) MarshalJSON() ([]byte, error) {
 		return nil, err
 	}
 	type alias ChatTool
+
 	return json.Marshal(alias(t))
 }
 
 // UnmarshalJSON enforces the tool shape for ChatTool.
 func (t *ChatTool) UnmarshalJSON(data []byte) error {
 	if t == nil {
-		return fmt.Errorf("chat tool: nil receiver")
+		return errors.New("chat tool: nil receiver")
 	}
 	type alias ChatTool
 	var tmp alias
@@ -506,6 +528,7 @@ func (t *ChatTool) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	*t = out
+
 	return nil
 }
 
@@ -553,6 +576,7 @@ func (t ChatToolChoice) validate() error {
 			Message: "tool choice: mode must be set",
 		}
 	}
+
 	return nil
 }
 
@@ -569,19 +593,20 @@ func (t ChatToolChoice) MarshalJSON() ([]byte, error) {
 			Function: t.Function,
 		})
 	}
+
 	return []byte("null"), nil
 }
 
 // UnmarshalJSON enforces the union shape for ChatToolChoice.
 func (t *ChatToolChoice) UnmarshalJSON(data []byte) error {
 	if t == nil {
-		return fmt.Errorf("tool choice: nil receiver")
+		return errors.New("tool choice: nil receiver")
 	}
 	if string(data) == "null" {
 		return nil
 	}
 	if len(data) == 0 {
-		return fmt.Errorf("tool choice: empty payload")
+		return errors.New("tool choice: empty payload")
 	}
 	switch data[0] {
 	case '"':
@@ -590,10 +615,11 @@ func (t *ChatToolChoice) UnmarshalJSON(data []byte) error {
 			return err
 		}
 		if mode == "" {
-			return fmt.Errorf("tool choice: mode must be set")
+			return errors.New("tool choice: mode must be set")
 		}
 		t.Mode = &mode
 		t.Function = nil
+
 		return t.validate()
 	case '{':
 		var payload toolChoiceFunctionPayload
@@ -601,13 +627,14 @@ func (t *ChatToolChoice) UnmarshalJSON(data []byte) error {
 			return err
 		}
 		if payload.Function == nil {
-			return fmt.Errorf("tool choice: function object required")
+			return errors.New("tool choice: function object required")
 		}
 		t.Mode = nil
 		t.Function = payload.Function
+
 		return t.validate()
 	default:
-		return fmt.Errorf("tool choice: expected string or object")
+		return errors.New("tool choice: expected string or object")
 	}
 }
 
@@ -703,6 +730,7 @@ func (m ChatCompletionMessage) validate() error {
 			Message: "completion message: tool_call_id requires content",
 		}
 	}
+
 	return nil
 }
 
@@ -712,13 +740,14 @@ func (m ChatCompletionMessage) MarshalJSON() ([]byte, error) {
 		return nil, err
 	}
 	type alias ChatCompletionMessage
+
 	return json.Marshal(alias(m))
 }
 
 // UnmarshalJSON enforces the union shape for ChatCompletionMessage.
 func (m *ChatCompletionMessage) UnmarshalJSON(data []byte) error {
 	if m == nil {
-		return fmt.Errorf("completion message: nil receiver")
+		return errors.New("completion message: nil receiver")
 	}
 	type alias ChatCompletionMessage
 	var tmp alias
@@ -730,6 +759,7 @@ func (m *ChatCompletionMessage) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	*m = out
+
 	return nil
 }
 
@@ -752,6 +782,7 @@ func (c ChatToolCallOutput) validate() error {
 			Message: "chat tool call output: type must be set",
 		}
 	}
+
 	return nil
 }
 
@@ -761,13 +792,14 @@ func (c ChatToolCallOutput) MarshalJSON() ([]byte, error) {
 		return nil, err
 	}
 	type alias ChatToolCallOutput
+
 	return json.Marshal(alias(c))
 }
 
 // UnmarshalJSON enforces the tool call shape for ChatToolCallOutput.
 func (c *ChatToolCallOutput) UnmarshalJSON(data []byte) error {
 	if c == nil {
-		return fmt.Errorf("chat tool call output: nil receiver")
+		return errors.New("chat tool call output: nil receiver")
 	}
 	type alias ChatToolCallOutput
 	var tmp alias
@@ -779,6 +811,7 @@ func (c *ChatToolCallOutput) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	*c = out
+
 	return nil
 }
 
@@ -846,6 +879,7 @@ func (d ChatStreamDelta) validate() error {
 			}
 		}
 	}
+
 	return nil
 }
 
@@ -855,13 +889,14 @@ func (d ChatStreamDelta) MarshalJSON() ([]byte, error) {
 		return nil, err
 	}
 	type alias ChatStreamDelta
+
 	return json.Marshal(alias(d))
 }
 
 // UnmarshalJSON enforces the union shape for ChatStreamDelta.
 func (d *ChatStreamDelta) UnmarshalJSON(data []byte) error {
 	if d == nil {
-		return fmt.Errorf("stream delta: nil receiver")
+		return errors.New("stream delta: nil receiver")
 	}
 	type alias ChatStreamDelta
 	var tmp alias
@@ -873,6 +908,7 @@ func (d *ChatStreamDelta) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	*d = out
+
 	return nil
 }
 
@@ -896,6 +932,7 @@ func (c ChatStreamToolCall) validate() error {
 			Message: "chat stream tool call: type must be set",
 		}
 	}
+
 	return nil
 }
 
@@ -905,13 +942,14 @@ func (c ChatStreamToolCall) MarshalJSON() ([]byte, error) {
 		return nil, err
 	}
 	type alias ChatStreamToolCall
+
 	return json.Marshal(alias(c))
 }
 
 // UnmarshalJSON enforces the tool call shape for ChatStreamToolCall.
 func (c *ChatStreamToolCall) UnmarshalJSON(data []byte) error {
 	if c == nil {
-		return fmt.Errorf("chat stream tool call: nil receiver")
+		return errors.New("chat stream tool call: nil receiver")
 	}
 	type alias ChatStreamToolCall
 	var tmp alias
@@ -923,6 +961,7 @@ func (c *ChatStreamToolCall) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	*c = out
+
 	return nil
 }
 

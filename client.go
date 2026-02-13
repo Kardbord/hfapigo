@@ -4,10 +4,6 @@ import (
 	"github.com/Kardbord/hfapigo/v4/internal/request"
 )
 
-// DefaultClient is a pre-configured client instance that can be used for quick API calls
-// without needing to create a new client.
-var DefaultClient = NewClient()
-
 // Client represents a HuggingFace API client with configured request options.
 // Client instances are immutable; options are fixed at creation time and never mutated.
 // This keeps client usage safe across goroutines and avoids surprises from mutable state.

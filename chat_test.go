@@ -30,13 +30,20 @@ func TestChatMessageContent_Marshal(t *testing.T) {
 			wantJSON: `null`,
 		},
 		{
-			name:     "chunks",
-			value:    ChatMessageContent{Chunks: []ChatMessageChunk{{Type: MessageChunkTypeImageURL, ImageURL: &ChatImageURL{URL: imgURL}}}},
+			name: "chunks",
+			value: ChatMessageContent{
+				Chunks: []ChatMessageChunk{
+					{Type: MessageChunkTypeImageURL, ImageURL: &ChatImageURL{URL: imgURL}},
+				},
+			},
 			wantJSON: `[{"image_url":{"url":"https://example.com/image.png"},"type":"image_url"}]`,
 		},
 		{
-			name:    "both",
-			value:   ChatMessageContent{Text: &text, Chunks: []ChatMessageChunk{{Type: MessageChunkTypeText, Text: &text}}},
+			name: "both",
+			value: ChatMessageContent{
+				Text:   &text,
+				Chunks: []ChatMessageChunk{{Type: MessageChunkTypeText, Text: &text}},
+			},
 			wantErr: true,
 		},
 	}
@@ -137,8 +144,11 @@ func TestChatMessageChunk_Validation(t *testing.T) {
 			value: ChatMessageChunk{Type: MessageChunkTypeText, Text: &text},
 		},
 		{
-			name:  "image_url",
-			value: ChatMessageChunk{Type: MessageChunkTypeImageURL, ImageURL: &ChatImageURL{URL: "x"}},
+			name: "image_url",
+			value: ChatMessageChunk{
+				Type:     MessageChunkTypeImageURL,
+				ImageURL: &ChatImageURL{URL: "x"},
+			},
 		},
 		{
 			name:    "missing text",
@@ -156,13 +166,21 @@ func TestChatMessageChunk_Validation(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:    "text with image_url",
-			value:   ChatMessageChunk{Type: MessageChunkTypeText, Text: &text, ImageURL: &ChatImageURL{URL: "x"}},
+			name: "text with image_url",
+			value: ChatMessageChunk{
+				Type:     MessageChunkTypeText,
+				Text:     &text,
+				ImageURL: &ChatImageURL{URL: "x"},
+			},
 			wantErr: true,
 		},
 		{
-			name:    "image_url with text",
-			value:   ChatMessageChunk{Type: MessageChunkTypeImageURL, Text: &text, ImageURL: &ChatImageURL{URL: "x"}},
+			name: "image_url with text",
+			value: ChatMessageChunk{
+				Type:     MessageChunkTypeImageURL,
+				Text:     &text,
+				ImageURL: &ChatImageURL{URL: "x"},
+			},
 			wantErr: true,
 		},
 	}
@@ -242,8 +260,14 @@ func TestChatMessage_Validation(t *testing.T) {
 			}}},
 		},
 		{
-			name:    "both",
-			value:   ChatMessage{Role: "assistant", Content: ChatMessageContent{Text: &text}, ToolCalls: []ChatToolCall{{ID: "id", Type: "function", Function: ChatFunctionDefinition{Name: "do"}}}},
+			name: "both",
+			value: ChatMessage{
+				Role:    "assistant",
+				Content: ChatMessageContent{Text: &text},
+				ToolCalls: []ChatToolCall{
+					{ID: "id", Type: "function", Function: ChatFunctionDefinition{Name: "do"}},
+				},
+			},
 			wantErr: true,
 		},
 		{
@@ -353,7 +377,8 @@ func TestChatMessage_UnmarshalSuccess(t *testing.T) {
 				if len(got.ToolCalls) != tc.wantToolCalls {
 					t.Fatalf("unexpected tool calls: %+v", got.ToolCalls)
 				}
-				if got.ToolCalls[0].ID != "id" || got.ToolCalls[0].Type != "function" || got.ToolCalls[0].Function.Name != "fn" {
+				if got.ToolCalls[0].ID != "id" || got.ToolCalls[0].Type != "function" ||
+					got.ToolCalls[0].Function.Name != "fn" {
 					t.Fatalf("unexpected tool call: %+v", got.ToolCalls[0])
 				}
 				testutils.RequireNil(t, got.Content.Text)
@@ -372,7 +397,14 @@ func TestChatRequest_MarshalSuccess(t *testing.T) {
 	req := ChatRequest{
 		Messages: []ChatMessage{
 			{Role: "user", Content: ChatMessageContent{Text: &text}},
-			{Role: "user", Content: ChatMessageContent{Chunks: []ChatMessageChunk{{Type: MessageChunkTypeImageURL, ImageURL: &ChatImageURL{URL: imgURL}}}}},
+			{
+				Role: "user",
+				Content: ChatMessageContent{
+					Chunks: []ChatMessageChunk{
+						{Type: MessageChunkTypeImageURL, ImageURL: &ChatImageURL{URL: imgURL}},
+					},
+				},
+			},
 		},
 	}
 
@@ -551,8 +583,11 @@ func TestChatResponseFormat(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name:  "json_schema",
-			value: ChatResponseFormat{Type: ResponseFormatTypeJSONSchema, JSONSchema: &ChatJSONSchemaConfig{Name: "n"}},
+			name: "json_schema",
+			value: ChatResponseFormat{
+				Type:       ResponseFormatTypeJSONSchema,
+				JSONSchema: &ChatJSONSchemaConfig{Name: "n"},
+			},
 		},
 		{
 			name:  "provider type",
@@ -564,8 +599,11 @@ func TestChatResponseFormat(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:    "other with json_schema",
-			value:   ChatResponseFormat{Type: providerType, JSONSchema: &ChatJSONSchemaConfig{Name: "n"}},
+			name: "other with json_schema",
+			value: ChatResponseFormat{
+				Type:       providerType,
+				JSONSchema: &ChatJSONSchemaConfig{Name: "n"},
+			},
 			wantErr: true,
 		},
 		{
@@ -574,8 +612,11 @@ func TestChatResponseFormat(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:  "json_schema empty name",
-			value: ChatResponseFormat{Type: ResponseFormatTypeJSONSchema, JSONSchema: &ChatJSONSchemaConfig{Name: ""}},
+			name: "json_schema empty name",
+			value: ChatResponseFormat{
+				Type:       ResponseFormatTypeJSONSchema,
+				JSONSchema: &ChatJSONSchemaConfig{Name: ""},
+			},
 		},
 	}
 
@@ -643,7 +684,8 @@ func TestChatResponseFormat_UnmarshalSuccess(t *testing.T) {
 			if got.Type != tc.wantType {
 				t.Fatalf("unexpected type: %v", got.Type)
 			}
-			if got.Type == ResponseFormatTypeJSONSchema && (got.JSONSchema == nil || got.JSONSchema.Name != "n") {
+			if got.Type == ResponseFormatTypeJSONSchema &&
+				(got.JSONSchema == nil || got.JSONSchema.Name != "n") {
 				t.Fatalf("unexpected json_schema: %+v", got.JSONSchema)
 			}
 		})
@@ -671,8 +713,18 @@ func TestChatCompletionMessage(t *testing.T) {
 			}}},
 		},
 		{
-			name:    "both",
-			value:   ChatCompletionMessage{Role: "assistant", Content: &text, ToolCalls: []ChatToolCallOutput{{ID: "id", Type: "function", Function: ChatFunctionCall{Name: "fn", Arguments: "{}"}}}},
+			name: "both",
+			value: ChatCompletionMessage{
+				Role:    "assistant",
+				Content: &text,
+				ToolCalls: []ChatToolCallOutput{
+					{
+						ID:       "id",
+						Type:     "function",
+						Function: ChatFunctionCall{Name: "fn", Arguments: "{}"},
+					},
+				},
+			},
 			wantErr: true,
 		},
 		{
@@ -686,8 +738,12 @@ func TestChatCompletionMessage(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:  "content with tool_call_id",
-			value: ChatCompletionMessage{Role: "assistant", Content: &text, ToolCallID: testutils.Ptr("id")},
+			name: "content with tool_call_id",
+			value: ChatCompletionMessage{
+				Role:       "assistant",
+				Content:    &text,
+				ToolCallID: testutils.Ptr("id"),
+			},
 		},
 	}
 
@@ -761,13 +817,33 @@ func TestChatStreamDelta(t *testing.T) {
 			}}},
 		},
 		{
-			name:    "tool_calls with content",
-			value:   ChatStreamDelta{Content: &text, ToolCalls: []ChatStreamToolCall{{ID: "id", Type: "function", Index: 0, Function: ChatStreamFunction{Name: "fn", Arguments: "{}"}}}},
+			name: "tool_calls with content",
+			value: ChatStreamDelta{
+				Content: &text,
+				ToolCalls: []ChatStreamToolCall{
+					{
+						ID:       "id",
+						Type:     "function",
+						Index:    0,
+						Function: ChatStreamFunction{Name: "fn", Arguments: "{}"},
+					},
+				},
+			},
 			wantErr: true,
 		},
 		{
-			name:    "tool_calls with tool_call_id",
-			value:   ChatStreamDelta{ToolCallID: testutils.Ptr("id"), ToolCalls: []ChatStreamToolCall{{ID: "id", Type: "function", Index: 0, Function: ChatStreamFunction{Name: "fn", Arguments: "{}"}}}},
+			name: "tool_calls with tool_call_id",
+			value: ChatStreamDelta{
+				ToolCallID: testutils.Ptr("id"),
+				ToolCalls: []ChatStreamToolCall{
+					{
+						ID:       "id",
+						Type:     "function",
+						Index:    0,
+						Function: ChatStreamFunction{Name: "fn", Arguments: "{}"},
+					},
+				},
+			},
 			wantErr: true,
 		},
 	}
@@ -861,7 +937,9 @@ func TestChatStreamDelta_UnmarshalSuccess(t *testing.T) {
 					t.Fatalf("unexpected tool calls: %+v", got.ToolCalls)
 				}
 				call := got.ToolCalls[0]
-				if call.ID != "id" || call.Type != "function" || call.Index != 0 || call.Function.Name != "fn" || call.Function.Arguments != "{}" {
+				if call.ID != "id" || call.Type != "function" || call.Index != 0 ||
+					call.Function.Name != "fn" ||
+					call.Function.Arguments != "{}" {
 					t.Fatalf("unexpected tool call: %+v", call)
 				}
 				testutils.RequireNil(t, got.Content)
@@ -984,7 +1062,8 @@ func TestChatToolCallOutput_UnmarshalSuccess(t *testing.T) {
 	data := []byte(`{"id":"id","type":"function","function":{"name":"fn","arguments":"{}"}}`)
 	var got ChatToolCallOutput
 	testutils.RequireNoError(t, json.Unmarshal(data, &got))
-	if got.ID != "id" || got.Type != "function" || got.Function.Name != "fn" || got.Function.Arguments != "{}" {
+	if got.ID != "id" || got.Type != "function" || got.Function.Name != "fn" ||
+		got.Function.Arguments != "{}" {
 		t.Fatalf("unexpected value: %+v", got)
 	}
 }
@@ -996,8 +1075,10 @@ func TestChatStreamToolCall_TypeMustBeSet(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name:    "type empty",
-			data:    []byte(`{"id":"id","type":"","index":0,"function":{"name":"fn","arguments":"{}"}}`),
+			name: "type empty",
+			data: []byte(
+				`{"id":"id","type":"","index":0,"function":{"name":"fn","arguments":"{}"}}`,
+			),
 			wantErr: true,
 		},
 		{
@@ -1029,7 +1110,9 @@ func TestChatStreamToolCall_MarshalTypeMissing(t *testing.T) {
 }
 
 func TestChatStreamToolCall_UnmarshalSuccess(t *testing.T) {
-	data := []byte(`{"id":"id","type":"function","index":0,"function":{"name":"fn","arguments":"{}"}}`)
+	data := []byte(
+		`{"id":"id","type":"function","index":0,"function":{"name":"fn","arguments":"{}"}}`,
+	)
 	var got ChatStreamToolCall
 	testutils.RequireNoError(t, json.Unmarshal(data, &got))
 	if got.ID != "id" || got.Type != "function" || got.Index != 0 || got.Function.Name != "fn" {
@@ -1111,7 +1194,9 @@ func TestChatResponse_UnmarshalTypeValidation(t *testing.T) {
 }
 
 func TestChatResponse_UnmarshalSuccess(t *testing.T) {
-	data := []byte(`{"id":"id","created":1,"model":"m","system_fingerprint":"s","choices":[{"finish_reason":"stop","index":0,"message":{"role":"assistant","content":"hi"}}],"usage":{"prompt_tokens":1,"completion_tokens":2,"total_tokens":3}}`)
+	data := []byte(
+		`{"id":"id","created":1,"model":"m","system_fingerprint":"s","choices":[{"finish_reason":"stop","index":0,"message":{"role":"assistant","content":"hi"}}],"usage":{"prompt_tokens":1,"completion_tokens":2,"total_tokens":3}}`,
+	)
 	var got ChatResponse
 	testutils.RequireNoError(t, json.Unmarshal(data, &got))
 	if got.ID != "id" || got.Model != "m" || len(got.Choices) != 1 {
@@ -1123,7 +1208,9 @@ func TestChatResponse_UnmarshalSuccess(t *testing.T) {
 }
 
 func TestChatStreamResponse_UnmarshalSuccess(t *testing.T) {
-	data := []byte(`{"id":"id","created":1,"model":"m","system_fingerprint":"s","choices":[{"delta":{"role":"assistant"},"index":0}]}`)
+	data := []byte(
+		`{"id":"id","created":1,"model":"m","system_fingerprint":"s","choices":[{"delta":{"role":"assistant"},"index":0}]}`,
+	)
 	var got ChatStreamResponse
 	testutils.RequireNoError(t, json.Unmarshal(data, &got))
 	if got.ID != "id" || len(got.Choices) != 1 {
@@ -1135,7 +1222,9 @@ func TestChatStreamResponse_UnmarshalSuccess(t *testing.T) {
 }
 
 func TestChatLogProbs_UnmarshalSuccess(t *testing.T) {
-	data := []byte(`{"content":[{"token":"t","logprob":0.1,"top_logprobs":[{"token":"t","logprob":0.1}]}]}`)
+	data := []byte(
+		`{"content":[{"token":"t","logprob":0.1,"top_logprobs":[{"token":"t","logprob":0.1}]}]}`,
+	)
 	var got ChatLogProbs
 	testutils.RequireNoError(t, json.Unmarshal(data, &got))
 	if len(got.Content) != 1 || got.Content[0].Token != "t" {
@@ -1189,7 +1278,9 @@ func TestChatStreamFunction_UnmarshalSuccess(t *testing.T) {
 }
 
 func TestChatChoice_UnmarshalSuccess(t *testing.T) {
-	data := []byte(`{"finish_reason":"stop","index":0,"message":{"role":"assistant","content":"hi"}}`)
+	data := []byte(
+		`{"finish_reason":"stop","index":0,"message":{"role":"assistant","content":"hi"}}`,
+	)
 	var got ChatChoice
 	testutils.RequireNoError(t, json.Unmarshal(data, &got))
 	if got.FinishReason != "stop" || got.Message.Content == nil || *got.Message.Content != "hi" {

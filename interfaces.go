@@ -39,14 +39,34 @@ type ChatService interface {
 type RawService interface {
 	// Do performs a raw HTTP request with a byte slice body and applies SDK error interpretation on non-2xx responses.
 	// The caller must close resp.Body on success.
-	Do(requestBody []byte, method string, path string, opts ...RequestOption) (*http.Response, error)
+	Do(
+		requestBody []byte,
+		method string,
+		path string,
+		opts ...RequestOption,
+	) (*http.Response, error)
 	// DoRaw performs a raw HTTP request with a byte slice body without translating non-2xx responses into SDK errors.
 	// The caller must close resp.Body on success.
-	DoRaw(requestBody []byte, method string, path string, opts ...RequestOption) (*http.Response, error)
+	DoRaw(
+		requestBody []byte,
+		method string,
+		path string,
+		opts ...RequestOption,
+	) (*http.Response, error)
 	// DoReader performs a raw HTTP request with an io.Reader body and applies SDK error interpretation on non-2xx responses.
 	// The caller must close resp.Body on success.
-	DoReader(requestBody io.Reader, method string, path string, opts ...RequestOption) (*http.Response, error)
+	DoReader(
+		requestBody io.Reader,
+		method string,
+		path string,
+		opts ...RequestOption,
+	) (*http.Response, error)
 	// DoRawReader performs a raw HTTP request with an io.Reader body without translating non-2xx responses into SDK errors.
 	// The caller must close resp.Body on success.
-	DoRawReader(requestBody io.Reader, method string, path string, opts ...RequestOption) (*http.Response, error)
+	DoRawReader(
+		requestBody io.Reader,
+		method string,
+		path string,
+		opts ...RequestOption,
+	) (*http.Response, error)
 }
