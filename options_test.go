@@ -11,6 +11,8 @@ import (
 )
 
 func TestWithHTTPClientFactoryNil(t *testing.T) {
+	t.Parallel()
+
 	opts := request.NewRequestOptions().WithHTTPClientFactory(nil)
 	if opts.HTTPClient != nil {
 		t.Fatal("expected nil http client when factory returns nil")
@@ -28,6 +30,8 @@ func TestWithHTTPClientFactoryNil(t *testing.T) {
 }
 
 func TestWithDefaultHTTPClient(t *testing.T) {
+	t.Parallel()
+
 	opts := request.NewRequestOptions().WithHTTPClientFactory(nil).With(WithDefaultHTTPClient())
 	if opts.HTTPClient == nil {
 		t.Fatal("expected default http client, got nil")

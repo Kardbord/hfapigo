@@ -15,6 +15,8 @@ import (
 )
 
 func TestDo(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name        string
 		setupOpts   func() RequestOptions
@@ -377,6 +379,8 @@ func TestDo(t *testing.T) {
 }
 
 func TestDo_DrainsErrorResponseBody(t *testing.T) {
+	t.Parallel()
+
 	data := strings.Repeat("a", 10)
 	tracker := &testutils.ReadTracker{Data: []byte(data)}
 	mt := &testutils.MockTransport{
@@ -400,6 +404,8 @@ func TestDo_DrainsErrorResponseBody(t *testing.T) {
 }
 
 func TestDoBytes(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name        string
 		data        []byte
@@ -462,6 +468,8 @@ func TestDoBytes(t *testing.T) {
 }
 
 func TestDoRaw(t *testing.T) {
+	t.Parallel()
+
 	t.Run("returns response on non-2xx without closing body", func(t *testing.T) {
 		tracker := &testutils.CloseTracker{}
 		mt := &testutils.MockTransport{
@@ -509,6 +517,8 @@ func TestDoRaw(t *testing.T) {
 }
 
 func TestJoinURL(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name    string
 		baseURL string
@@ -596,6 +606,8 @@ func TestJoinURL(t *testing.T) {
 }
 
 func TestDo_IgnoresResponseOnTransportError(t *testing.T) {
+	t.Parallel()
+
 	tracker := &testutils.ReadTracker{Data: []byte("ignored")}
 	mt := &testutils.MockTransport{
 		Response: &http.Response{

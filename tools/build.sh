@@ -22,7 +22,7 @@ echo "Linting..."
 golangci-lint config verify
 golangci-lint run --fix --disable godox .
 
-echo "Building ..."
+echo "Building..."
 go build ./...
 
 echo "Running tests..."

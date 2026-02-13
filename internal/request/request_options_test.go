@@ -12,6 +12,8 @@ import (
 )
 
 func TestRequestOptions_With(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name     string
 		initial  RequestOptions
@@ -153,6 +155,8 @@ func TestRequestOptions_With(t *testing.T) {
 }
 
 func TestRequestOptions_WithHelpers(t *testing.T) {
+	t.Parallel()
+
 	ctx := context.WithValue(context.Background(), struct{}{}, "ok")
 	mt := testutils.NewMockTransport(http.StatusOK, `{}`, nil)
 
@@ -192,6 +196,8 @@ func TestRequestOptions_WithHelpers(t *testing.T) {
 }
 
 func TestWithUserAgentSuffix(t *testing.T) {
+	t.Parallel()
+
 	opts := NewRequestOptions().WithUserAgentSuffix("custom/1.0")
 	want := version.UserAgent() + " custom/1.0"
 	if opts.UserAgent != want {
@@ -200,6 +206,8 @@ func TestWithUserAgentSuffix(t *testing.T) {
 }
 
 func TestWithUserAgentSuffix_Empty(t *testing.T) {
+	t.Parallel()
+
 	t.Run("default user agent unchanged", func(t *testing.T) {
 		opts := NewRequestOptions().WithUserAgentSuffix("")
 		want := version.UserAgent()
@@ -217,6 +225,8 @@ func TestWithUserAgentSuffix_Empty(t *testing.T) {
 }
 
 func TestWithHeaders_CopiesMap(t *testing.T) {
+	t.Parallel()
+
 	headers := http.Header{"X-Test": []string{"one"}}
 	opts := NewRequestOptions().WithHeaders(headers)
 	headers.Set("X-Test", "two")
@@ -227,6 +237,8 @@ func TestWithHeaders_CopiesMap(t *testing.T) {
 }
 
 func TestRequestOptions_DefensiveHeaderClone(t *testing.T) {
+	t.Parallel()
+
 	mt := testutils.NewMockTransport(http.StatusOK, `{}`, nil)
 
 	tests := []struct {
@@ -334,6 +346,8 @@ func TestRequestOptions_DefensiveHeaderClone(t *testing.T) {
 }
 
 func TestWithHeaders_CanonicalizesAndOverrides(t *testing.T) {
+	t.Parallel()
+
 	opts := NewRequestOptions().
 		WithHeaders(http.Header{"x-test": []string{"one"}}).
 		WithHeader("X-TEST", "two")
@@ -349,6 +363,8 @@ func TestWithHeaders_CanonicalizesAndOverrides(t *testing.T) {
 }
 
 func TestWithDefaultHeader_CaseInsensitiveAndEmpty(t *testing.T) {
+	t.Parallel()
+
 	opts := NewRequestOptions().
 		WithHeader("x-test", "").
 		WithDefaultHeader("X-Test", "default")
@@ -364,6 +380,8 @@ func TestWithDefaultHeader_CaseInsensitiveAndEmpty(t *testing.T) {
 }
 
 func TestNewRequestOptions(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name     string
 		validate func(t *testing.T, opts RequestOptions)
@@ -453,6 +471,8 @@ func TestNewRequestOptions(t *testing.T) {
 }
 
 func TestRequestOptions_Validate(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name    string
 		opts    RequestOptions

@@ -10,6 +10,8 @@ import (
 )
 
 func TestChatMessageContent_Marshal(t *testing.T) {
+	t.Parallel()
+
 	text := "hello"
 	imgURL := "https://example.com/image.png"
 
@@ -62,6 +64,8 @@ func TestChatMessageContent_Marshal(t *testing.T) {
 }
 
 func TestChatMessageContent_Unmarshal(t *testing.T) {
+	t.Parallel()
+
 	cases := []struct {
 		name      string
 		unmarshal string
@@ -132,6 +136,8 @@ func TestChatMessageContent_Unmarshal(t *testing.T) {
 }
 
 func TestChatMessageChunk_Validation(t *testing.T) {
+	t.Parallel()
+
 	text := "hello"
 
 	cases := []struct {
@@ -196,6 +202,8 @@ func TestChatMessageChunk_Validation(t *testing.T) {
 }
 
 func TestChatMessageChunk_UnmarshalValidation(t *testing.T) {
+	t.Parallel()
+
 	cases := []struct {
 		name      string
 		unmarshal string
@@ -240,6 +248,8 @@ func TestChatMessageChunk_UnmarshalValidation(t *testing.T) {
 }
 
 func TestChatMessage_Validation(t *testing.T) {
+	t.Parallel()
+
 	text := "hi"
 
 	cases := []struct {
@@ -288,6 +298,8 @@ func TestChatMessage_Validation(t *testing.T) {
 }
 
 func TestChatMessage_UnmarshalValidation(t *testing.T) {
+	t.Parallel()
+
 	cases := []struct {
 		name      string
 		unmarshal string
@@ -321,6 +333,8 @@ func TestChatMessage_UnmarshalValidation(t *testing.T) {
 }
 
 func TestChatMessage_UnmarshalSuccess(t *testing.T) {
+	t.Parallel()
+
 	cases := []struct {
 		name          string
 		unmarshal     string
@@ -392,6 +406,8 @@ func TestChatMessage_UnmarshalSuccess(t *testing.T) {
 }
 
 func TestChatRequest_MarshalSuccess(t *testing.T) {
+	t.Parallel()
+
 	text := "hi"
 	imgURL := "https://example.com/image.png"
 	req := ChatRequest{
@@ -451,6 +467,8 @@ func TestChatRequest_MarshalSuccess(t *testing.T) {
 }
 
 func TestChatToolChoice_Marshal(t *testing.T) {
+	t.Parallel()
+
 	mode := ToolChoiceMode("provider-mode")
 
 	cases := []struct {
@@ -500,6 +518,8 @@ func TestChatToolChoice_Marshal(t *testing.T) {
 }
 
 func TestChatToolChoice_Unmarshal(t *testing.T) {
+	t.Parallel()
+
 	cases := []struct {
 		name      string
 		unmarshal string
@@ -575,6 +595,8 @@ func TestChatToolChoice_Unmarshal(t *testing.T) {
 }
 
 func TestChatResponseFormat(t *testing.T) {
+	t.Parallel()
+
 	providerType := ResponseFormatType("provider-format")
 
 	cases := []struct {
@@ -655,6 +677,8 @@ func TestChatResponseFormat(t *testing.T) {
 }
 
 func TestChatResponseFormat_UnmarshalValidation(t *testing.T) {
+	t.Parallel()
+
 	cases := []struct {
 		name      string
 		unmarshal string
@@ -679,6 +703,8 @@ func TestChatResponseFormat_UnmarshalValidation(t *testing.T) {
 }
 
 func TestChatResponseFormat_UnmarshalSuccess(t *testing.T) {
+	t.Parallel()
+
 	cases := []struct {
 		name      string
 		unmarshal string
@@ -722,6 +748,8 @@ func TestChatResponseFormat_UnmarshalSuccess(t *testing.T) {
 }
 
 func TestChatCompletionMessage(t *testing.T) {
+	t.Parallel()
+
 	text := "ok"
 
 	cases := []struct {
@@ -787,6 +815,8 @@ func TestChatCompletionMessage(t *testing.T) {
 }
 
 func TestChatCompletionMessage_UnmarshalValidation(t *testing.T) {
+	t.Parallel()
+
 	cases := []struct {
 		name      string
 		unmarshal string
@@ -821,6 +851,8 @@ func TestChatCompletionMessage_UnmarshalValidation(t *testing.T) {
 }
 
 func TestChatStreamDelta(t *testing.T) {
+	t.Parallel()
+
 	text := "ok"
 
 	cases := []struct {
@@ -888,6 +920,8 @@ func TestChatStreamDelta(t *testing.T) {
 }
 
 func TestChatStreamDelta_UnmarshalValidation(t *testing.T) {
+	t.Parallel()
+
 	cases := []struct {
 		name      string
 		unmarshal string
@@ -917,6 +951,8 @@ func TestChatStreamDelta_UnmarshalValidation(t *testing.T) {
 }
 
 func TestChatStreamDelta_UnmarshalSuccess(t *testing.T) {
+	t.Parallel()
+
 	cases := []struct {
 		name          string
 		unmarshal     string
@@ -979,6 +1015,8 @@ func TestChatStreamDelta_UnmarshalSuccess(t *testing.T) {
 }
 
 func TestChatToolCall_TypeMustBeSet(t *testing.T) {
+	t.Parallel()
+
 	cases := []struct {
 		name    string
 		data    []byte
@@ -1008,6 +1046,8 @@ func TestChatToolCall_TypeMustBeSet(t *testing.T) {
 }
 
 func TestChatToolCall_MarshalTypeMissing(t *testing.T) {
+	t.Parallel()
+
 	value := ChatToolCall{
 		ID:       "id",
 		Function: ChatFunctionDefinition{Name: "fn"},
@@ -1017,6 +1057,8 @@ func TestChatToolCall_MarshalTypeMissing(t *testing.T) {
 }
 
 func TestChatToolCall_UnmarshalSuccess(t *testing.T) {
+	t.Parallel()
+
 	data := []byte(`{"id":"id","type":"function","function":{"name":"fn"}}`)
 	var got ChatToolCall
 	testutils.RequireNoError(t, json.Unmarshal(data, &got))
@@ -1026,6 +1068,8 @@ func TestChatToolCall_UnmarshalSuccess(t *testing.T) {
 }
 
 func TestChatTool_TypeMustBeSet(t *testing.T) {
+	t.Parallel()
+
 	data := []byte(`{"function":{"name":"fn"}}`)
 	var out ChatTool
 	err := json.Unmarshal(data, &out)
@@ -1033,6 +1077,8 @@ func TestChatTool_TypeMustBeSet(t *testing.T) {
 }
 
 func TestChatTool_MarshalTypeMissing(t *testing.T) {
+	t.Parallel()
+
 	value := ChatTool{
 		Function: ChatFunctionDefinition{Name: "fn"},
 	}
@@ -1041,6 +1087,8 @@ func TestChatTool_MarshalTypeMissing(t *testing.T) {
 }
 
 func TestChatTool_UnmarshalSuccess(t *testing.T) {
+	t.Parallel()
+
 	data := []byte(`{"type":"function","function":{"name":"fn"}}`)
 	var got ChatTool
 	testutils.RequireNoError(t, json.Unmarshal(data, &got))
@@ -1050,6 +1098,8 @@ func TestChatTool_UnmarshalSuccess(t *testing.T) {
 }
 
 func TestChatToolCallOutput_TypeMustBeSet(t *testing.T) {
+	t.Parallel()
+
 	cases := []struct {
 		name    string
 		data    []byte
@@ -1079,6 +1129,8 @@ func TestChatToolCallOutput_TypeMustBeSet(t *testing.T) {
 }
 
 func TestChatToolCallOutput_MarshalTypeMissing(t *testing.T) {
+	t.Parallel()
+
 	value := ChatToolCallOutput{
 		ID:       "id",
 		Function: ChatFunctionCall{Name: "fn", Arguments: "{}"},
@@ -1088,6 +1140,8 @@ func TestChatToolCallOutput_MarshalTypeMissing(t *testing.T) {
 }
 
 func TestChatToolCallOutput_UnmarshalSuccess(t *testing.T) {
+	t.Parallel()
+
 	data := []byte(`{"id":"id","type":"function","function":{"name":"fn","arguments":"{}"}}`)
 	var got ChatToolCallOutput
 	testutils.RequireNoError(t, json.Unmarshal(data, &got))
@@ -1098,6 +1152,8 @@ func TestChatToolCallOutput_UnmarshalSuccess(t *testing.T) {
 }
 
 func TestChatStreamToolCall_TypeMustBeSet(t *testing.T) {
+	t.Parallel()
+
 	cases := []struct {
 		name    string
 		data    []byte
@@ -1129,6 +1185,8 @@ func TestChatStreamToolCall_TypeMustBeSet(t *testing.T) {
 }
 
 func TestChatStreamToolCall_MarshalTypeMissing(t *testing.T) {
+	t.Parallel()
+
 	value := ChatStreamToolCall{
 		ID:       "id",
 		Index:    0,
@@ -1139,6 +1197,8 @@ func TestChatStreamToolCall_MarshalTypeMissing(t *testing.T) {
 }
 
 func TestChatStreamToolCall_UnmarshalSuccess(t *testing.T) {
+	t.Parallel()
+
 	data := []byte(
 		`{"id":"id","type":"function","index":0,"function":{"name":"fn","arguments":"{}"}}`,
 	)
@@ -1150,6 +1210,8 @@ func TestChatStreamToolCall_UnmarshalSuccess(t *testing.T) {
 }
 
 func TestChatRequest_UnmarshalTypeValidation(t *testing.T) {
+	t.Parallel()
+
 	cases := []struct {
 		name      string
 		unmarshal string
@@ -1194,6 +1256,8 @@ func TestChatRequest_UnmarshalTypeValidation(t *testing.T) {
 }
 
 func TestChatResponse_UnmarshalTypeValidation(t *testing.T) {
+	t.Parallel()
+
 	cases := []struct {
 		name      string
 		unmarshal string
@@ -1223,6 +1287,8 @@ func TestChatResponse_UnmarshalTypeValidation(t *testing.T) {
 }
 
 func TestChatResponse_UnmarshalSuccess(t *testing.T) {
+	t.Parallel()
+
 	data := []byte(
 		`{"id":"id","created":1,"model":"m","system_fingerprint":"s","choices":[{"finish_reason":"stop","index":0,"message":{"role":"assistant","content":"hi"}}],"usage":{"prompt_tokens":1,"completion_tokens":2,"total_tokens":3}}`,
 	)
@@ -1237,6 +1303,8 @@ func TestChatResponse_UnmarshalSuccess(t *testing.T) {
 }
 
 func TestChatStreamResponse_UnmarshalSuccess(t *testing.T) {
+	t.Parallel()
+
 	data := []byte(
 		`{"id":"id","created":1,"model":"m","system_fingerprint":"s","choices":[{"delta":{"role":"assistant"},"index":0}]}`,
 	)
@@ -1251,6 +1319,8 @@ func TestChatStreamResponse_UnmarshalSuccess(t *testing.T) {
 }
 
 func TestChatLogProbs_UnmarshalSuccess(t *testing.T) {
+	t.Parallel()
+
 	data := []byte(
 		`{"content":[{"token":"t","logprob":0.1,"top_logprobs":[{"token":"t","logprob":0.1}]}]}`,
 	)
@@ -1262,6 +1332,8 @@ func TestChatLogProbs_UnmarshalSuccess(t *testing.T) {
 }
 
 func TestChatUsage_UnmarshalSuccess(t *testing.T) {
+	t.Parallel()
+
 	data := []byte(`{"prompt_tokens":1,"completion_tokens":2,"total_tokens":3}`)
 	var got ChatUsage
 	testutils.RequireNoError(t, json.Unmarshal(data, &got))
@@ -1271,6 +1343,8 @@ func TestChatUsage_UnmarshalSuccess(t *testing.T) {
 }
 
 func TestChatFunctionDefinition_UnmarshalSuccess(t *testing.T) {
+	t.Parallel()
+
 	data := []byte(`{"name":"fn","description":"desc","parameters":{"type":"object"}}`)
 	var got ChatFunctionDefinition
 	testutils.RequireNoError(t, json.Unmarshal(data, &got))
@@ -1280,6 +1354,8 @@ func TestChatFunctionDefinition_UnmarshalSuccess(t *testing.T) {
 }
 
 func TestChatFunctionCall_UnmarshalSuccess(t *testing.T) {
+	t.Parallel()
+
 	data := []byte(`{"name":"fn","arguments":"{}"}`)
 	var got ChatFunctionCall
 	testutils.RequireNoError(t, json.Unmarshal(data, &got))
@@ -1289,6 +1365,8 @@ func TestChatFunctionCall_UnmarshalSuccess(t *testing.T) {
 }
 
 func TestChatFunctionName_UnmarshalSuccess(t *testing.T) {
+	t.Parallel()
+
 	data := []byte(`{"name":"fn"}`)
 	var got ChatFunctionName
 	testutils.RequireNoError(t, json.Unmarshal(data, &got))
@@ -1298,6 +1376,8 @@ func TestChatFunctionName_UnmarshalSuccess(t *testing.T) {
 }
 
 func TestChatStreamFunction_UnmarshalSuccess(t *testing.T) {
+	t.Parallel()
+
 	data := []byte(`{"name":"fn","arguments":"{}"}`)
 	var got ChatStreamFunction
 	testutils.RequireNoError(t, json.Unmarshal(data, &got))
@@ -1307,6 +1387,8 @@ func TestChatStreamFunction_UnmarshalSuccess(t *testing.T) {
 }
 
 func TestChatChoice_UnmarshalSuccess(t *testing.T) {
+	t.Parallel()
+
 	data := []byte(
 		`{"finish_reason":"stop","index":0,"message":{"role":"assistant","content":"hi"}}`,
 	)
@@ -1318,6 +1400,8 @@ func TestChatChoice_UnmarshalSuccess(t *testing.T) {
 }
 
 func TestChatStreamChoice_UnmarshalSuccess(t *testing.T) {
+	t.Parallel()
+
 	data := []byte(`{"delta":{"role":"assistant"},"index":0}`)
 	var got ChatStreamChoice
 	testutils.RequireNoError(t, json.Unmarshal(data, &got))

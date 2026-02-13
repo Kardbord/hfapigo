@@ -8,6 +8,8 @@ import (
 )
 
 func TestAPIError_Error(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name string
 		err  *APIError
@@ -59,6 +61,8 @@ func TestAPIError_Error(t *testing.T) {
 }
 
 func TestAPIError_IsClientError(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name       string
 		statusCode int
@@ -83,6 +87,8 @@ func TestAPIError_IsClientError(t *testing.T) {
 }
 
 func TestAPIError_IsServerError(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name       string
 		statusCode int
@@ -107,6 +113,8 @@ func TestAPIError_IsServerError(t *testing.T) {
 }
 
 func TestAPIError_IsAuthenticationError(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name       string
 		statusCode int
@@ -129,6 +137,8 @@ func TestAPIError_IsAuthenticationError(t *testing.T) {
 }
 
 func TestAPIError_IsRateLimitError(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name       string
 		statusCode int
@@ -150,6 +160,8 @@ func TestAPIError_IsRateLimitError(t *testing.T) {
 }
 
 func TestSDKError_Error(t *testing.T) {
+	t.Parallel()
+
 	underlying := errors.New("root cause")
 	tests := []struct {
 		name string

@@ -11,6 +11,8 @@ import (
 )
 
 func TestDoJSON(t *testing.T) {
+	t.Parallel()
+
 	type req struct {
 		Inputs string `json:"inputs"`
 	}
@@ -419,6 +421,8 @@ func TestDoJSON(t *testing.T) {
 }
 
 func TestDoJSON_MarshalError(t *testing.T) {
+	t.Parallel()
+
 	// This test is separate because it uses an unmarshalable type
 	opts := NewRequestOptions()
 
@@ -456,6 +460,8 @@ func (configurationReq) MarshalJSON() ([]byte, error) {
 }
 
 func TestDoJSON_MarshalConfigurationError(t *testing.T) {
+	t.Parallel()
+
 	opts := NewRequestOptions()
 
 	_, err := DoJSON[configurationReq, struct{}](
