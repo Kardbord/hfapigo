@@ -608,6 +608,7 @@ func (t *ChatToolChoice) UnmarshalJSON(data []byte) error {
 	if len(data) == 0 {
 		return errors.New("tool choice: empty payload")
 	}
+	// TODO: Is this the best way to distinguish between string and struct return types?
 	switch data[0] {
 	case '"':
 		var mode ToolChoiceMode
