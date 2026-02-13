@@ -46,7 +46,7 @@ linters:
     generated: strict
     # Log a warning if an exclusion rule is unused.
     # Default: false
-    warn-unused: true
+    warn-unused: false
     # Predefined exclusion rules.
     # Default: []
     presets: []
@@ -71,7 +71,6 @@ linters:
           - paralleltest
           - testpackage
           - thelper
-          - tparallel
       # Exclude `lll` issues for long lines with `go:generate`.
       - linters:
           - lll
@@ -104,7 +103,7 @@ linters:
         hugeParam:
           # Size in bytes that makes the warning trigger.
           # Default: 80
-          sizeThreshold: 80
+          sizeThreshold: 128
         ifElseChain:
           # Min number of if-else blocks that makes the warning trigger.
           # Default: 2

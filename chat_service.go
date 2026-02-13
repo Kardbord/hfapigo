@@ -17,11 +17,19 @@ func newChatService(opts request.RequestOptions) ChatService {
 }
 
 // Complete sends a chat completion request and returns a chat completion response.
-func (s ChatService) Complete(req ChatRequest, opts ...RequestOption) (ChatResponse, error) {
+func (s ChatService) Complete(req *ChatRequest, opts ...RequestOption) (ChatResponse, error) {
+	if req == nil {
+		return ChatResponse{}, &SDKError{
+			Kind:    SDKErrorKindConfiguration,
+			Message: "chat request is nil",
+			Err:     nil,
+		}
+	}
+
 	return request.DoJSON[ChatRequest, ChatResponse](
 		s.opts.With(opts...),
 		http.MethodPost,
 		"/v1/chat/completions",
-		req,
+		*req,
 	)
 }

@@ -594,6 +594,14 @@ func TestChatResponseFormat(t *testing.T) {
 			value: ChatResponseFormat{Type: providerType},
 		},
 		{
+			name:  "text",
+			value: ChatResponseFormat{Type: ResponseFormatTypeText},
+		},
+		{
+			name:  "json_object",
+			value: ChatResponseFormat{Type: ResponseFormatTypeJSONObject},
+		},
+		{
 			name:    "json_schema missing",
 			value:   ChatResponseFormat{Type: ResponseFormatTypeJSONSchema},
 			wantErr: true,
@@ -602,6 +610,22 @@ func TestChatResponseFormat(t *testing.T) {
 			name: "other with json_schema",
 			value: ChatResponseFormat{
 				Type:       providerType,
+				JSONSchema: &ChatJSONSchemaConfig{Name: "n"},
+			},
+			wantErr: true,
+		},
+		{
+			name: "text with json_schema",
+			value: ChatResponseFormat{
+				Type:       ResponseFormatTypeText,
+				JSONSchema: &ChatJSONSchemaConfig{Name: "n"},
+			},
+			wantErr: true,
+		},
+		{
+			name: "json_object with json_schema",
+			value: ChatResponseFormat{
+				Type:       ResponseFormatTypeJSONObject,
 				JSONSchema: &ChatJSONSchemaConfig{Name: "n"},
 			},
 			wantErr: true,
@@ -669,6 +693,11 @@ func TestChatResponseFormat_UnmarshalSuccess(t *testing.T) {
 			name:      "provider",
 			unmarshal: `{"type":"provider-format"}`,
 			wantType:  ResponseFormatType("provider-format"),
+		},
+		{
+			name:      "json_object",
+			unmarshal: `{"type":"json_object"}`,
+			wantType:  ResponseFormatTypeJSONObject,
 		},
 		{
 			name:      "json_schema",

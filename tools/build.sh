@@ -7,6 +7,8 @@ set -e
 
 pushd "$(dirname "${BASH_SOURCE[0]}")/.." >/dev/null
 
+export GOCACHE=/tmp/hfapigo-cache
+
 echo "Formatting code..."
 gofmt -s -w .
 
