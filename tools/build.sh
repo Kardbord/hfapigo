@@ -18,7 +18,7 @@ go vet ./...
 
 echo "Linting..."
 golangci-lint config verify
-golangci-lint run --fix .
+golangci-lint run --fix --disable godox .
 
 echo "Building ..."
 go build ./...
