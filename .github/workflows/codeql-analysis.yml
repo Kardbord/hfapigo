@@ -6,9 +6,9 @@ on:
     branches:
       - main
   pull_request:
-    # The branches below must be a subset of the branches above
     branches:
       - main
+      - v4-draft
   schedule:
     - cron: "35 21 * * 3"
   workflow_dispatch:
@@ -31,13 +31,19 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          cache: true
+          go-version-file: "go.mod"
+
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4
         with:
           languages: ${{ matrix.language }}
 
-      - name: Autobuild
-        uses: github/codeql-action/autobuild@v4
+      - name: Build
+        run: go build -v ./...
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4
