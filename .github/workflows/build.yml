@@ -1,5 +1,5 @@
 ---
-name: Unit Tests
+name: Build
 
 on:
   push:
@@ -16,7 +16,7 @@ permissions:
   contents: read
 
 jobs:
-  unit-tests:
+  build:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -31,7 +31,5 @@ jobs:
           cache: true
           go-version-file: "go.mod"
 
-      - name: Test
-        run: go test -timeout 300s -v ./...
-        env:
-          HUGGING_FACE_TOKEN: ${{ secrets.HUGGING_FACE_TOKEN }}
+      - name: Build packages
+        run: go build -v ./...

@@ -1,5 +1,5 @@
 ---
-name: Unit Tests
+name: Lint
 
 on:
   push:
@@ -16,11 +16,8 @@ permissions:
   contents: read
 
 jobs:
-  unit-tests:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+  lint:
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -31,7 +28,10 @@ jobs:
           cache: true
           go-version-file: "go.mod"
 
-      - name: Test
-        run: go test -timeout 300s -v ./...
-        env:
-          HUGGING_FACE_TOKEN: ${{ secrets.HUGGING_FACE_TOKEN }}
+      - name: Vet
+        run: go vet -v ./...
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: latest
