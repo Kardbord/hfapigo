@@ -6,9 +6,8 @@ import (
 	"github.com/Kardbord/hfapigo/v4/internal/request"
 )
 
-const (
-	EndpointChatCompletion = "/v1/chat/completions"
-)
+// EndpointChatCompletion specifies the chat completion endpoint.
+const EndpointChatCompletion = "/v1/chat/completions"
 
 // ChatService implements chat completion calls using the configured request options.
 type ChatService struct {

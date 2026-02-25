@@ -476,7 +476,7 @@ func TestChatRequest_MarshalValidation(t *testing.T) {
 	text := "hi"
 	model := "model"
 
-	cases := []struct {
+	cases := []*struct {
 		name        string
 		value       ChatRequest
 		wantErr     bool

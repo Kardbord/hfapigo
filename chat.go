@@ -87,6 +87,8 @@ type ChatRequest struct {
 }
 
 // MarshalJSON enforces required fields for ChatRequest.
+//
+//nolint:gocritic // hugeParam: using a value receiver guarantees no modifications to the caller
 func (r ChatRequest) MarshalJSON() ([]byte, error) {
 	if err := r.validate(); err != nil {
 		return nil, err
@@ -96,6 +98,7 @@ func (r ChatRequest) MarshalJSON() ([]byte, error) {
 	return json.Marshal(alias(r))
 }
 
+//nolint:gocritic // hugeParam: using a value receiver guarantees no modifications to the caller
 func (r ChatRequest) validate() error {
 	if r.Model == nil || *r.Model == "" {
 		return &SDKError{
