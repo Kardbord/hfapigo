@@ -40,6 +40,7 @@ func (r *ReadTracker) Read(p []byte) (int, error) {
 	return n, nil
 }
 
+// Close marks the tracker as closed.
 func (r *ReadTracker) Close() error {
 	r.Closed = true
 	return nil

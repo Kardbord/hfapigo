@@ -35,7 +35,8 @@ func AssertAPIErrorStatus(t *testing.T, err error, want int) *internalErrors.API
 	return apiErr
 }
 
-// AssertError reports whether an error was expected; it returns true when err is expected.
+// AssertError reports whether an error was expected; it returns true when err is expected
+// so callers can early-return in table tests after asserting the error state.
 func AssertError(t *testing.T, err error, want bool) bool {
 	t.Helper()
 
