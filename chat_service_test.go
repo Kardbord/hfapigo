@@ -9,6 +9,7 @@ import (
 	internalErrors "github.com/Kardbord/hfapigo/v4/internal/errors"
 	"github.com/Kardbord/hfapigo/v4/internal/request"
 	"github.com/Kardbord/hfapigo/v4/internal/testutils"
+	"github.com/stretchr/testify/require"
 )
 
 const chatServiceResponseBody = `{"id":"id","created":1,"model":"m","system_fingerprint":"s","choices":[{"finish_reason":"stop","index":0,"message":{"role":"assistant","content":"hi"}}],"usage":{"prompt_tokens":1,"completion_tokens":2,"total_tokens":3}}`
@@ -66,7 +67,7 @@ func TestChatService_Complete_ModelSelection(t *testing.T) {
 				_, err = svc.Complete(req)
 			}
 
-			testutils.RequireNoError(t, err)
+			require.NoError(t, err)
 
 			if mt.LastRequest == nil {
 				t.Fatal("expected request to be sent")
@@ -76,7 +77,7 @@ func TestChatService_Complete_ModelSelection(t *testing.T) {
 			}
 
 			body, err := io.ReadAll(mt.LastRequest.Body)
-			testutils.RequireNoError(t, err)
+			require.NoError(t, err)
 			_ = mt.LastRequest.Body.Close()
 
 			var got map[string]any
@@ -114,7 +115,7 @@ func TestChatService_Complete_ModelValidation(t *testing.T) {
 	}
 
 	_, err := svc.Complete(req)
-	testutils.RequireError(t, err)
+	require.Error(t, err)
 	testutils.AssertSDKErrorKind(t, err, internalErrors.SDKErrorKindConfiguration)
 	if mt.LastRequest != nil {
 		t.Fatalf("expected no request, got %#v", mt.LastRequest)
@@ -130,7 +131,7 @@ func TestChatService_Complete_NilRequest(t *testing.T) {
 	svc := newChatService(opts)
 
 	_, err := svc.Complete(nil)
-	testutils.RequireError(t, err)
+	require.Error(t, err)
 	testutils.AssertSDKErrorKind(t, err, internalErrors.SDKErrorKindConfiguration)
 	if mt.LastRequest != nil {
 		t.Fatalf("expected no request, got %#v", mt.LastRequest)

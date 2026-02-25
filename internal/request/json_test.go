@@ -8,6 +8,7 @@ import (
 
 	internalErrors "github.com/Kardbord/hfapigo/v4/internal/errors"
 	"github.com/Kardbord/hfapigo/v4/internal/testutils"
+	"github.com/stretchr/testify/require"
 )
 
 func TestDoJSON(t *testing.T) {
@@ -98,7 +99,7 @@ func TestDoJSON(t *testing.T) {
 			reqBody: req{},
 			wantErr: true,
 			validateErr: func(t *testing.T, err error) {
-				testutils.RequireError(t, err)
+				require.Error(t, err)
 				testutils.AssertSDKErrorKind(t, err, internalErrors.SDKErrorKindTransport)
 			},
 		},
@@ -114,7 +115,7 @@ func TestDoJSON(t *testing.T) {
 			reqBody: req{},
 			wantErr: true,
 			validateErr: func(t *testing.T, err error) {
-				testutils.RequireError(t, err)
+				require.Error(t, err)
 				testutils.AssertSDKErrorKind(t, err, internalErrors.SDKErrorKindSerialization)
 			},
 		},

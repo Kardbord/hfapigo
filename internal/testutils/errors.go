@@ -34,38 +34,3 @@ func AssertAPIErrorStatus(t *testing.T, err error, want int) *internalErrors.API
 	}
 	return apiErr
 }
-
-// AssertError reports whether an error was expected; it returns true when err is expected
-// so callers can early-return in table tests after asserting the error state.
-func AssertError(t *testing.T, err error, want bool) bool {
-	t.Helper()
-
-	if want {
-		if err == nil {
-			t.Fatalf("expected error")
-		}
-		return true
-	}
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	return false
-}
-
-// RequireNoError fails the test if err is non-nil.
-func RequireNoError(t *testing.T, err error) {
-	t.Helper()
-
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-}
-
-// RequireError fails the test if err is nil.
-func RequireError(t *testing.T, err error) {
-	t.Helper()
-
-	if err == nil {
-		t.Fatalf("expected error")
-	}
-}

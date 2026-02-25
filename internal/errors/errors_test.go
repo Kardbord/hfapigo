@@ -3,8 +3,9 @@ package errors
 import (
 	"errors"
 	"net/http"
-	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestAPIError_Error(t *testing.T) {
@@ -42,19 +43,17 @@ func TestAPIError_Error(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Test that the error string is non-empty
 			got := tt.err.Error()
-			if got == "" {
-				t.Error("Error() should return non-empty string")
-			}
+			assert.NotEmpty(t, got, "Error() should return non-empty string")
 
 			// Verify it contains the message
 			// We don't mandate exact format, just that the message is present
-			if tt.err.Message != "" && !strings.Contains(got, tt.err.Message) {
-				t.Errorf("Error() should contain message %q, got: %s", tt.err.Message, got)
+			if tt.err.Message != "" {
+				assert.Contains(t, got, tt.err.Message, "Error() should contain message")
 			}
 
 			// If there's a request ID, verify it's included
-			if tt.err.RequestID != "" && !strings.Contains(got, tt.err.RequestID) {
-				t.Errorf("Error() should contain request ID %q, got: %s", tt.err.RequestID, got)
+			if tt.err.RequestID != "" {
+				assert.Contains(t, got, tt.err.RequestID, "Error() should contain request ID")
 			}
 		})
 	}
@@ -79,9 +78,7 @@ func TestAPIError_IsClientError(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := &APIError{StatusCode: tt.statusCode}
-			if got := err.IsClientError(); got != tt.want {
-				t.Errorf("APIError.IsClientError() = %v, want %v", got, tt.want)
-			}
+			assert.Equal(t, tt.want, err.IsClientError(), "APIError.IsClientError()")
 		})
 	}
 }
@@ -105,9 +102,7 @@ func TestAPIError_IsServerError(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := &APIError{StatusCode: tt.statusCode}
-			if got := err.IsServerError(); got != tt.want {
-				t.Errorf("APIError.IsServerError() = %v, want %v", got, tt.want)
-			}
+			assert.Equal(t, tt.want, err.IsServerError(), "APIError.IsServerError()")
 		})
 	}
 }
@@ -129,9 +124,7 @@ func TestAPIError_IsAuthenticationError(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := &APIError{StatusCode: tt.statusCode}
-			if got := err.IsAuthenticationError(); got != tt.want {
-				t.Errorf("APIError.IsAuthenticationError() = %v, want %v", got, tt.want)
-			}
+			assert.Equal(t, tt.want, err.IsAuthenticationError(), "APIError.IsAuthenticationError()")
 		})
 	}
 }
@@ -152,9 +145,7 @@ func TestAPIError_IsRateLimitError(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := &APIError{StatusCode: tt.statusCode}
-			if got := err.IsRateLimitError(); got != tt.want {
-				t.Errorf("APIError.IsRateLimitError() = %v, want %v", got, tt.want)
-			}
+			assert.Equal(t, tt.want, err.IsRateLimitError(), "APIError.IsRateLimitError()")
 		})
 	}
 }
@@ -193,25 +184,17 @@ func TestSDKError_Error(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if tt.err.Kind == "" {
-				t.Error("Kind should not be empty")
-			}
+			assert.NotEmpty(t, tt.err.Kind, "Kind should not be empty")
 
 			got := tt.err.Error()
-			if got == "" {
-				t.Error("Error() should return non-empty string")
+			assert.NotEmpty(t, got, "Error() should return non-empty string")
+			assert.Contains(t, got, string(tt.err.Kind), "Error() should mention kind")
+			if tt.err.Message != "" {
+				assert.Contains(t, got, tt.err.Message, "Error() should mention message")
 			}
-			if !strings.Contains(got, string(tt.err.Kind)) {
-				t.Errorf("Error() should mention kind %q, got: %s", tt.err.Kind, got)
-			}
-			if tt.err.Message != "" && !strings.Contains(got, tt.err.Message) {
-				t.Errorf("Error() should mention message %q, got: %s", tt.err.Message, got)
-			}
-			if tt.err.Err != nil && !strings.Contains(got, tt.err.Err.Error()) {
-				t.Errorf("Error() should mention underlying error %q, got: %s", tt.err.Err.Error(), got)
-			}
-			if tt.err.Err != nil && !errors.Is(tt.err, tt.err.Err) {
-				t.Errorf("expected errors.Is to match underlying error")
+			if tt.err.Err != nil {
+				assert.Contains(t, got, tt.err.Err.Error(), "Error() should mention underlying error")
+				assert.ErrorIs(t, tt.err, tt.err.Err, "expected errors.Is to match underlying error")
 			}
 		})
 	}

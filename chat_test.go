@@ -6,6 +6,7 @@ import (
 
 	internalErrors "github.com/Kardbord/hfapigo/v4/internal/errors"
 	"github.com/Kardbord/hfapigo/v4/internal/testutils"
+	"github.com/stretchr/testify/require"
 )
 
 func TestChatMessageContent_Marshal(t *testing.T) {
@@ -52,9 +53,12 @@ func TestChatMessageContent_Marshal(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			data, err := json.Marshal(tc.value)
-			if testutils.AssertError(t, err, tc.wantErr) {
+			if tc.wantErr {
+				require.Error(t, err)
+
 				return
 			}
+			require.NoError(t, err)
 			if tc.wantJSON != "" && string(data) != tc.wantJSON {
 				t.Fatalf("unexpected json: %s", string(data))
 			}
@@ -112,14 +116,17 @@ func TestChatMessageContent_Unmarshal(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			var got ChatMessageContent
 			err := json.Unmarshal([]byte(tc.unmarshal), &got)
-			if testutils.AssertError(t, err, tc.wantErr) {
+			if tc.wantErr {
+				require.Error(t, err)
+
 				return
 			}
+			require.NoError(t, err)
 			if tc.wantText != nil {
 				if got.Text == nil || *got.Text != *tc.wantText {
 					t.Fatalf("unexpected text: %+v", got.Text)
 				}
-				testutils.RequireNil(t, got.Chunks)
+				require.Nil(t, got.Chunks)
 			}
 			if tc.wantChunk && len(got.Chunks) == 0 {
 				t.Fatalf("expected chunks")
@@ -128,7 +135,7 @@ func TestChatMessageContent_Unmarshal(t *testing.T) {
 				t.Fatalf("unexpected chunks")
 			}
 			if tc.wantChunk {
-				testutils.RequireNil(t, got.Text)
+				require.Nil(t, got.Text)
 			}
 		})
 	}
@@ -198,9 +205,12 @@ func TestChatMessageChunk_Validation(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			_, err := json.Marshal(tc.value)
-			if testutils.AssertError(t, err, tc.wantErr) {
+			if tc.wantErr {
+				require.Error(t, err)
+
 				return
 			}
+			require.NoError(t, err)
 		})
 	}
 }
@@ -244,9 +254,12 @@ func TestChatMessageChunk_UnmarshalValidation(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			var got ChatMessageChunk
 			err := json.Unmarshal([]byte(tc.unmarshal), &got)
-			if testutils.AssertError(t, err, tc.wantErr) {
+			if tc.wantErr {
+				require.Error(t, err)
+
 				return
 			}
+			require.NoError(t, err)
 		})
 	}
 }
@@ -294,9 +307,12 @@ func TestChatMessage_Validation(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			_, err := json.Marshal(tc.value)
-			if testutils.AssertError(t, err, tc.wantErr) {
+			if tc.wantErr {
+				require.Error(t, err)
+
 				return
 			}
+			require.NoError(t, err)
 		})
 	}
 }
@@ -329,9 +345,12 @@ func TestChatMessage_UnmarshalValidation(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			var got ChatMessage
 			err := json.Unmarshal([]byte(tc.unmarshal), &got)
-			if testutils.AssertError(t, err, tc.wantErr) {
+			if tc.wantErr {
+				require.Error(t, err)
+
 				return
 			}
+			require.NoError(t, err)
 		})
 	}
 }
@@ -372,7 +391,7 @@ func TestChatMessage_UnmarshalSuccess(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			var got ChatMessage
-			testutils.RequireNoError(t, json.Unmarshal([]byte(tc.unmarshal), &got))
+			require.NoError(t, json.Unmarshal([]byte(tc.unmarshal), &got))
 			if got.Role != tc.wantRole {
 				t.Fatalf("unexpected role: %v", got.Role)
 			}
@@ -380,7 +399,7 @@ func TestChatMessage_UnmarshalSuccess(t *testing.T) {
 				if got.Content.Text == nil || *got.Content.Text != *tc.wantContent {
 					t.Fatalf("unexpected content: %+v", got.Content.Text)
 				}
-				testutils.RequireNil(t, got.Content.Chunks)
+				require.Nil(t, got.Content.Chunks)
 			}
 			if tc.wantChunks > 0 {
 				if len(got.Content.Chunks) != tc.wantChunks {
@@ -389,7 +408,7 @@ func TestChatMessage_UnmarshalSuccess(t *testing.T) {
 				if got.Content.Chunks[0].Type != tc.wantChunkType {
 					t.Fatalf("unexpected chunk type: %+v", got.Content.Chunks[0].Type)
 				}
-				testutils.RequireNil(t, got.Content.Text)
+				require.Nil(t, got.Content.Text)
 			}
 			if tc.wantToolCalls > 0 {
 				if len(got.ToolCalls) != tc.wantToolCalls {
@@ -399,8 +418,8 @@ func TestChatMessage_UnmarshalSuccess(t *testing.T) {
 					got.ToolCalls[0].Function.Name != "fn" {
 					t.Fatalf("unexpected tool call: %+v", got.ToolCalls[0])
 				}
-				testutils.RequireNil(t, got.Content.Text)
-				testutils.RequireNil(t, got.Content.Chunks)
+				require.Nil(t, got.Content.Text)
+				require.Nil(t, got.Content.Chunks)
 			}
 			if tc.wantToolCalls == 0 && len(got.ToolCalls) > 0 {
 				t.Fatalf("unexpected tool calls: %+v", got.ToolCalls)
@@ -431,7 +450,7 @@ func TestChatRequest_MarshalSuccess(t *testing.T) {
 	}
 
 	data, err := json.Marshal(req)
-	testutils.RequireNoError(t, err)
+	require.NoError(t, err)
 
 	var got map[string]any
 	if err := json.Unmarshal(data, &got); err != nil {
@@ -533,10 +552,10 @@ func TestChatRequest_MarshalValidation(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			_, err := json.Marshal(tc.value)
 			if tc.wantErr {
-				testutils.RequireError(t, err)
+				require.Error(t, err)
 				testutils.AssertSDKErrorKind(t, err, tc.wantErrKind)
 			} else {
-				testutils.RequireNoError(t, err)
+				require.NoError(t, err)
 			}
 		})
 	}
@@ -583,9 +602,12 @@ func TestChatToolChoice_Marshal(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			data, err := json.Marshal(tc.value)
-			if testutils.AssertError(t, err, tc.wantErr) {
+			if tc.wantErr {
+				require.Error(t, err)
+
 				return
 			}
+			require.NoError(t, err)
 			if tc.wantJSON != "" && string(data) != tc.wantJSON {
 				t.Fatalf("unexpected json: %s", string(data))
 			}
@@ -658,9 +680,12 @@ func TestChatToolChoice_Unmarshal(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			var got ChatToolChoice
 			err := json.Unmarshal([]byte(tc.unmarshal), &got)
-			if testutils.AssertError(t, err, tc.wantErr) {
+			if tc.wantErr {
+				require.Error(t, err)
+
 				return
 			}
+			require.NoError(t, err)
 			if tc.wantMode != nil {
 				if got.Mode == nil || *got.Mode != *tc.wantMode {
 					t.Fatalf("unexpected mode: %+v", got.Mode)
@@ -750,9 +775,12 @@ func TestChatResponseFormat(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			_, err := json.Marshal(tc.value)
-			if testutils.AssertError(t, err, tc.wantErr) {
+			if tc.wantErr {
+				require.Error(t, err)
+
 				return
 			}
+			require.NoError(t, err)
 		})
 	}
 }
@@ -781,9 +809,12 @@ func TestChatResponseFormat_UnmarshalValidation(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			var got ChatResponseFormat
 			err := json.Unmarshal([]byte(tc.unmarshal), &got)
-			if testutils.AssertError(t, err, tc.wantErr) {
+			if tc.wantErr {
+				require.Error(t, err)
+
 				return
 			}
+			require.NoError(t, err)
 		})
 	}
 }
@@ -821,7 +852,7 @@ func TestChatResponseFormat_UnmarshalSuccess(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			var got ChatResponseFormat
-			testutils.RequireNoError(t, json.Unmarshal([]byte(tc.unmarshal), &got))
+			require.NoError(t, json.Unmarshal([]byte(tc.unmarshal), &got))
 			if got.Type != tc.wantType {
 				t.Fatalf("unexpected type: %v", got.Type)
 			}
@@ -893,9 +924,12 @@ func TestChatCompletionMessage(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			_, err := json.Marshal(tc.value)
-			if testutils.AssertError(t, err, tc.wantErr) {
+			if tc.wantErr {
+				require.Error(t, err)
+
 				return
 			}
+			require.NoError(t, err)
 		})
 	}
 }
@@ -929,9 +963,12 @@ func TestChatCompletionMessage_UnmarshalValidation(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			var got ChatCompletionMessage
 			err := json.Unmarshal([]byte(tc.unmarshal), &got)
-			if testutils.AssertError(t, err, tc.wantErr) {
+			if tc.wantErr {
+				require.Error(t, err)
+
 				return
 			}
+			require.NoError(t, err)
 		})
 	}
 }
@@ -998,9 +1035,12 @@ func TestChatStreamDelta(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			_, err := json.Marshal(tc.value)
-			if testutils.AssertError(t, err, tc.wantErr) {
+			if tc.wantErr {
+				require.Error(t, err)
+
 				return
 			}
+			require.NoError(t, err)
 		})
 	}
 }
@@ -1029,9 +1069,12 @@ func TestChatStreamDelta_UnmarshalValidation(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			var got ChatStreamDelta
 			err := json.Unmarshal([]byte(tc.unmarshal), &got)
-			if testutils.AssertError(t, err, tc.wantErr) {
+			if tc.wantErr {
+				require.Error(t, err)
+
 				return
 			}
+			require.NoError(t, err)
 		})
 	}
 }
@@ -1066,22 +1109,22 @@ func TestChatStreamDelta_UnmarshalSuccess(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			var got ChatStreamDelta
-			testutils.RequireNoError(t, json.Unmarshal([]byte(tc.unmarshal), &got))
+			require.NoError(t, json.Unmarshal([]byte(tc.unmarshal), &got))
 			if tc.wantRole != nil {
 				if got.Role == nil || *got.Role != *tc.wantRole {
 					t.Fatalf("unexpected role: %+v", got.Role)
 				}
-				testutils.RequireNil(t, got.Content)
-				testutils.RequireNil(t, got.ToolCallID)
-				testutils.RequireNil(t, got.ToolCalls)
+				require.Nil(t, got.Content)
+				require.Nil(t, got.ToolCallID)
+				require.Nil(t, got.ToolCalls)
 			}
 			if tc.wantContent != nil {
 				if got.Content == nil || *got.Content != *tc.wantContent {
 					t.Fatalf("unexpected content: %+v", got.Content)
 				}
-				testutils.RequireNil(t, got.Role)
-				testutils.RequireNil(t, got.ToolCallID)
-				testutils.RequireNil(t, got.ToolCalls)
+				require.Nil(t, got.Role)
+				require.Nil(t, got.ToolCallID)
+				require.Nil(t, got.ToolCalls)
 			}
 			if tc.wantToolCalls > 0 {
 				if len(got.ToolCalls) != tc.wantToolCalls {
@@ -1093,8 +1136,8 @@ func TestChatStreamDelta_UnmarshalSuccess(t *testing.T) {
 					call.Function.Arguments != "{}" {
 					t.Fatalf("unexpected tool call: %+v", call)
 				}
-				testutils.RequireNil(t, got.Content)
-				testutils.RequireNil(t, got.ToolCallID)
+				require.Nil(t, got.Content)
+				require.Nil(t, got.ToolCallID)
 			}
 		})
 	}
@@ -1122,7 +1165,14 @@ func TestChatToolCall_TypeMustBeSet(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			testutils.AssertUnmarshalError[ChatToolCall](t, tc.data, tc.wantErr)
+			var out ChatToolCall
+			err := json.Unmarshal(tc.data, &out)
+			if tc.wantErr {
+				require.Error(t, err)
+
+				return
+			}
+			require.NoError(t, err)
 		})
 	}
 }
@@ -1135,7 +1185,7 @@ func TestChatToolCall_MarshalTypeMissing(t *testing.T) {
 		Function: ChatFunctionDefinition{Name: "fn"},
 	}
 	_, err := json.Marshal(value)
-	testutils.RequireError(t, err)
+	require.Error(t, err)
 }
 
 func TestChatToolCall_UnmarshalSuccess(t *testing.T) {
@@ -1143,7 +1193,7 @@ func TestChatToolCall_UnmarshalSuccess(t *testing.T) {
 
 	data := []byte(`{"id":"id","type":"function","function":{"name":"fn"}}`)
 	var got ChatToolCall
-	testutils.RequireNoError(t, json.Unmarshal(data, &got))
+	require.NoError(t, json.Unmarshal(data, &got))
 	if got.ID != "id" || got.Type != "function" || got.Function.Name != "fn" {
 		t.Fatalf("unexpected value: %+v", got)
 	}
@@ -1153,7 +1203,9 @@ func TestChatTool_TypeMustBeSet(t *testing.T) {
 	t.Parallel()
 
 	data := []byte(`{"function":{"name":"fn"}}`)
-	testutils.AssertUnmarshalError[ChatTool](t, data, true)
+	var out ChatTool
+	err := json.Unmarshal(data, &out)
+	require.Error(t, err)
 }
 
 func TestChatTool_MarshalTypeMissing(t *testing.T) {
@@ -1163,7 +1215,7 @@ func TestChatTool_MarshalTypeMissing(t *testing.T) {
 		Function: ChatFunctionDefinition{Name: "fn"},
 	}
 	_, err := json.Marshal(value)
-	testutils.RequireError(t, err)
+	require.Error(t, err)
 }
 
 func TestChatTool_UnmarshalSuccess(t *testing.T) {
@@ -1171,7 +1223,7 @@ func TestChatTool_UnmarshalSuccess(t *testing.T) {
 
 	data := []byte(`{"type":"function","function":{"name":"fn"}}`)
 	var got ChatTool
-	testutils.RequireNoError(t, json.Unmarshal(data, &got))
+	require.NoError(t, json.Unmarshal(data, &got))
 	if got.Type != "function" || got.Function.Name != "fn" {
 		t.Fatalf("unexpected value: %+v", got)
 	}
@@ -1199,7 +1251,14 @@ func TestChatToolCallOutput_TypeMustBeSet(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			testutils.AssertUnmarshalError[ChatToolCallOutput](t, tc.data, tc.wantErr)
+			var out ChatToolCallOutput
+			err := json.Unmarshal(tc.data, &out)
+			if tc.wantErr {
+				require.Error(t, err)
+
+				return
+			}
+			require.NoError(t, err)
 		})
 	}
 }
@@ -1212,7 +1271,7 @@ func TestChatToolCallOutput_MarshalTypeMissing(t *testing.T) {
 		Function: ChatFunctionCall{Name: "fn", Arguments: "{}"},
 	}
 	_, err := json.Marshal(value)
-	testutils.RequireError(t, err)
+	require.Error(t, err)
 }
 
 func TestChatToolCallOutput_UnmarshalSuccess(t *testing.T) {
@@ -1220,7 +1279,7 @@ func TestChatToolCallOutput_UnmarshalSuccess(t *testing.T) {
 
 	data := []byte(`{"id":"id","type":"function","function":{"name":"fn","arguments":"{}"}}`)
 	var got ChatToolCallOutput
-	testutils.RequireNoError(t, json.Unmarshal(data, &got))
+	require.NoError(t, json.Unmarshal(data, &got))
 	if got.ID != "id" || got.Type != "function" || got.Function.Name != "fn" ||
 		got.Function.Arguments != "{}" {
 		t.Fatalf("unexpected value: %+v", got)
@@ -1251,7 +1310,14 @@ func TestChatStreamToolCall_TypeMustBeSet(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			testutils.AssertUnmarshalError[ChatStreamToolCall](t, tc.data, tc.wantErr)
+			var out ChatStreamToolCall
+			err := json.Unmarshal(tc.data, &out)
+			if tc.wantErr {
+				require.Error(t, err)
+
+				return
+			}
+			require.NoError(t, err)
 		})
 	}
 }
@@ -1265,7 +1331,7 @@ func TestChatStreamToolCall_MarshalTypeMissing(t *testing.T) {
 		Function: ChatStreamFunction{Name: "fn", Arguments: "{}"},
 	}
 	_, err := json.Marshal(value)
-	testutils.RequireError(t, err)
+	require.Error(t, err)
 }
 
 func TestChatStreamToolCall_UnmarshalSuccess(t *testing.T) {
@@ -1275,7 +1341,7 @@ func TestChatStreamToolCall_UnmarshalSuccess(t *testing.T) {
 		`{"id":"id","type":"function","index":0,"function":{"name":"fn","arguments":"{}"}}`,
 	)
 	var got ChatStreamToolCall
-	testutils.RequireNoError(t, json.Unmarshal(data, &got))
+	require.NoError(t, json.Unmarshal(data, &got))
 	if got.ID != "id" || got.Type != "function" || got.Index != 0 || got.Function.Name != "fn" {
 		t.Fatalf("unexpected value: %+v", got)
 	}
@@ -1320,9 +1386,12 @@ func TestChatRequest_UnmarshalTypeValidation(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			var got ChatRequest
 			err := json.Unmarshal([]byte(tc.unmarshal), &got)
-			if testutils.AssertError(t, err, tc.wantErr) {
+			if tc.wantErr {
+				require.Error(t, err)
+
 				return
 			}
+			require.NoError(t, err)
 		})
 	}
 }
@@ -1351,9 +1420,12 @@ func TestChatResponse_UnmarshalTypeValidation(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			var got ChatResponse
 			err := json.Unmarshal([]byte(tc.unmarshal), &got)
-			if testutils.AssertError(t, err, tc.wantErr) {
+			if tc.wantErr {
+				require.Error(t, err)
+
 				return
 			}
+			require.NoError(t, err)
 		})
 	}
 }
@@ -1365,7 +1437,7 @@ func TestChatResponse_UnmarshalSuccess(t *testing.T) {
 		`{"id":"id","created":1,"model":"m","system_fingerprint":"s","choices":[{"finish_reason":"stop","index":0,"message":{"role":"assistant","content":"hi"}}],"usage":{"prompt_tokens":1,"completion_tokens":2,"total_tokens":3}}`,
 	)
 	var got ChatResponse
-	testutils.RequireNoError(t, json.Unmarshal(data, &got))
+	require.NoError(t, json.Unmarshal(data, &got))
 	if got.ID != "id" || got.Model != "m" || len(got.Choices) != 1 {
 		t.Fatalf("unexpected response: %+v", got)
 	}
@@ -1381,7 +1453,7 @@ func TestChatStreamResponse_UnmarshalSuccess(t *testing.T) {
 		`{"id":"id","created":1,"model":"m","system_fingerprint":"s","choices":[{"delta":{"role":"assistant"},"index":0}]}`,
 	)
 	var got ChatStreamResponse
-	testutils.RequireNoError(t, json.Unmarshal(data, &got))
+	require.NoError(t, json.Unmarshal(data, &got))
 	if got.ID != "id" || len(got.Choices) != 1 {
 		t.Fatalf("unexpected response: %+v", got)
 	}
@@ -1397,7 +1469,7 @@ func TestChatLogProbs_UnmarshalSuccess(t *testing.T) {
 		`{"content":[{"token":"t","logprob":0.1,"top_logprobs":[{"token":"t","logprob":0.1}]}]}`,
 	)
 	var got ChatLogProbs
-	testutils.RequireNoError(t, json.Unmarshal(data, &got))
+	require.NoError(t, json.Unmarshal(data, &got))
 	if len(got.Content) != 1 || got.Content[0].Token != "t" {
 		t.Fatalf("unexpected logprobs: %+v", got)
 	}
@@ -1408,7 +1480,7 @@ func TestChatUsage_UnmarshalSuccess(t *testing.T) {
 
 	data := []byte(`{"prompt_tokens":1,"completion_tokens":2,"total_tokens":3}`)
 	var got ChatUsage
-	testutils.RequireNoError(t, json.Unmarshal(data, &got))
+	require.NoError(t, json.Unmarshal(data, &got))
 	if got.PromptTokens != 1 || got.CompletionTokens != 2 || got.TotalTokens != 3 {
 		t.Fatalf("unexpected usage: %+v", got)
 	}
@@ -1419,7 +1491,7 @@ func TestChatFunctionDefinition_UnmarshalSuccess(t *testing.T) {
 
 	data := []byte(`{"name":"fn","description":"desc","parameters":{"type":"object"}}`)
 	var got ChatFunctionDefinition
-	testutils.RequireNoError(t, json.Unmarshal(data, &got))
+	require.NoError(t, json.Unmarshal(data, &got))
 	if got.Name != "fn" || got.Description == nil || *got.Description != "desc" {
 		t.Fatalf("unexpected function definition: %+v", got)
 	}
@@ -1430,7 +1502,7 @@ func TestChatFunctionCall_UnmarshalSuccess(t *testing.T) {
 
 	data := []byte(`{"name":"fn","arguments":"{}"}`)
 	var got ChatFunctionCall
-	testutils.RequireNoError(t, json.Unmarshal(data, &got))
+	require.NoError(t, json.Unmarshal(data, &got))
 	if got.Name != "fn" || got.Arguments != "{}" {
 		t.Fatalf("unexpected function call: %+v", got)
 	}
@@ -1441,7 +1513,7 @@ func TestChatFunctionName_UnmarshalSuccess(t *testing.T) {
 
 	data := []byte(`{"name":"fn"}`)
 	var got ChatFunctionName
-	testutils.RequireNoError(t, json.Unmarshal(data, &got))
+	require.NoError(t, json.Unmarshal(data, &got))
 	if got.Name != "fn" {
 		t.Fatalf("unexpected function name: %+v", got)
 	}
@@ -1452,7 +1524,7 @@ func TestChatStreamFunction_UnmarshalSuccess(t *testing.T) {
 
 	data := []byte(`{"name":"fn","arguments":"{}"}`)
 	var got ChatStreamFunction
-	testutils.RequireNoError(t, json.Unmarshal(data, &got))
+	require.NoError(t, json.Unmarshal(data, &got))
 	if got.Name != "fn" || got.Arguments != "{}" {
 		t.Fatalf("unexpected stream function: %+v", got)
 	}
@@ -1465,7 +1537,7 @@ func TestChatChoice_UnmarshalSuccess(t *testing.T) {
 		`{"finish_reason":"stop","index":0,"message":{"role":"assistant","content":"hi"}}`,
 	)
 	var got ChatChoice
-	testutils.RequireNoError(t, json.Unmarshal(data, &got))
+	require.NoError(t, json.Unmarshal(data, &got))
 	if got.FinishReason != "stop" || got.Message.Content == nil || *got.Message.Content != "hi" {
 		t.Fatalf("unexpected choice: %+v", got)
 	}
@@ -1476,7 +1548,7 @@ func TestChatStreamChoice_UnmarshalSuccess(t *testing.T) {
 
 	data := []byte(`{"delta":{"role":"assistant"},"index":0}`)
 	var got ChatStreamChoice
-	testutils.RequireNoError(t, json.Unmarshal(data, &got))
+	require.NoError(t, json.Unmarshal(data, &got))
 	if got.Index != 0 || got.Delta.Role == nil || *got.Delta.Role != "assistant" {
 		t.Fatalf("unexpected stream choice: %+v", got)
 	}

@@ -7,7 +7,7 @@ import (
 
 	internalErrors "github.com/Kardbord/hfapigo/v4/internal/errors"
 	"github.com/Kardbord/hfapigo/v4/internal/request"
-	"github.com/Kardbord/hfapigo/v4/internal/testutils"
+	"github.com/stretchr/testify/require"
 )
 
 func TestWithHTTPClientFactoryNil(t *testing.T) {
@@ -19,7 +19,7 @@ func TestWithHTTPClientFactoryNil(t *testing.T) {
 	}
 
 	_, err := request.Do(opts, http.MethodGet, "/test", nil)
-	testutils.RequireError(t, err)
+	require.Error(t, err)
 	var sdkErr *internalErrors.SDKError
 	if !errors.As(err, &sdkErr) {
 		t.Fatalf("expected SDKError, got %T", err)

@@ -12,6 +12,7 @@ import (
 	internalErrors "github.com/Kardbord/hfapigo/v4/internal/errors"
 	"github.com/Kardbord/hfapigo/v4/internal/testutils"
 	"github.com/Kardbord/hfapigo/v4/internal/version"
+	"github.com/stretchr/testify/require"
 )
 
 func TestDo(t *testing.T) {
@@ -394,7 +395,7 @@ func TestDo_DrainsErrorResponseBody(t *testing.T) {
 		WithMaxResponseBodyBytes(4)
 
 	_, err := Do(opts, http.MethodGet, "/test", nil)
-	testutils.RequireError(t, err)
+	require.Error(t, err)
 	if tracker.ReadBytes != len(data) {
 		t.Fatalf("expected body to be drained, read %d bytes, want %d", tracker.ReadBytes, len(data))
 	}
@@ -458,7 +459,7 @@ func TestDoBytes(t *testing.T) {
 			opts := NewRequestOptions().WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) })
 
 			_, err := DoBytes(opts, http.MethodPost, "/test", tt.data)
-			testutils.RequireNoError(t, err)
+			require.NoError(t, err)
 
 			if tt.validateReq != nil && mt.LastRequest != nil {
 				tt.validateReq(t, mt.LastRequest)
@@ -482,7 +483,7 @@ func TestDoRaw(t *testing.T) {
 		opts := NewRequestOptions().WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) })
 
 		resp, err := DoRaw(opts, http.MethodGet, "/test", nil)
-		testutils.RequireNoError(t, err)
+		require.NoError(t, err)
 		if resp == nil || resp.StatusCode != http.StatusUnauthorized {
 			t.Fatalf("expected status 401 response, got %#v", resp)
 		}
@@ -501,7 +502,7 @@ func TestDoRaw(t *testing.T) {
 		opts := NewRequestOptions().WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) })
 
 		resp, err := DoRaw(opts, http.MethodGet, "/test", nil)
-		testutils.RequireNoError(t, err)
+		require.NoError(t, err)
 		if resp.Body == nil {
 			t.Fatal("expected non-nil response body")
 		}
@@ -511,7 +512,7 @@ func TestDoRaw(t *testing.T) {
 		opts := NewRequestOptions().WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) })
 
 		_, err := DoRaw(opts, http.MethodGet, "/test", nil)
-		testutils.RequireError(t, err)
+		require.Error(t, err)
 		testutils.AssertSDKErrorKind(t, err, internalErrors.SDKErrorKindTransport)
 	})
 }
@@ -620,7 +621,7 @@ func TestDo_IgnoresResponseOnTransportError(t *testing.T) {
 	opts := NewRequestOptions().WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) })
 
 	_, err := Do(opts, http.MethodGet, "/test", nil)
-	testutils.RequireError(t, err)
+	require.Error(t, err)
 	if tracker.ReadBytes != 0 {
 		t.Fatalf("expected response body to be ignored, read %d bytes", tracker.ReadBytes)
 	}
