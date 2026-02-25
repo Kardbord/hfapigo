@@ -166,6 +166,11 @@ func TestChatMessageChunk_Validation(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name:    "missing type",
+			value:   ChatMessageChunk{},
+			wantErr: true,
+		},
+		{
 			name:    "invalid type",
 			value:   ChatMessageChunk{Type: MessageChunkType("other")},
 			wantErr: true,
@@ -613,6 +618,11 @@ func TestChatToolChoice_Unmarshal(t *testing.T) {
 			wantMode:  testutils.Ptr(ToolChoiceMode("auto")),
 		},
 		{
+			name:      "provider mode string",
+			unmarshal: `"provider-mode"`,
+			wantMode:  testutils.Ptr(ToolChoiceMode("provider-mode")),
+		},
+		{
 			name:      "empty mode",
 			unmarshal: `""`,
 			wantErr:   true,
@@ -758,6 +768,11 @@ func TestChatResponseFormat_UnmarshalValidation(t *testing.T) {
 		{
 			name:      "json_schema null",
 			unmarshal: `{"type":"json_schema","json_schema":null}`,
+			wantErr:   true,
+		},
+		{
+			name:      "missing type",
+			unmarshal: `{}`,
 			wantErr:   true,
 		},
 	}
@@ -1107,11 +1122,7 @@ func TestChatToolCall_TypeMustBeSet(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			var out ChatToolCall
-			err := json.Unmarshal(tc.data, &out)
-			if testutils.AssertError(t, err, tc.wantErr) {
-				return
-			}
+			testutils.AssertUnmarshalError[ChatToolCall](t, tc.data, tc.wantErr)
 		})
 	}
 }
@@ -1142,9 +1153,7 @@ func TestChatTool_TypeMustBeSet(t *testing.T) {
 	t.Parallel()
 
 	data := []byte(`{"function":{"name":"fn"}}`)
-	var out ChatTool
-	err := json.Unmarshal(data, &out)
-	testutils.RequireError(t, err)
+	testutils.AssertUnmarshalError[ChatTool](t, data, true)
 }
 
 func TestChatTool_MarshalTypeMissing(t *testing.T) {
@@ -1190,11 +1199,7 @@ func TestChatToolCallOutput_TypeMustBeSet(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			var out ChatToolCallOutput
-			err := json.Unmarshal(tc.data, &out)
-			if testutils.AssertError(t, err, tc.wantErr) {
-				return
-			}
+			testutils.AssertUnmarshalError[ChatToolCallOutput](t, tc.data, tc.wantErr)
 		})
 	}
 }
@@ -1246,11 +1251,7 @@ func TestChatStreamToolCall_TypeMustBeSet(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			var out ChatStreamToolCall
-			err := json.Unmarshal(tc.data, &out)
-			if testutils.AssertError(t, err, tc.wantErr) {
-				return
-			}
+			testutils.AssertUnmarshalError[ChatStreamToolCall](t, tc.data, tc.wantErr)
 		})
 	}
 }

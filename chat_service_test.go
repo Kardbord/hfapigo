@@ -120,3 +120,19 @@ func TestChatService_Complete_ModelValidation(t *testing.T) {
 		t.Fatalf("expected no request, got %#v", mt.LastRequest)
 	}
 }
+
+func TestChatService_Complete_NilRequest(t *testing.T) {
+	t.Parallel()
+
+	mt := testutils.NewJSONMockTransport(http.StatusOK, chatServiceResponseBody, nil)
+	opts := request.NewRequestOptions().
+		WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) })
+	svc := newChatService(opts)
+
+	_, err := svc.Complete(nil)
+	testutils.RequireError(t, err)
+	testutils.AssertSDKErrorKind(t, err, internalErrors.SDKErrorKindConfiguration)
+	if mt.LastRequest != nil {
+		t.Fatalf("expected no request, got %#v", mt.LastRequest)
+	}
+}
