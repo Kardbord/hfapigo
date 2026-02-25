@@ -1,11 +1,10 @@
 package hfapigo
 
-// TODO: Review these AI-generated tests
-
 import (
 	"encoding/json"
 	"testing"
 
+	internalErrors "github.com/Kardbord/hfapigo/v4/internal/errors"
 	"github.com/Kardbord/hfapigo/v4/internal/testutils"
 )
 
@@ -410,7 +409,9 @@ func TestChatRequest_MarshalSuccess(t *testing.T) {
 
 	text := "hi"
 	imgURL := "https://example.com/image.png"
+	model := "model"
 	req := ChatRequest{
+		Model: &model,
 		Messages: []ChatMessage{
 			{Role: "user", Content: ChatMessageContent{Text: &text}},
 			{
@@ -430,6 +431,9 @@ func TestChatRequest_MarshalSuccess(t *testing.T) {
 	var got map[string]any
 	if err := json.Unmarshal(data, &got); err != nil {
 		t.Fatalf("unexpected json: %v", err)
+	}
+	if got["model"] != model {
+		t.Fatalf("unexpected model: %#v", got["model"])
 	}
 	messages, ok := got["messages"].([]any)
 	if !ok || len(messages) != 2 {
@@ -463,6 +467,73 @@ func TestChatRequest_MarshalSuccess(t *testing.T) {
 	imageURL, ok := chunk["image_url"].(map[string]any)
 	if !ok || imageURL["url"] != imgURL {
 		t.Fatalf("unexpected image_url: %#v", chunk["image_url"])
+	}
+}
+
+func TestChatRequest_MarshalValidation(t *testing.T) {
+	t.Parallel()
+
+	text := "hi"
+	model := "model"
+
+	cases := []struct {
+		name        string
+		value       ChatRequest
+		wantErr     bool
+		wantErrKind internalErrors.SDKErrorKind
+	}{
+		{
+			name: "missing model",
+			value: ChatRequest{
+				Messages: []ChatMessage{
+					{Role: "user", Content: ChatMessageContent{Text: &text}},
+				},
+			},
+			wantErr:     true,
+			wantErrKind: internalErrors.SDKErrorKindConfiguration,
+		},
+		{
+			name: "empty model",
+			value: ChatRequest{
+				Model: testutils.Ptr(""),
+				Messages: []ChatMessage{
+					{Role: "user", Content: ChatMessageContent{Text: &text}},
+				},
+			},
+			wantErr:     true,
+			wantErrKind: internalErrors.SDKErrorKindConfiguration,
+		},
+		{
+			name: "missing messages",
+			value: ChatRequest{
+				Model: &model,
+			},
+			wantErr:     true,
+			wantErrKind: internalErrors.SDKErrorKindConfiguration,
+		},
+		{
+			name: "valid request",
+			value: ChatRequest{
+				Model: &model,
+				Messages: []ChatMessage{
+					{Role: "user", Content: ChatMessageContent{Text: &text}},
+				},
+			},
+			wantErr:     false,
+			wantErrKind: "",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := json.Marshal(tc.value)
+			if tc.wantErr {
+				testutils.RequireError(t, err)
+				testutils.AssertSDKErrorKind(t, err, tc.wantErrKind)
+			} else {
+				testutils.RequireNoError(t, err)
+			}
+		})
 	}
 }
 

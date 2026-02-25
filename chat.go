@@ -9,6 +9,10 @@ import (
 // ChatRequest represents a completion request for the chat API.
 // Output type depends on the Stream parameter.
 type ChatRequest struct {
+	// Model to use for the chat completion.
+	// Required.
+	Model *string `json:"model,omitempty"`
+
 	// Number between -2.0 and 2.0. Positive values penalize new tokens based
 	// on their existing frequency in the text so far, decreasing the model's
 	// likelihood to repeat the same line verbatim.
@@ -80,6 +84,36 @@ type ChatRequest struct {
 	// For example, 0.1 means only the tokens comprising the top 10% probability
 	// mass are considered.
 	TopP *float64 `json:"top_p,omitempty"`
+}
+
+// MarshalJSON enforces required fields for ChatRequest.
+func (r ChatRequest) MarshalJSON() ([]byte, error) {
+	if err := r.validate(); err != nil {
+		return nil, err
+	}
+	type alias ChatRequest
+
+	return json.Marshal(alias(r))
+}
+
+func (r ChatRequest) validate() error {
+	if r.Model == nil || *r.Model == "" {
+		return &SDKError{
+			Kind:    SDKErrorKindConfiguration,
+			Message: "chat request model is required",
+			Err:     nil,
+		}
+	}
+
+	if len(r.Messages) == 0 {
+		return &SDKError{
+			Kind:    SDKErrorKindConfiguration,
+			Message: "chat request must include at least one message",
+			Err:     nil,
+		}
+	}
+
+	return nil
 }
 
 // ChatMessage represents a single chat message.

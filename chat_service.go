@@ -6,6 +6,10 @@ import (
 	"github.com/Kardbord/hfapigo/v4/internal/request"
 )
 
+const (
+	EndpointChatCompletion = "/v1/chat/completions"
+)
+
 // ChatService implements chat completion calls using the configured request options.
 type ChatService struct {
 	opts request.RequestOptions
@@ -26,10 +30,19 @@ func (s ChatService) Complete(req *ChatRequest, opts ...RequestOption) (ChatResp
 		}
 	}
 
+	payload := *req
+	optsOverride := s.opts.With(opts...)
+	if payload.Model == nil || *payload.Model == "" {
+		if optsOverride.Model != "" {
+			model := optsOverride.Model
+			payload.Model = &model
+		}
+	}
+
 	return request.DoJSON[ChatRequest, ChatResponse](
-		s.opts.With(opts...),
+		optsOverride,
 		http.MethodPost,
-		"/v1/chat/completions",
-		*req,
+		EndpointChatCompletion,
+		payload,
 	)
 }
