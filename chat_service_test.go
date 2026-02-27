@@ -191,7 +191,8 @@ func TestChatService_CompleteStream_Success(t *testing.T) {
 	chunk, err := stream.Recv(context.Background())
 	require.NoError(t, err)
 	require.Equal(t, "stream-model", chunk.Model)
-	if len(chunk.Choices) != 1 || chunk.Choices[0].Delta.Content == nil || *chunk.Choices[0].Delta.Content != "hi" {
+	if len(chunk.Choices) != 1 || chunk.Choices[0].Delta.Content == nil ||
+		*chunk.Choices[0].Delta.Content != "hi" {
 		t.Fatalf("unexpected chunk: %+v", chunk)
 	}
 

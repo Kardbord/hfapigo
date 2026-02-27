@@ -2,8 +2,10 @@ package hfapigo
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"net/http"
+	"time"
 
 	"github.com/Kardbord/hfapigo/v4/internal/request"
 )
@@ -70,4 +72,142 @@ func (r RawService) DoRawReader(
 		path,
 		requestBody,
 	)
+}
+
+// Stream performs a raw HTTP request and returns an SSE stream, applying SDK error interpretation on non-2xx responses.
+// Callers should Close the returned RawStream when finished to promptly release the HTTP connection and decoder goroutine.
+func (r RawService) Stream(
+	requestBody []byte,
+	method string,
+	path string,
+	opts ...RequestOption,
+) (*RawStream, error) {
+	return r.StreamReader(bytes.NewReader(requestBody), method, path, opts...)
+}
+
+// StreamReader performs a raw HTTP request with a streaming body and returns an SSE stream with SDK error interpretation.
+// Callers should Close the returned RawStream when finished to promptly release the HTTP connection and decoder goroutine.
+func (r RawService) StreamReader(
+	requestBody io.Reader,
+	method string,
+	path string,
+	opts ...RequestOption,
+) (*RawStream, error) {
+	resp, err := request.Do(
+		r.opts.With(opts...),
+		method,
+		path,
+		requestBody,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	ctx := resp.Request.Context()
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	raw, err := request.StreamRaw(ctx, resp.Body)
+	if err != nil {
+		_ = resp.Body.Close()
+
+		return nil, err
+	}
+
+	return &RawStream{stream: raw}, nil
+}
+
+// StreamRaw performs a raw HTTP request and returns an SSE stream without translating non-2xx responses into SDK errors.
+// This function is probably only interesting to advanced users.
+// Only use this when you need to inspect the raw response; callers are responsible for interpreting HTTP errors themselves.
+// Callers should Close the returned RawStream when finished to promptly release the HTTP connection and decoder goroutine.
+func (r RawService) StreamRaw(
+	requestBody []byte,
+	method string,
+	path string,
+	opts ...RequestOption,
+) (*RawStream, error) {
+	return r.StreamRawReader(bytes.NewReader(requestBody), method, path, opts...)
+}
+
+// StreamRawReader performs a raw HTTP request with a streaming body and returns an SSE stream without translating non-2xx responses into SDK errors.
+// This function is probably only interesting to advanced users.
+// Only use this when you need to inspect the raw response; callers are responsible for interpreting HTTP errors themselves.
+// Callers should Close the returned RawStream when finished to promptly release the HTTP connection and decoder goroutine.
+func (r RawService) StreamRawReader(
+	requestBody io.Reader,
+	method string,
+	path string,
+	opts ...RequestOption,
+) (*RawStream, error) {
+	resp, err := request.DoRaw(
+		r.opts.With(opts...),
+		method,
+		path,
+		requestBody,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	ctx := resp.Request.Context()
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	raw, err := request.StreamRaw(ctx, resp.Body)
+	if err != nil {
+		_ = resp.Body.Close()
+
+		return nil, err
+	}
+
+	return &RawStream{stream: raw}, nil
+}
+
+// RawStream exposes a raw SSE stream returned by RawService stream methods.
+type RawStream struct {
+	stream *request.RawStream
+}
+
+// Recv blocks until the next SSE event is available or the context is done.
+func (s *RawStream) Recv(ctx context.Context) (RawEvent, error) {
+	var zero RawEvent
+	if s == nil || s.stream == nil {
+		return zero, &SDKError{
+			Kind:    SDKErrorKindInternal,
+			Message: "raw stream is nil",
+			Err:     nil,
+		}
+	}
+
+	event, err := s.stream.Recv(ctx)
+	if err != nil {
+		return zero, err
+	}
+
+	return RawEvent{
+		Data:  append([]byte(nil), event.Data...),
+		Event: event.Event,
+		ID:    event.ID,
+		Retry: event.Retry,
+	}, nil
+}
+
+// Close releases the underlying stream resources.
+func (s *RawStream) Close() error {
+	if s == nil || s.stream == nil {
+		return nil
+	}
+
+	return s.stream.Close()
+}
+
+// RawEvent mirrors the SSE fields returned by raw streams.
+type RawEvent struct {
+	Data  []byte
+	Event string
+	ID    string
+	Retry *time.Duration
 }
