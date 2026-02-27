@@ -757,31 +757,26 @@ func (t *ChatToolChoice) UnmarshalJSON(data []byte) error {
 }
 
 func parseToolChoice(data []byte) (*ToolChoiceMode, *ChatFunctionName, error) {
-	// TODO: Is this the best way to distinguish between string and struct return types?
-	switch data[0] {
-	case '"':
-		var mode ToolChoiceMode
-		if err := json.Unmarshal(data, &mode); err != nil {
-			return nil, nil, err
-		}
+	// try string mode first
+	var mode ToolChoiceMode
+	if err := json.Unmarshal(data, &mode); err == nil {
 		if mode == "" {
 			return nil, nil, errors.New("tool choice: mode must be set")
 		}
 
 		return &mode, nil, nil
-	case '{':
-		var payload toolChoiceFunctionPayload
-		if err := json.Unmarshal(data, &payload); err != nil {
-			return nil, nil, err
-		}
+	}
+
+	var payload toolChoiceFunctionPayload
+	if err := json.Unmarshal(data, &payload); err == nil {
 		if payload.Function == nil {
 			return nil, nil, errors.New("tool choice: function object required")
 		}
 
 		return nil, payload.Function, nil
-	default:
-		return nil, nil, errors.New("tool choice: expected string or object")
 	}
+
+	return nil, nil, errors.New("tool choice: expected string or object")
 }
 
 // validate enforces the union shape for ChatToolChoice.
