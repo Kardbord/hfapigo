@@ -1,7 +1,9 @@
 package request
 
 import (
+	"context"
 	"errors"
+	"io"
 	"net/http"
 	"strings"
 	"testing"
@@ -419,6 +421,114 @@ func TestDoJSON(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestDoJSONStream_Success(t *testing.T) {
+	t.Parallel()
+
+	type req struct {
+		Prompt string `json:"prompt"`
+	}
+	type chunk struct {
+		Text string `json:"text"`
+	}
+
+	body := "data: {\"text\":\"hello\"}\n\n" +
+		"data: {\"text\":\"world\"}\n\n" +
+		"data: [DONE]\n\n"
+
+	mt := testutils.NewMockTransport(http.StatusOK, body, nil)
+	mt.Response.Header.Set("Content-Type", "text/event-stream")
+
+	opts := NewRequestOptions().
+		WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) })
+
+	stream, err := DoJSONStream[req, chunk](opts, http.MethodPost, "/stream", req{Prompt: "hi"})
+	require.NoError(t, err)
+	defer func() { _ = stream.Close() }()
+
+	first, err := stream.Recv(context.Background())
+	require.NoError(t, err)
+	require.Equal(t, "hello", first.Text)
+
+	second, err := stream.Recv(context.Background())
+	require.NoError(t, err)
+	require.Equal(t, "world", second.Text)
+
+	_, err = stream.Recv(context.Background())
+	require.ErrorIs(t, err, io.EOF)
+
+	if got := mt.LastRequest.Header.Get("Accept"); got != "text/event-stream" {
+		t.Fatalf("expected Accept header text/event-stream, got %q", got)
+	}
+	if got := mt.LastRequest.Header.Get("Content-Type"); got != "application/json" {
+		t.Fatalf("expected Content-Type application/json, got %q", got)
+	}
+}
+
+func TestDoJSONStream_InvalidContentType(t *testing.T) {
+	t.Parallel()
+
+	mt := testutils.NewJSONMockTransport(http.StatusOK, "{}", nil)
+	opts := NewRequestOptions().
+		WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) })
+
+	stream, err := DoJSONStream[struct{}, struct{}](opts, http.MethodGet, "/stream", struct{}{})
+	require.Nil(t, stream)
+	testutils.AssertSDKErrorKind(t, err, internalErrors.SDKErrorKindSerialization)
+}
+
+func TestJSONStream_InvalidChunk(t *testing.T) {
+	t.Parallel()
+
+	body := "data: {not json}\n\n"
+	mt := testutils.NewMockTransport(http.StatusOK, body, nil)
+	mt.Response.Header.Set("Content-Type", "text/event-stream")
+
+	opts := NewRequestOptions().
+		WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) })
+
+	stream, err := DoJSONStream[struct{}, struct{}](opts, http.MethodPost, "/stream", struct{}{})
+	require.NoError(t, err)
+	defer func() { _ = stream.Close() }()
+
+	_, err = stream.Recv(context.Background())
+	testutils.AssertSDKErrorKind(t, err, internalErrors.SDKErrorKindSerialization)
+}
+
+func TestDoJSONStream_APIError(t *testing.T) {
+	t.Parallel()
+
+	mt := testutils.NewMockTransport(http.StatusUnauthorized, "unauthorized", nil)
+	mt.Response.Header.Set("Content-Type", "text/event-stream")
+
+	opts := NewRequestOptions().
+		WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) })
+
+	stream, err := DoJSONStream[struct{}, struct{}](opts, http.MethodPost, "/stream", struct{}{})
+	require.Nil(t, stream)
+	testutils.AssertAPIErrorStatus(t, err, http.StatusUnauthorized)
+}
+
+func TestJSONStream_RecvNilContext(t *testing.T) {
+	t.Parallel()
+
+	body := "data: {\"text\":\"hello\"}\n\n"
+	mt := testutils.NewMockTransport(http.StatusOK, body, nil)
+	mt.Response.Header.Set("Content-Type", "text/event-stream")
+
+	opts := NewRequestOptions().
+		WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) })
+
+	stream, err := DoJSONStream[struct{}, struct {
+		Text string `json:"text"`
+	}](opts, http.MethodPost, "/stream", struct{}{})
+	require.NoError(t, err)
+	defer func() { _ = stream.Close() }()
+
+	chunk, err := stream.Recv(nil)
+	require.NoError(t, err)
+	require.Equal(t, "hello", chunk.Text)
 }
 
 func TestDoJSON_MarshalError(t *testing.T) {

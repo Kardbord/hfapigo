@@ -61,6 +61,9 @@ func StreamRaw(ctx context.Context, body io.ReadCloser) (*RawStream, error) {
 		}
 	}
 
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	ctx, cancel := context.WithCancel(ctx)
 	// Buffered with size 1 so the decoder goroutine can enqueue a single event or
 	// error without blocking, while still applying backpressure once the caller
@@ -88,6 +91,9 @@ func (s *RawStream) Recv(ctx context.Context) (RawEvent, error) {
 	}
 
 	for {
+		if ctx == nil {
+			ctx = context.Background()
+		}
 		select {
 		case <-ctx.Done():
 			return RawEvent{}, ctx.Err()

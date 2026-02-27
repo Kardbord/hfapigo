@@ -1,6 +1,8 @@
 package request
 
 import (
+	"bytes"
+	"context"
 	"encoding/json"
 	stderrors "errors"
 	"io"
@@ -32,23 +34,13 @@ func DoJSON[TReq any, TResp any](
 
 	var zero TResp
 
-	buf, err := json.Marshal(reqBody)
+	buf, err := marshalJSONRequestBody(reqBody)
 	if err != nil {
-		var sdkErr *errors.SDKError
-		if stderrors.As(err, &sdkErr) {
-			return zero, sdkErr
-		}
-		return zero, &errors.SDKError{
-			Kind:    errors.SDKErrorKindSerialization,
-			Message: "failed to marshal request body",
-			Err:     err,
-		}
+		return zero, err
 	}
 
-	opts = opts.WithDefaultHeader("Content-Type", "application/json")
-	opts = opts.WithDefaultHeader("Accept", "application/json")
-
-	if err := validateJSONRequestContentType(opts.Headers); err != nil {
+	opts, err = prepareJSONRequestOptions(opts, "application/json")
+	if err != nil {
 		return zero, err
 	}
 
@@ -96,6 +88,108 @@ func DoJSON[TReq any, TResp any](
 	}
 
 	return out, nil
+}
+
+// DoJSONStream performs an HTTP request with a JSON body and returns a streaming JSON response.
+// The response body must be a Server-Sent Events (SSE) stream where each data chunk contains JSON.
+// Callers are responsible for closing the returned stream to release resources.
+func DoJSONStream[TReq any, TResp any](
+	opts RequestOptions,
+	method string,
+	path string,
+	reqBody TReq,
+) (*JSONStream[TResp], error) {
+	buf, err := marshalJSONRequestBody(reqBody)
+	if err != nil {
+		return nil, err
+	}
+
+	opts, err = prepareJSONRequestOptions(opts, "text/event-stream")
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := DoBytes(
+		opts,
+		method,
+		path,
+		buf,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := validateEventStreamResponseContentType(resp.Header); err != nil {
+		_ = resp.Body.Close()
+		return nil, err
+	}
+
+	ctx := opts.Ctx
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	raw, err := StreamRaw(ctx, resp.Body)
+	if err != nil {
+		_ = resp.Body.Close()
+		return nil, err
+	}
+
+	return &JSONStream[TResp]{raw: raw}, nil
+}
+
+// JSONStream consumes JSON SSE events produced by DoJSONStream.
+type JSONStream[T any] struct {
+	raw *RawStream
+}
+
+// Recv blocks until the next JSON event is available or the stream ends.
+// It skips keepalive events, treats data: [DONE] as EOF, and unmarshals each chunk into T.
+func (s *JSONStream[T]) Recv(ctx context.Context) (T, error) {
+	var zero T
+	if s == nil || s.raw == nil {
+		return zero, &errors.SDKError{
+			Kind:    errors.SDKErrorKindInternal,
+			Message: "json stream is nil",
+		}
+	}
+
+	for {
+		event, err := s.raw.Recv(ctx)
+		if err != nil {
+			return zero, err
+		}
+		data := bytes.TrimSpace(event.Data)
+		if len(data) == 0 {
+			continue
+		}
+		if bytes.Equal(data, []byte("[DONE]")) {
+			_ = s.raw.Close()
+			return zero, io.EOF
+		}
+		var out T
+		if err := json.Unmarshal(data, &out); err != nil {
+			return zero, &errors.SDKError{
+				Kind:    errors.SDKErrorKindSerialization,
+				Message: "failed to decode stream event",
+				Err:     err,
+			}
+		}
+
+		return out, nil
+	}
+}
+
+// Close releases the underlying stream resources.
+func (s *JSONStream[T]) Close() error {
+	if s == nil || s.raw == nil {
+		return &errors.SDKError{
+			Kind:    errors.SDKErrorKindInternal,
+			Message: "json stream is nil",
+		}
+	}
+
+	return s.raw.Close()
 }
 
 // ensureHeader returns a copy of headers with a default value set when missing or empty.
@@ -154,6 +248,61 @@ func validateJSONResponseContentType(headers http.Header) error {
 		}
 	}
 	return nil
+}
+
+// validateEventStreamResponseContentType ensures the response advertises text/event-stream.
+func validateEventStreamResponseContentType(headers http.Header) error {
+	ct := headers.Get("Content-Type")
+	if ct == "" {
+		return &errors.SDKError{
+			Kind:    errors.SDKErrorKindSerialization,
+			Message: "response Content-Type must be text/event-stream",
+		}
+	}
+	mediatype, _, err := mime.ParseMediaType(ct)
+	if err != nil {
+		return &errors.SDKError{
+			Kind:    errors.SDKErrorKindSerialization,
+			Message: "invalid Content-Type header on response",
+			Err:     err,
+		}
+	}
+	if mediatype != "text/event-stream" {
+		return &errors.SDKError{
+			Kind:    errors.SDKErrorKindSerialization,
+			Message: "response Content-Type must be text/event-stream",
+		}
+	}
+	return nil
+}
+
+// marshalJSONRequestBody serializes the payload and normalizes errors to SDK errors.
+func marshalJSONRequestBody(payload any) ([]byte, error) {
+	buf, err := json.Marshal(payload)
+	if err != nil {
+		var sdkErr *errors.SDKError
+		if stderrors.As(err, &sdkErr) {
+			return nil, sdkErr
+		}
+		return nil, &errors.SDKError{
+			Kind:    errors.SDKErrorKindSerialization,
+			Message: "failed to marshal request body",
+			Err:     err,
+		}
+	}
+
+	return buf, nil
+}
+
+// prepareJSONRequestOptions sets standard headers and validates Content-Type for JSON requests.
+func prepareJSONRequestOptions(opts RequestOptions, accept string) (RequestOptions, error) {
+	opts = opts.WithDefaultHeader("Content-Type", "application/json")
+	opts = opts.WithDefaultHeader("Accept", accept)
+	if err := validateJSONRequestContentType(opts.Headers); err != nil {
+		return RequestOptions{}, err
+	}
+
+	return opts, nil
 }
 
 // isJSONMediaType reports whether the media type is JSON or a +json subtype.

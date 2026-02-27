@@ -138,6 +138,26 @@ func TestStreamRaw_Errors(t *testing.T) {
 			}
 		}
 	})
+
+	t.Run("recv nil context", func(t *testing.T) {
+		t.Parallel()
+
+		body := io.NopCloser(strings.NewReader("data: hi\n\n"))
+		stream, err := StreamRaw(nil, body)
+		if err != nil {
+			t.Fatalf("StreamRaw: %v", err)
+		}
+		defer func() { _ = stream.Close() }()
+
+		// Passing nil context should fall back to context.Background and still succeed.
+		ev, err := stream.Recv(nil)
+		if err != nil {
+			t.Fatalf("Recv with nil context: %v", err)
+		}
+		if string(ev.Data) != "hi" {
+			t.Fatalf("unexpected event data: %q", string(ev.Data))
+		}
+	})
 }
 
 type errorReadCloser struct {
