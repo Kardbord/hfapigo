@@ -38,6 +38,14 @@ func (s ChatService) Complete(req *ChatRequest, opts ...RequestOption) (ChatResp
 		}
 	}
 
+	if payload.Stream != nil && *payload.Stream {
+		return ChatResponse{}, &SDKError{
+			Kind:    SDKErrorKindConfiguration,
+			Message: "chat completion streaming is not supported by ChatService.Complete; use a streaming method instead",
+			Err:     nil,
+		}
+	}
+
 	return request.DoJSON[ChatRequest, ChatResponse](
 		optsOverride,
 		http.MethodPost,

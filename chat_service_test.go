@@ -137,3 +137,28 @@ func TestChatService_Complete_NilRequest(t *testing.T) {
 		t.Fatalf("expected no request, got %#v", mt.LastRequest)
 	}
 }
+
+func TestChatService_Complete_StreamNotAllowed(t *testing.T) {
+	t.Parallel()
+
+	mt := testutils.NewJSONMockTransport(http.StatusOK, chatServiceResponseBody, nil)
+	opts := request.NewRequestOptions().
+		WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) })
+	svc := newChatService(opts)
+
+	text := "hi"
+	stream := true
+	req := &ChatRequest{
+		Stream: &stream,
+		Messages: []ChatMessage{
+			{Role: "user", Content: ChatMessageContent{Text: &text}},
+		},
+	}
+
+	_, err := svc.Complete(req)
+	require.Error(t, err)
+	testutils.AssertSDKErrorKind(t, err, internalErrors.SDKErrorKindConfiguration)
+	if mt.LastRequest != nil {
+		t.Fatalf("expected no request, got %#v", mt.LastRequest)
+	}
+}

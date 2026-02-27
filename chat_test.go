@@ -1377,6 +1377,7 @@ func TestChatTool_UnmarshalSuccess(t *testing.T) {
 	}
 }
 
+//nolint:dupl // Similar test to TestChatStreamToolCall_Validation, but for different data type
 func TestChatToolCallOutput_Validation(t *testing.T) {
 	t.Parallel()
 
@@ -1508,6 +1509,7 @@ func TestChatToolCallOutput_UnmarshalSuccess(t *testing.T) {
 	}
 }
 
+//nolint:dupl // Similar test to TestChatToolCallOutput_Validation, but for different data type
 func TestChatStreamToolCall_Validation(t *testing.T) {
 	t.Parallel()
 
