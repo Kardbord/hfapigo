@@ -1,6 +1,7 @@
 package hfapigo
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -156,6 +157,72 @@ func TestChatService_Complete_StreamNotAllowed(t *testing.T) {
 	}
 
 	_, err := svc.Complete(req)
+	require.Error(t, err)
+	testutils.AssertSDKErrorKind(t, err, internalErrors.SDKErrorKindConfiguration)
+	if mt.LastRequest != nil {
+		t.Fatalf("expected no request, got %#v", mt.LastRequest)
+	}
+}
+
+func TestChatService_CompleteStream_Success(t *testing.T) {
+	t.Parallel()
+
+	body := "data: {\"id\":\"id\",\"created\":1,\"model\":\"stream-model\",\"system_fingerprint\":\"sig\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\"hi\"}}]}\n\n" +
+		"data: [DONE]\n\n"
+	mt := testutils.NewMockTransport(http.StatusOK, body, nil)
+	mt.Response.Header.Set("Content-Type", "text/event-stream")
+
+	opts := request.NewRequestOptions().
+		WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }).
+		WithModel("default-model")
+	svc := newChatService(opts)
+
+	text := "hi"
+	req := &ChatRequest{
+		Messages: []ChatMessage{
+			{Role: "user", Content: ChatMessageContent{Text: &text}},
+		},
+	}
+
+	stream, err := svc.CompleteStream(req)
+	require.NoError(t, err)
+	defer func() { _ = stream.Close() }()
+
+	chunk, err := stream.Recv(context.Background())
+	require.NoError(t, err)
+	require.Equal(t, "stream-model", chunk.Model)
+	if len(chunk.Choices) != 1 || chunk.Choices[0].Delta.Content == nil || *chunk.Choices[0].Delta.Content != "hi" {
+		t.Fatalf("unexpected chunk: %+v", chunk)
+	}
+
+	_, err = stream.Recv(context.Background())
+	require.ErrorIs(t, err, io.EOF)
+
+	if mt.LastRequest == nil {
+		t.Fatal("expected request to be sent")
+	}
+	bodyBytes, err := io.ReadAll(mt.LastRequest.Body)
+	require.NoError(t, err)
+	var payload map[string]any
+	require.NoError(t, json.Unmarshal(bodyBytes, &payload))
+	if payload["stream"] != true {
+		t.Fatalf("expected stream flag true, got %#v", payload["stream"])
+	}
+	if payload["model"] != "default-model" {
+		t.Fatalf("unexpected model: %#v", payload["model"])
+	}
+}
+
+func TestChatService_CompleteStream_NilRequest(t *testing.T) {
+	t.Parallel()
+
+	mt := testutils.NewMockTransport(http.StatusOK, "", nil)
+	mt.Response.Header.Set("Content-Type", "text/event-stream")
+	opts := request.NewRequestOptions().
+		WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) })
+	svc := newChatService(opts)
+
+	_, err := svc.CompleteStream(nil)
 	require.Error(t, err)
 	testutils.AssertSDKErrorKind(t, err, internalErrors.SDKErrorKindConfiguration)
 	if mt.LastRequest != nil {
