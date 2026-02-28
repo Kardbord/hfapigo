@@ -1,40 +1,82 @@
 package hfapigo
 
-type Options struct {
+import (
+	"context"
+	"net/http"
 
-	// (Default: false). Boolean to use GPU instead of CPU for inference.
-	// Requires Startup plan at least.
-	UseGPU *bool `json:"use_gpu,omitempty"`
+	"github.com/Kardbord/hfapigo/v4/internal/request"
+)
 
-	// (Default: true). There is a cache layer on the inference API to speedup
-	// requests we have already seen. Most models can use those results as is
-	// as models are deterministic (meaning the results will be the same anyway).
-	// However if you use a non deterministic model, you can set this parameter
-	// to prevent the caching mechanism from being used resulting in a real new query.
-	UseCache *bool `json:"use_cache,omitempty"`
-
-	// (Default: false) If the model is not ready, wait for it instead of receiving 503.
-	// It limits the number of requests required to get your inference done. It is advised
-	// to only set this flag to true after receiving a 503 error as it will limit hanging
-	// in your application to known places.
-	WaitForModel *bool `json:"wait_for_model,omitempty"`
+// WithBaseURL returns an Option that sets the base URL for API requests.
+// The base URL is the root endpoint for all HuggingFace API calls and must not
+// include query parameters or fragments.
+func WithBaseURL(u string) Option {
+	return request.WithBaseURL(u)
 }
 
-func NewOptions() *Options {
-	return &Options{}
+// WithToken returns an Option that sets the authentication token for API requests.
+// The token is used for Bearer authentication with the HuggingFace API.
+func WithToken(t string) Option {
+	return request.WithToken(t)
 }
 
-func (opts *Options) SetUseGPU(useGPU bool) *Options {
-	opts.UseGPU = &useGPU
-	return opts
+// WithModel returns an Option that sets the model to use for API requests.
+// The model specifies which HuggingFace model should process the request.
+func WithModel(m string) Option {
+	return request.WithModel(m)
 }
 
-func (opts *Options) SetUseCache(useCache bool) *Options {
-	opts.UseCache = &useCache
-	return opts
+// WithProvider returns an Option that sets the provider for API requests.
+// The provider specifies which inference provider should handle the request.
+func WithProvider(p string) Option {
+	return request.WithProvider(p)
 }
 
-func (opts *Options) SetWaitForModel(waitForModel bool) *Options {
-	opts.WaitForModel = &waitForModel
-	return opts
+// WithHTTPClientFactory returns an Option that sets a http.Client created by the factory.
+// The factory is invoked when request options are applied, so it can be used per request
+// or at client construction time.
+// The factory should return a fresh client value; avoid sharing mutable internals like Transport unless synchronized.
+// If the factory is nil, the HTTP client is set to nil.
+func WithHTTPClientFactory(factory func() http.Client) Option {
+	return request.WithHTTPClientFactory(factory)
+}
+
+// WithContext returns an Option that sets the context for API requests.
+// The context can be used for cancellation, timeouts, and passing request-scoped values.
+// If a nil context is provided, the SDK will fall back to context.Background().
+func WithContext(ctx context.Context) Option {
+	return request.WithContext(ctx)
+}
+
+// WithDefaultHTTPClient returns an Option that sets the default HTTP client.
+func WithDefaultHTTPClient() Option {
+	return request.WithDefaultHTTPClient()
+}
+
+// WithUserAgentSuffix returns an Option that appends a suffix to the SDK user agent string.
+func WithUserAgentSuffix(s string) Option {
+	return request.WithUserAgentSuffix(s)
+}
+
+// WithMaxResponseBodyBytes returns an Option that sets the maximum number of bytes
+// read from any response body. Values <= 0 fall back to the default.
+func WithMaxResponseBodyBytes(n int64) Option {
+	return request.WithMaxResponseBodyBytes(n)
+}
+
+// WithHeaders returns an Option that sets custom headers applied to every request,
+// overriding any existing values for matching keys.
+// Per-request headers can still override these values when provided.
+func WithHeaders(h http.Header) Option {
+	return request.WithHeaders(h)
+}
+
+// WithHeader returns an Option that sets a single header applied to every request.
+func WithHeader(key, value string) Option {
+	return request.WithHeader(key, value)
+}
+
+// WithDefaultHeader returns an Option that sets a header only if missing or empty.
+func WithDefaultHeader(key, value string) Option {
+	return request.WithDefaultHeader(key, value)
 }

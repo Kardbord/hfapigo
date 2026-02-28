@@ -1,0 +1,35 @@
+---
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches:
+      - main
+      - v4-draft
+  schedule:
+    - cron: "35 21 * * 3"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          cache: true
+          go-version-file: "go.mod"
+
+      - name: Build packages
+        run: go build -v ./...

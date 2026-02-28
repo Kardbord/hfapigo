@@ -1,0 +1,19 @@
+---
+name: Go Report Card
+
+on:
+  push:
+    branches:
+      - main
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  generate_report_card:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Go report card
+        uses: creekorful/goreportcard-action@v1.0

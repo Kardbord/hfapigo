@@ -1,39 +1,73 @@
+---
 name: Unit Tests
 
 on:
   push:
     branches: [main]
   pull_request:
-    branches: [main]
+    branches:
+      - main
+      - v4-draft
   schedule:
     - cron: "35 21 * * 3"
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
-  build:
+  unit-tests:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [windows-latest, macos-latest]
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
 
       - name: Set up Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v6
         with:
-          go-version: 1.17
-
-      - name: Build
-        run: go build -v ./...
-
-      - name: Vet
-        run: go vet -v ./...
+          cache: true
+          go-version-file: "go.mod"
 
       - name: Test
-        run: go test -timeout 300s -v ./...
-        env:
-          HUGGING_FACE_TOKEN: ${{ secrets.HUGGING_FACE_TOKEN }}
+        run: go test -timeout 600s -v ./...
 
-      - name: Build Examples
-        run: cd examples && ./build_examples.sh || exit 1
-        shell: bash
+  unit-tests-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          cache: true
+          go-version-file: "go.mod"
+
+      - name: Test (with coverage)
+        run: go test -timeout 600s -v -coverprofile=coverage.out -covermode=atomic ./...
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          files: coverage.out
+          flags: unit
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+  unit-tests-race:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          cache: true
+          go-version-file: "go.mod"
+
+      - name: Test (race)
+        run: go test -race -timeout 600s -v ./...
