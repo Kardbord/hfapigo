@@ -1,6 +1,6 @@
 package hfapigo
 
-import "github.com/Kardbord/hfapigo/v4/internal/errors"
+import "github.com/Kardbord/hfapigo/v4/internal/hferrors"
 
 // APIError represents an error returned by the HuggingFace API.
 // It includes the HTTP status code, error message, response body,
@@ -14,7 +14,7 @@ import "github.com/Kardbord/hfapigo/v4/internal/errors"
 //	        // Handle authentication error
 //	    }
 //	}
-type APIError = errors.APIError
+type APIError = hferrors.APIError
 
 // SDKError represents a client-side SDK error that occurred before
 // a response was received from the API.
@@ -25,20 +25,20 @@ type APIError = errors.APIError
 //	if sdkErr, ok := err.(*hfapigo.SDKError); ok {
 //	    fmt.Printf("Kind %s: %s\n", sdkErr.Kind, sdkErr.Message)
 //	}
-type SDKError = errors.SDKError
+type SDKError = hferrors.SDKError
 
 // SDKErrorKind represents the category of a client-side SDK error.
-type SDKErrorKind = errors.SDKErrorKind
+type SDKErrorKind = hferrors.SDKErrorKind
 
 const (
 	// SDKErrorKindValidation indicates a validation error in API responses.
-	SDKErrorKindValidation = errors.SDKErrorKindValidation
+	SDKErrorKindValidation = hferrors.SDKErrorKindValidation
 	// SDKErrorKindConfiguration indicates invalid or missing configuration.
-	SDKErrorKindConfiguration = errors.SDKErrorKindConfiguration
+	SDKErrorKindConfiguration = hferrors.SDKErrorKindConfiguration
 	// SDKErrorKindSerialization indicates a serialization or deserialization error.
-	SDKErrorKindSerialization = errors.SDKErrorKindSerialization
+	SDKErrorKindSerialization = hferrors.SDKErrorKindSerialization
 	// SDKErrorKindTransport indicates a transport-layer failure.
-	SDKErrorKindTransport = errors.SDKErrorKindTransport
+	SDKErrorKindTransport = hferrors.SDKErrorKindTransport
 	// SDKErrorKindInternal indicates an internal SDK error.
-	SDKErrorKindInternal = errors.SDKErrorKindInternal
+	SDKErrorKindInternal = hferrors.SDKErrorKindInternal
 )

@@ -2,19 +2,19 @@ package request
 
 import (
 	"bytes"
-	stderrors "errors"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 
-	"github.com/Kardbord/hfapigo/v4/internal/errors"
+	"github.com/Kardbord/hfapigo/v4/internal/hferrors"
 )
 
 // Do performs an HTTP request with the provided options and returns the response.
 // It creates a new HTTP request with the given method, path, and body, adds authorization
 // and custom headers, and executes the request using the configured HTTP client.
-// For HTTP status codes >= 400, it returns an *errors.APIError.
+// For HTTP status codes >= 400, it returns an *hferrors.APIError.
 // The caller must close resp.Body on success.
 func Do(
 	opts Options,
@@ -29,7 +29,7 @@ func Do(
 
 	if resp.StatusCode >= http.StatusBadRequest {
 		if resp.Body == nil || resp.Body == http.NoBody {
-			return nil, &errors.APIError{
+			return nil, &hferrors.APIError{
 				StatusCode: resp.StatusCode,
 				Message:    "error response body is missing",
 				Body:       nil,
@@ -46,8 +46,8 @@ func Do(
 			drainAndCloseBody(resp.Body)
 		}
 		if readErr != nil {
-			return nil, &errors.SDKError{
-				Kind:    errors.SDKErrorKindInternal,
+			return nil, &hferrors.SDKError{
+				Kind:    hferrors.SDKErrorKindInternal,
 				Message: "failed to read error response body",
 				Err:     readErr,
 			}
@@ -57,7 +57,7 @@ func Do(
 			msg += " [truncated]"
 		}
 
-		return nil, &errors.APIError{
+		return nil, &hferrors.APIError{
 			StatusCode: resp.StatusCode,
 			Message:    msg,
 			Body:       bodyBytes,
@@ -96,13 +96,13 @@ func buildHTTPRequest(opts Options, method, path string, body io.Reader) (*http.
 
 	reqURL, err := joinURL(opts.BaseURL, path)
 	if err != nil {
-		var sdkErr *errors.SDKError
-		if stderrors.As(err, &sdkErr) {
+		var sdkErr *hferrors.SDKError
+		if errors.As(err, &sdkErr) {
 			return nil, sdkErr
 		}
 
-		return nil, &errors.SDKError{
-			Kind:    errors.SDKErrorKindConfiguration,
+		return nil, &hferrors.SDKError{
+			Kind:    hferrors.SDKErrorKindConfiguration,
 			Message: fmt.Sprintf("failed to join base URL %q with path %q", opts.BaseURL, path),
 			Err:     err,
 		}
@@ -110,8 +110,8 @@ func buildHTTPRequest(opts Options, method, path string, body io.Reader) (*http.
 
 	req, err := http.NewRequestWithContext(ctx, method, reqURL, body)
 	if err != nil {
-		return nil, &errors.SDKError{
-			Kind:    errors.SDKErrorKindInternal,
+		return nil, &hferrors.SDKError{
+			Kind:    hferrors.SDKErrorKindInternal,
 			Message: "failed to create HTTP request",
 			Err:     err,
 		}
@@ -136,15 +136,15 @@ func executeRequest(client *http.Client, req *http.Request) (*http.Response, err
 			_ = resp.Body.Close()
 		}
 
-		return nil, &errors.SDKError{
-			Kind:    errors.SDKErrorKindTransport,
+		return nil, &hferrors.SDKError{
+			Kind:    hferrors.SDKErrorKindTransport,
 			Message: "request failed",
 			Err:     err,
 		}
 	}
 	if resp == nil {
-		return nil, &errors.SDKError{
-			Kind:    errors.SDKErrorKindTransport,
+		return nil, &hferrors.SDKError{
+			Kind:    hferrors.SDKErrorKindTransport,
 			Message: "http client returned nil response without error",
 			Err:     nil,
 		}
@@ -167,23 +167,23 @@ func joinURL(baseURL, path string) (string, error) {
 	}
 	parsedPath, err := url.Parse(path)
 	if err != nil {
-		return "", &errors.SDKError{
-			Kind:    errors.SDKErrorKindConfiguration,
+		return "", &hferrors.SDKError{
+			Kind:    hferrors.SDKErrorKindConfiguration,
 			Message: fmt.Sprintf("invalid path %q", path),
 			Err:     err,
 		}
 	}
 	if parsedPath.Scheme != "" || parsedPath.Host != "" {
-		return "", &errors.SDKError{
-			Kind:    errors.SDKErrorKindConfiguration,
+		return "", &hferrors.SDKError{
+			Kind:    hferrors.SDKErrorKindConfiguration,
 			Message: fmt.Sprintf("path must be relative, got %q", path),
 			Err:     nil,
 		}
 	}
 	joined, err := url.JoinPath(baseURL, parsedPath.Path)
 	if err != nil {
-		return "", &errors.SDKError{
-			Kind: errors.SDKErrorKindConfiguration,
+		return "", &hferrors.SDKError{
+			Kind: hferrors.SDKErrorKindConfiguration,
 			Message: fmt.Sprintf(
 				"failed to join base URL %q with path %q",
 				baseURL,
@@ -194,8 +194,8 @@ func joinURL(baseURL, path string) (string, error) {
 	}
 	joinedURL, err := url.Parse(joined)
 	if err != nil {
-		return "", &errors.SDKError{
-			Kind:    errors.SDKErrorKindInternal,
+		return "", &hferrors.SDKError{
+			Kind:    hferrors.SDKErrorKindInternal,
 			Message: fmt.Sprintf("failed to parse joined URL %q", joined),
 			Err:     err,
 		}
@@ -238,8 +238,8 @@ func readResponseBodyLimited(reader io.Reader, maxBytes int64) ([]byte, error) {
 		return nil, err
 	}
 	if truncated {
-		return nil, &errors.SDKError{
-			Kind:    errors.SDKErrorKindConfiguration,
+		return nil, &hferrors.SDKError{
+			Kind:    hferrors.SDKErrorKindConfiguration,
 			Message: fmt.Sprintf("response body exceeds max size (limit %d bytes)", maxBytes),
 			Err:     nil,
 		}

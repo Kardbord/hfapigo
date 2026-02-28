@@ -4,13 +4,13 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	stderrors "errors"
+	"errors"
 	"io"
 	"mime"
 	"net/http"
 	"strings"
 
-	"github.com/Kardbord/hfapigo/v4/internal/errors"
+	"github.com/Kardbord/hfapigo/v4/internal/hferrors"
 )
 
 const (
@@ -74,8 +74,8 @@ func decodeJSONResponse[T any](resp *http.Response, maxResponseBodyBytes int64) 
 		return zero, err
 	}
 	if len(body) == 0 {
-		return zero, &errors.SDKError{
-			Kind:    errors.SDKErrorKindSerialization,
+		return zero, &hferrors.SDKError{
+			Kind:    hferrors.SDKErrorKindSerialization,
 			Message: "empty response body",
 			Err:     nil,
 		}
@@ -83,16 +83,16 @@ func decodeJSONResponse[T any](resp *http.Response, maxResponseBodyBytes int64) 
 
 	var out T
 	if err := json.Unmarshal(body, &out); err != nil {
-		if stderrors.Is(err, io.EOF) {
-			return zero, &errors.SDKError{
-				Kind:    errors.SDKErrorKindSerialization,
+		if errors.Is(err, io.EOF) {
+			return zero, &hferrors.SDKError{
+				Kind:    hferrors.SDKErrorKindSerialization,
 				Message: "empty response body",
 				Err:     err,
 			}
 		}
 
-		return zero, &errors.SDKError{
-			Kind:    errors.SDKErrorKindSerialization,
+		return zero, &hferrors.SDKError{
+			Kind:    hferrors.SDKErrorKindSerialization,
 			Message: "failed to decode response body",
 			Err:     err,
 		}
@@ -156,8 +156,8 @@ type JSONStream[T any] struct {
 func (s *JSONStream[T]) Recv(ctx context.Context) (T, error) {
 	var zero T
 	if s == nil || s.raw == nil {
-		return zero, &errors.SDKError{
-			Kind:    errors.SDKErrorKindInternal,
+		return zero, &hferrors.SDKError{
+			Kind:    hferrors.SDKErrorKindInternal,
 			Message: "json stream is nil",
 			Err:     nil,
 		}
@@ -179,8 +179,8 @@ func (s *JSONStream[T]) Recv(ctx context.Context) (T, error) {
 		}
 		var out T
 		if err := json.Unmarshal(data, &out); err != nil {
-			return zero, &errors.SDKError{
-				Kind:    errors.SDKErrorKindSerialization,
+			return zero, &hferrors.SDKError{
+				Kind:    hferrors.SDKErrorKindSerialization,
 				Message: "failed to decode stream event",
 				Err:     err,
 			}
@@ -193,8 +193,8 @@ func (s *JSONStream[T]) Recv(ctx context.Context) (T, error) {
 // Close releases the underlying stream resources.
 func (s *JSONStream[T]) Close() error {
 	if s == nil || s.raw == nil {
-		return &errors.SDKError{
-			Kind:    errors.SDKErrorKindInternal,
+		return &hferrors.SDKError{
+			Kind:    hferrors.SDKErrorKindInternal,
 			Message: "json stream is nil",
 			Err:     nil,
 		}
@@ -224,15 +224,15 @@ func validateJSONRequestContentType(headers http.Header) error {
 	}
 	mediatype, _, err := mime.ParseMediaType(contentType)
 	if err != nil {
-		return &errors.SDKError{
-			Kind:    errors.SDKErrorKindConfiguration,
+		return &hferrors.SDKError{
+			Kind:    hferrors.SDKErrorKindConfiguration,
 			Message: "invalid Content-Type header",
 			Err:     err,
 		}
 	}
 	if mediatype != mimeApplicationJSON {
-		return &errors.SDKError{
-			Kind:    errors.SDKErrorKindConfiguration,
+		return &hferrors.SDKError{
+			Kind:    hferrors.SDKErrorKindConfiguration,
 			Message: "Content-Type must be application/json for DoJSON requests",
 			Err:     nil,
 		}
@@ -249,15 +249,15 @@ func validateJSONResponseContentType(headers http.Header) error {
 	}
 	mediatype, _, err := mime.ParseMediaType(contentType)
 	if err != nil {
-		return &errors.SDKError{
-			Kind:    errors.SDKErrorKindSerialization,
+		return &hferrors.SDKError{
+			Kind:    hferrors.SDKErrorKindSerialization,
 			Message: "invalid Content-Type header on response",
 			Err:     err,
 		}
 	}
 	if !isJSONMediaType(mediatype) {
-		return &errors.SDKError{
-			Kind:    errors.SDKErrorKindSerialization,
+		return &hferrors.SDKError{
+			Kind:    hferrors.SDKErrorKindSerialization,
 			Message: "response Content-Type must be application/json",
 			Err:     nil,
 		}
@@ -270,23 +270,23 @@ func validateJSONResponseContentType(headers http.Header) error {
 func validateEventStreamResponseContentType(headers http.Header) error {
 	contentType := headers.Get("Content-Type")
 	if contentType == "" {
-		return &errors.SDKError{
-			Kind:    errors.SDKErrorKindSerialization,
+		return &hferrors.SDKError{
+			Kind:    hferrors.SDKErrorKindSerialization,
 			Message: "response Content-Type must be text/event-stream",
 			Err:     nil,
 		}
 	}
 	mediatype, _, err := mime.ParseMediaType(contentType)
 	if err != nil {
-		return &errors.SDKError{
-			Kind:    errors.SDKErrorKindSerialization,
+		return &hferrors.SDKError{
+			Kind:    hferrors.SDKErrorKindSerialization,
 			Message: "invalid Content-Type header on response",
 			Err:     err,
 		}
 	}
 	if mediatype != mimeEventStream {
-		return &errors.SDKError{
-			Kind:    errors.SDKErrorKindSerialization,
+		return &hferrors.SDKError{
+			Kind:    hferrors.SDKErrorKindSerialization,
 			Message: "response Content-Type must be text/event-stream",
 			Err:     nil,
 		}
@@ -299,13 +299,13 @@ func validateEventStreamResponseContentType(headers http.Header) error {
 func marshalJSONRequestBody(payload any) ([]byte, error) {
 	buf, err := json.Marshal(payload)
 	if err != nil {
-		var sdkErr *errors.SDKError
-		if stderrors.As(err, &sdkErr) {
+		var sdkErr *hferrors.SDKError
+		if errors.As(err, &sdkErr) {
 			return nil, sdkErr
 		}
 
-		return nil, &errors.SDKError{
-			Kind:    errors.SDKErrorKindSerialization,
+		return nil, &hferrors.SDKError{
+			Kind:    hferrors.SDKErrorKindSerialization,
 			Message: "failed to marshal request body",
 			Err:     err,
 		}

@@ -4,14 +4,14 @@ import (
 	"errors"
 	"testing"
 
-	internalErrors "github.com/Kardbord/hfapigo/v4/internal/errors"
+	"github.com/Kardbord/hfapigo/v4/internal/hferrors"
 )
 
 // AssertSDKErrorKind fails the test if err is not an SDKError of the expected kind.
-func AssertSDKErrorKind(t *testing.T, err error, want internalErrors.SDKErrorKind) {
+func AssertSDKErrorKind(t *testing.T, err error, want hferrors.SDKErrorKind) {
 	t.Helper()
 
-	var sdkErr *internalErrors.SDKError
+	var sdkErr *hferrors.SDKError
 	if !errors.As(err, &sdkErr) {
 		t.Fatalf("expected SDKError, got %T", err)
 	}
@@ -22,10 +22,10 @@ func AssertSDKErrorKind(t *testing.T, err error, want internalErrors.SDKErrorKin
 
 // AssertAPIErrorStatus fails the test if err is not an APIError with the expected status.
 // It returns the APIError for additional assertions.
-func AssertAPIErrorStatus(t *testing.T, err error, want int) *internalErrors.APIError {
+func AssertAPIErrorStatus(t *testing.T, err error, want int) *hferrors.APIError {
 	t.Helper()
 
-	var apiErr *internalErrors.APIError
+	var apiErr *hferrors.APIError
 	if !errors.As(err, &apiErr) {
 		t.Fatalf("expected APIError, got %T", err)
 	}

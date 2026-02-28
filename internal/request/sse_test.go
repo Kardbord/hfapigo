@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	internalerrors "github.com/Kardbord/hfapigo/v4/internal/errors"
+	"github.com/Kardbord/hfapigo/v4/internal/hferrors"
 	"github.com/Kardbord/hfapigo/v4/internal/testutils"
 )
 
@@ -116,8 +116,8 @@ func TestStreamRaw_Errors(t *testing.T) {
 		if stream != nil || err == nil {
 			t.Fatalf("expected error, got stream=%v err=%v", stream, err)
 		}
-		var sdkErr *internalerrors.SDKError
-		if !errors.As(err, &sdkErr) || sdkErr.Kind != internalerrors.SDKErrorKindConfiguration {
+		var sdkErr *hferrors.SDKError
+		if !errors.As(err, &sdkErr) || sdkErr.Kind != hferrors.SDKErrorKindConfiguration {
 			t.Fatalf("expected configuration SDK error, got %#v", err)
 		}
 	})
@@ -136,8 +136,8 @@ func TestStreamRaw_Errors(t *testing.T) {
 		if err := stream.Close(); err == nil {
 			t.Fatalf("expected close error")
 		} else {
-			var sdkErr *internalerrors.SDKError
-			if !errors.As(err, &sdkErr) || sdkErr.Kind != internalerrors.SDKErrorKindTransport {
+			var sdkErr *hferrors.SDKError
+			if !errors.As(err, &sdkErr) || sdkErr.Kind != hferrors.SDKErrorKindTransport {
 				t.Fatalf("expected transport SDK error, got %#v", err)
 			}
 		}

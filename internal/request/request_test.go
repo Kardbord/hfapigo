@@ -9,9 +9,9 @@ import (
 	"strings"
 	"testing"
 
-	internalErrors "github.com/Kardbord/hfapigo/v4/internal/errors"
+	"github.com/Kardbord/hfapigo/v4/internal/hferrors"
+	"github.com/Kardbord/hfapigo/v4/internal/sdkversion"
 	"github.com/Kardbord/hfapigo/v4/internal/testutils"
-	"github.com/Kardbord/hfapigo/v4/internal/version"
 	"github.com/stretchr/testify/require"
 )
 
@@ -55,8 +55,12 @@ func TestDo(t *testing.T) {
 				if got := req.Header.Get("X-Test"); got != "yes" {
 					t.Errorf("unexpected X-Test header: %q", got)
 				}
-				if got := req.Header.Get("User-Agent"); got != version.UserAgent() {
-					t.Errorf("unexpected User-Agent header: %q, want %q", got, version.UserAgent())
+				if got := req.Header.Get("User-Agent"); got != sdkversion.UserAgent() {
+					t.Errorf(
+						"unexpected User-Agent header: %q, want %q",
+						got,
+						sdkversion.UserAgent(),
+					)
 				}
 			},
 		},
@@ -200,7 +204,7 @@ func TestDo(t *testing.T) {
 			wantErr: true,
 			validateErr: func(t *testing.T, err error) {
 				t.Helper()
-				testutils.AssertSDKErrorKind(t, err, internalErrors.SDKErrorKindConfiguration)
+				testutils.AssertSDKErrorKind(t, err, hferrors.SDKErrorKindConfiguration)
 			},
 		},
 		{
@@ -217,7 +221,7 @@ func TestDo(t *testing.T) {
 			wantErr: true,
 			validateErr: func(t *testing.T, err error) {
 				t.Helper()
-				testutils.AssertSDKErrorKind(t, err, internalErrors.SDKErrorKindConfiguration)
+				testutils.AssertSDKErrorKind(t, err, hferrors.SDKErrorKindConfiguration)
 			},
 		},
 		{
@@ -234,7 +238,7 @@ func TestDo(t *testing.T) {
 			wantErr: true,
 			validateErr: func(t *testing.T, err error) {
 				t.Helper()
-				testutils.AssertSDKErrorKind(t, err, internalErrors.SDKErrorKindConfiguration)
+				testutils.AssertSDKErrorKind(t, err, hferrors.SDKErrorKindConfiguration)
 			},
 		},
 		{
@@ -251,7 +255,7 @@ func TestDo(t *testing.T) {
 			wantErr: true,
 			validateErr: func(t *testing.T, err error) {
 				t.Helper()
-				testutils.AssertSDKErrorKind(t, err, internalErrors.SDKErrorKindConfiguration)
+				testutils.AssertSDKErrorKind(t, err, hferrors.SDKErrorKindConfiguration)
 			},
 		},
 		{
@@ -267,7 +271,7 @@ func TestDo(t *testing.T) {
 			wantErr: true,
 			validateErr: func(t *testing.T, err error) {
 				t.Helper()
-				testutils.AssertSDKErrorKind(t, err, internalErrors.SDKErrorKindInternal)
+				testutils.AssertSDKErrorKind(t, err, hferrors.SDKErrorKindInternal)
 			},
 		},
 		{
@@ -289,7 +293,7 @@ func TestDo(t *testing.T) {
 			wantErr: true,
 			validateErr: func(t *testing.T, err error) {
 				t.Helper()
-				testutils.AssertSDKErrorKind(t, err, internalErrors.SDKErrorKindInternal)
+				testutils.AssertSDKErrorKind(t, err, hferrors.SDKErrorKindInternal)
 			},
 		},
 		{
@@ -347,7 +351,7 @@ func TestDo(t *testing.T) {
 			wantErr: true,
 			validateErr: func(t *testing.T, err error) {
 				t.Helper()
-				testutils.AssertSDKErrorKind(t, err, internalErrors.SDKErrorKindConfiguration)
+				testutils.AssertSDKErrorKind(t, err, hferrors.SDKErrorKindConfiguration)
 			},
 		},
 		{
@@ -560,7 +564,7 @@ func TestDoRaw(t *testing.T) {
 
 			_, err := DoRaw(opts, http.MethodGet, "/test", nil)
 			require.Error(t, err)
-			testutils.AssertSDKErrorKind(t, err, internalErrors.SDKErrorKindTransport)
+			testutils.AssertSDKErrorKind(t, err, hferrors.SDKErrorKindTransport)
 		},
 	)
 }

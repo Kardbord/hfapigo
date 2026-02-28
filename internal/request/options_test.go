@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"testing"
 
-	internalErrors "github.com/Kardbord/hfapigo/v4/internal/errors"
+	"github.com/Kardbord/hfapigo/v4/internal/hferrors"
+	"github.com/Kardbord/hfapigo/v4/internal/sdkversion"
 	"github.com/Kardbord/hfapigo/v4/internal/testutils"
-	"github.com/Kardbord/hfapigo/v4/internal/version"
 )
 
 func TestOptions_With(t *testing.T) {
@@ -84,7 +84,7 @@ func TestOptions_With(t *testing.T) {
 			},
 			validate: func(t *testing.T, _ Options, updated Options) {
 				t.Helper()
-				want := version.UserAgent() + " custom/1.0"
+				want := sdkversion.UserAgent() + " custom/1.0"
 				if updated.UserAgent != want {
 					t.Errorf("expected UserAgent %q, got %q", want, updated.UserAgent)
 				}
@@ -211,7 +211,7 @@ func TestWithUserAgentSuffix(t *testing.T) {
 	t.Parallel()
 
 	opts := NewOptions().WithUserAgentSuffix("custom/1.0")
-	want := version.UserAgent() + " custom/1.0"
+	want := sdkversion.UserAgent() + " custom/1.0"
 	if opts.UserAgent != want {
 		t.Errorf("expected UserAgent %q, got %q", want, opts.UserAgent)
 	}
@@ -222,7 +222,7 @@ func TestWithUserAgentSuffix_Empty(t *testing.T) {
 
 	t.Run("default user agent unchanged", func(t *testing.T) {
 		opts := NewOptions().WithUserAgentSuffix("")
-		want := version.UserAgent()
+		want := sdkversion.UserAgent()
 		if opts.UserAgent != want {
 			t.Errorf("expected UserAgent %q, got %q", want, opts.UserAgent)
 		}
@@ -447,8 +447,12 @@ func TestNewOptions(t *testing.T) {
 			name: "has default UserAgent",
 			validate: func(t *testing.T, opts Options) {
 				t.Helper()
-				if opts.UserAgent != version.UserAgent() {
-					t.Errorf("expected UserAgent %q, got %q", version.UserAgent(), opts.UserAgent)
+				if opts.UserAgent != sdkversion.UserAgent() {
+					t.Errorf(
+						"expected UserAgent %q, got %q",
+						sdkversion.UserAgent(),
+						opts.UserAgent,
+					)
 				}
 			},
 		},
@@ -502,7 +506,7 @@ func TestOptions_Validate(t *testing.T) {
 		name    string
 		opts    Options
 		wantErr bool
-		kind    internalErrors.SDKErrorKind
+		kind    hferrors.SDKErrorKind
 	}{
 		{
 			name:    "valid options",
@@ -513,37 +517,37 @@ func TestOptions_Validate(t *testing.T) {
 			name:    "nil http client",
 			opts:    NewOptions().WithHTTPClientFactory(nil),
 			wantErr: true,
-			kind:    internalErrors.SDKErrorKindConfiguration,
+			kind:    hferrors.SDKErrorKindConfiguration,
 		},
 		{
 			name:    "invalid base URL",
 			opts:    NewOptions().WithBaseURL("http://[::1"),
 			wantErr: true,
-			kind:    internalErrors.SDKErrorKindConfiguration,
+			kind:    hferrors.SDKErrorKindConfiguration,
 		},
 		{
 			name:    "base URL missing scheme",
 			opts:    NewOptions().WithBaseURL("example.com/api"),
 			wantErr: true,
-			kind:    internalErrors.SDKErrorKindConfiguration,
+			kind:    hferrors.SDKErrorKindConfiguration,
 		},
 		{
 			name:    "base URL missing host",
 			opts:    NewOptions().WithBaseURL("https:///api"),
 			wantErr: true,
-			kind:    internalErrors.SDKErrorKindConfiguration,
+			kind:    hferrors.SDKErrorKindConfiguration,
 		},
 		{
 			name:    "base URL with query",
 			opts:    NewOptions().WithBaseURL("https://example.com/api?token=abc"),
 			wantErr: true,
-			kind:    internalErrors.SDKErrorKindConfiguration,
+			kind:    hferrors.SDKErrorKindConfiguration,
 		},
 		{
 			name:    "base URL with fragment",
 			opts:    NewOptions().WithBaseURL("https://example.com/api#section"),
 			wantErr: true,
-			kind:    internalErrors.SDKErrorKindConfiguration,
+			kind:    hferrors.SDKErrorKindConfiguration,
 		},
 	}
 
@@ -555,7 +559,7 @@ func TestOptions_Validate(t *testing.T) {
 				t.Fatalf("Validate() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			if tt.wantErr {
-				var sdkErr *internalErrors.SDKError
+				var sdkErr *hferrors.SDKError
 				if !errors.As(err, &sdkErr) {
 					t.Fatalf("expected SDKError, got %T", err)
 				}

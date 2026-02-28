@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	internalErrors "github.com/Kardbord/hfapigo/v4/internal/errors"
+	"github.com/Kardbord/hfapigo/v4/internal/hferrors"
 	"github.com/Kardbord/hfapigo/v4/internal/testutils"
 	"github.com/stretchr/testify/require"
 )
@@ -20,7 +20,7 @@ func TestChatMessageContent_Marshal(t *testing.T) {
 		value       ChatMessageContent
 		wantJSON    string
 		wantErr     bool
-		wantErrKind internalErrors.SDKErrorKind
+		wantErrKind hferrors.SDKErrorKind
 	}{
 		{
 			name:     "text",
@@ -48,7 +48,7 @@ func TestChatMessageContent_Marshal(t *testing.T) {
 				Chunks: []ChatMessageChunk{{Type: MessageChunkTypeText, Text: &text}},
 			},
 			wantErr:     true,
-			wantErrKind: internalErrors.SDKErrorKindConfiguration,
+			wantErrKind: hferrors.SDKErrorKindConfiguration,
 		},
 	}
 
@@ -153,7 +153,7 @@ func TestChatMessageChunk_Validation(t *testing.T) {
 		name        string
 		value       ChatMessageChunk
 		wantErr     bool
-		wantErrKind internalErrors.SDKErrorKind
+		wantErrKind hferrors.SDKErrorKind
 	}{
 		{
 			name:  "text",
@@ -170,25 +170,25 @@ func TestChatMessageChunk_Validation(t *testing.T) {
 			name:        "missing text",
 			value:       ChatMessageChunk{Type: MessageChunkTypeText},
 			wantErr:     true,
-			wantErrKind: internalErrors.SDKErrorKindConfiguration,
+			wantErrKind: hferrors.SDKErrorKindConfiguration,
 		},
 		{
 			name:        "missing image",
 			value:       ChatMessageChunk{Type: MessageChunkTypeImageURL},
 			wantErr:     true,
-			wantErrKind: internalErrors.SDKErrorKindConfiguration,
+			wantErrKind: hferrors.SDKErrorKindConfiguration,
 		},
 		{
 			name:        "missing type",
 			value:       ChatMessageChunk{},
 			wantErr:     true,
-			wantErrKind: internalErrors.SDKErrorKindConfiguration,
+			wantErrKind: hferrors.SDKErrorKindConfiguration,
 		},
 		{
 			name:        "invalid type",
 			value:       ChatMessageChunk{Type: MessageChunkType("other")},
 			wantErr:     true,
-			wantErrKind: internalErrors.SDKErrorKindConfiguration,
+			wantErrKind: hferrors.SDKErrorKindConfiguration,
 		},
 		{
 			name: "text with image_url",
@@ -198,7 +198,7 @@ func TestChatMessageChunk_Validation(t *testing.T) {
 				ImageURL: &ChatImageURL{URL: "x"},
 			},
 			wantErr:     true,
-			wantErrKind: internalErrors.SDKErrorKindConfiguration,
+			wantErrKind: hferrors.SDKErrorKindConfiguration,
 		},
 		{
 			name: "image_url with text",
@@ -208,7 +208,7 @@ func TestChatMessageChunk_Validation(t *testing.T) {
 				ImageURL: &ChatImageURL{URL: "x"},
 			},
 			wantErr:     true,
-			wantErrKind: internalErrors.SDKErrorKindConfiguration,
+			wantErrKind: hferrors.SDKErrorKindConfiguration,
 		},
 	}
 
@@ -231,12 +231,12 @@ func TestChatImageURL_Validation(t *testing.T) {
 
 	_, err := json.Marshal(ChatImageURL{})
 	require.Error(t, err)
-	testutils.AssertSDKErrorKind(t, err, internalErrors.SDKErrorKindConfiguration)
+	testutils.AssertSDKErrorKind(t, err, hferrors.SDKErrorKindConfiguration)
 
 	var value ChatImageURL
 	err = json.Unmarshal([]byte(`{"url":""}`), &value)
 	require.Error(t, err)
-	testutils.AssertSDKErrorKind(t, err, internalErrors.SDKErrorKindConfiguration)
+	testutils.AssertSDKErrorKind(t, err, hferrors.SDKErrorKindConfiguration)
 }
 
 func TestChatMessageChunk_UnmarshalValidation(t *testing.T) {
@@ -297,7 +297,7 @@ func TestChatMessage_Validation(t *testing.T) {
 		name        string
 		value       ChatMessage
 		wantErr     bool
-		wantErrKind internalErrors.SDKErrorKind
+		wantErrKind hferrors.SDKErrorKind
 	}{
 		{
 			name:  "content",
@@ -321,19 +321,19 @@ func TestChatMessage_Validation(t *testing.T) {
 				},
 			},
 			wantErr:     true,
-			wantErrKind: internalErrors.SDKErrorKindConfiguration,
+			wantErrKind: hferrors.SDKErrorKindConfiguration,
 		},
 		{
 			name:        "neither",
 			value:       ChatMessage{Role: "assistant"},
 			wantErr:     true,
-			wantErrKind: internalErrors.SDKErrorKindConfiguration,
+			wantErrKind: hferrors.SDKErrorKindConfiguration,
 		},
 		{
 			name:        "missing role",
 			value:       ChatMessage{Content: ChatMessageContent{Text: &text}},
 			wantErr:     true,
-			wantErrKind: internalErrors.SDKErrorKindConfiguration,
+			wantErrKind: hferrors.SDKErrorKindConfiguration,
 		},
 	}
 
@@ -538,7 +538,7 @@ func TestChatRequest_MarshalValidation(t *testing.T) {
 		name        string
 		value       ChatRequest
 		wantErr     bool
-		wantErrKind internalErrors.SDKErrorKind
+		wantErrKind hferrors.SDKErrorKind
 	}{
 		{
 			name: "missing model",
@@ -548,7 +548,7 @@ func TestChatRequest_MarshalValidation(t *testing.T) {
 				},
 			},
 			wantErr:     true,
-			wantErrKind: internalErrors.SDKErrorKindConfiguration,
+			wantErrKind: hferrors.SDKErrorKindConfiguration,
 		},
 		{
 			name: "empty model",
@@ -559,7 +559,7 @@ func TestChatRequest_MarshalValidation(t *testing.T) {
 				},
 			},
 			wantErr:     true,
-			wantErrKind: internalErrors.SDKErrorKindConfiguration,
+			wantErrKind: hferrors.SDKErrorKindConfiguration,
 		},
 		{
 			name: "missing messages",
@@ -567,7 +567,7 @@ func TestChatRequest_MarshalValidation(t *testing.T) {
 				Model: &model,
 			},
 			wantErr:     true,
-			wantErrKind: internalErrors.SDKErrorKindConfiguration,
+			wantErrKind: hferrors.SDKErrorKindConfiguration,
 		},
 		{
 			name: "valid request",
@@ -605,7 +605,7 @@ func TestChatToolChoice_Marshal(t *testing.T) {
 		value       ChatToolChoice
 		wantJSON    string
 		wantErr     bool
-		wantErrKind internalErrors.SDKErrorKind
+		wantErrKind hferrors.SDKErrorKind
 	}{
 		{
 			name:     "mode",
@@ -626,13 +626,13 @@ func TestChatToolChoice_Marshal(t *testing.T) {
 			name:        "both",
 			value:       ChatToolChoice{Mode: &mode, Function: &ChatFunctionName{Name: "do"}},
 			wantErr:     true,
-			wantErrKind: internalErrors.SDKErrorKindConfiguration,
+			wantErrKind: hferrors.SDKErrorKindConfiguration,
 		},
 		{
 			name:        "empty mode",
 			value:       ChatToolChoice{Mode: testutils.Ptr(ToolChoiceMode(""))},
 			wantErr:     true,
-			wantErrKind: internalErrors.SDKErrorKindConfiguration,
+			wantErrKind: hferrors.SDKErrorKindConfiguration,
 		},
 	}
 
@@ -747,7 +747,7 @@ func TestChatResponseFormat(t *testing.T) {
 		name        string
 		value       ChatResponseFormat
 		wantErr     bool
-		wantErrKind internalErrors.SDKErrorKind
+		wantErrKind hferrors.SDKErrorKind
 	}{
 		{
 			name: "json_schema",
@@ -772,7 +772,7 @@ func TestChatResponseFormat(t *testing.T) {
 			name:        "json_schema missing",
 			value:       ChatResponseFormat{Type: ResponseFormatTypeJSONSchema},
 			wantErr:     true,
-			wantErrKind: internalErrors.SDKErrorKindConfiguration,
+			wantErrKind: hferrors.SDKErrorKindConfiguration,
 		},
 		{
 			name: "other with json_schema",
@@ -781,7 +781,7 @@ func TestChatResponseFormat(t *testing.T) {
 				JSONSchema: &ChatJSONSchemaConfig{Name: "n"},
 			},
 			wantErr:     true,
-			wantErrKind: internalErrors.SDKErrorKindConfiguration,
+			wantErrKind: hferrors.SDKErrorKindConfiguration,
 		},
 		{
 			name: "text with json_schema",
@@ -790,7 +790,7 @@ func TestChatResponseFormat(t *testing.T) {
 				JSONSchema: &ChatJSONSchemaConfig{Name: "n"},
 			},
 			wantErr:     true,
-			wantErrKind: internalErrors.SDKErrorKindConfiguration,
+			wantErrKind: hferrors.SDKErrorKindConfiguration,
 		},
 		{
 			name: "json_object with json_schema",
@@ -799,13 +799,13 @@ func TestChatResponseFormat(t *testing.T) {
 				JSONSchema: &ChatJSONSchemaConfig{Name: "n"},
 			},
 			wantErr:     true,
-			wantErrKind: internalErrors.SDKErrorKindConfiguration,
+			wantErrKind: hferrors.SDKErrorKindConfiguration,
 		},
 		{
 			name:        "empty type",
 			value:       ChatResponseFormat{},
 			wantErr:     true,
-			wantErrKind: internalErrors.SDKErrorKindConfiguration,
+			wantErrKind: hferrors.SDKErrorKindConfiguration,
 		},
 		{
 			name: "json_schema empty name",
@@ -918,7 +918,7 @@ func TestChatCompletionMessage(t *testing.T) {
 		name        string
 		value       ChatCompletionMessage
 		wantErr     bool
-		wantErrKind internalErrors.SDKErrorKind
+		wantErrKind hferrors.SDKErrorKind
 	}{
 		{
 			name:  "content",
@@ -946,19 +946,19 @@ func TestChatCompletionMessage(t *testing.T) {
 				},
 			},
 			wantErr:     true,
-			wantErrKind: internalErrors.SDKErrorKindValidation,
+			wantErrKind: hferrors.SDKErrorKindValidation,
 		},
 		{
 			name:        "neither",
 			value:       ChatCompletionMessage{Role: "assistant"},
 			wantErr:     true,
-			wantErrKind: internalErrors.SDKErrorKindValidation,
+			wantErrKind: hferrors.SDKErrorKindValidation,
 		},
 		{
 			name:        "tool_call_id without content",
 			value:       ChatCompletionMessage{Role: "assistant", ToolCallID: testutils.Ptr("id")},
 			wantErr:     true,
-			wantErrKind: internalErrors.SDKErrorKindValidation,
+			wantErrKind: hferrors.SDKErrorKindValidation,
 		},
 		{
 			name: "content with tool_call_id",
@@ -1032,7 +1032,7 @@ func TestChatStreamDelta(t *testing.T) {
 		name        string
 		value       ChatStreamDelta
 		wantErr     bool
-		wantErrKind internalErrors.SDKErrorKind
+		wantErrKind hferrors.SDKErrorKind
 	}{
 		{
 			name:  "content",
@@ -1065,7 +1065,7 @@ func TestChatStreamDelta(t *testing.T) {
 				},
 			},
 			wantErr:     true,
-			wantErrKind: internalErrors.SDKErrorKindValidation,
+			wantErrKind: hferrors.SDKErrorKindValidation,
 		},
 		{
 			name: "tool_calls with tool_call_id",
@@ -1081,7 +1081,7 @@ func TestChatStreamDelta(t *testing.T) {
 				},
 			},
 			wantErr:     true,
-			wantErrKind: internalErrors.SDKErrorKindValidation,
+			wantErrKind: hferrors.SDKErrorKindValidation,
 		},
 	}
 
@@ -1204,31 +1204,31 @@ func TestChatToolCall_Validation(t *testing.T) {
 		name        string
 		data        []byte
 		wantErr     bool
-		wantErrKind internalErrors.SDKErrorKind
+		wantErrKind hferrors.SDKErrorKind
 	}{
 		{
 			name:        "type empty",
 			data:        []byte(`{"id":"id","type":"","function":{"name":"fn"}}`),
 			wantErr:     true,
-			wantErrKind: internalErrors.SDKErrorKindConfiguration,
+			wantErrKind: hferrors.SDKErrorKindConfiguration,
 		},
 		{
 			name:        "type missing",
 			data:        []byte(`{"id":"id","function":{"name":"fn"}}`),
 			wantErr:     true,
-			wantErrKind: internalErrors.SDKErrorKindConfiguration,
+			wantErrKind: hferrors.SDKErrorKindConfiguration,
 		},
 		{
 			name:        "id empty",
 			data:        []byte(`{"id":"","type":"function","function":{"name":"fn"}}`),
 			wantErr:     true,
-			wantErrKind: internalErrors.SDKErrorKindConfiguration,
+			wantErrKind: hferrors.SDKErrorKindConfiguration,
 		},
 		{
 			name:        "function name empty",
 			data:        []byte(`{"id":"id","type":"function","function":{"name":""}}`),
 			wantErr:     true,
-			wantErrKind: internalErrors.SDKErrorKindConfiguration,
+			wantErrKind: hferrors.SDKErrorKindConfiguration,
 		},
 	}
 
@@ -1253,7 +1253,7 @@ func TestChatToolCall_MarshalValidation(t *testing.T) {
 	cases := []struct {
 		name        string
 		value       ChatToolCall
-		wantErrKind internalErrors.SDKErrorKind
+		wantErrKind hferrors.SDKErrorKind
 	}{
 		{
 			name: "missing type",
@@ -1261,7 +1261,7 @@ func TestChatToolCall_MarshalValidation(t *testing.T) {
 				ID:       "id",
 				Function: ChatFunctionDefinition{Name: "fn"},
 			},
-			wantErrKind: internalErrors.SDKErrorKindConfiguration,
+			wantErrKind: hferrors.SDKErrorKindConfiguration,
 		},
 		{
 			name: "missing id",
@@ -1269,7 +1269,7 @@ func TestChatToolCall_MarshalValidation(t *testing.T) {
 				Type:     "function",
 				Function: ChatFunctionDefinition{Name: "fn"},
 			},
-			wantErrKind: internalErrors.SDKErrorKindConfiguration,
+			wantErrKind: hferrors.SDKErrorKindConfiguration,
 		},
 		{
 			name: "missing function name",
@@ -1277,7 +1277,7 @@ func TestChatToolCall_MarshalValidation(t *testing.T) {
 				ID:   "id",
 				Type: "function",
 			},
-			wantErrKind: internalErrors.SDKErrorKindConfiguration,
+			wantErrKind: hferrors.SDKErrorKindConfiguration,
 		},
 	}
 
@@ -1306,12 +1306,12 @@ func TestChatFunctionDefinition_Validation(t *testing.T) {
 
 	_, err := json.Marshal(ChatFunctionDefinition{})
 	require.Error(t, err)
-	testutils.AssertSDKErrorKind(t, err, internalErrors.SDKErrorKindConfiguration)
+	testutils.AssertSDKErrorKind(t, err, hferrors.SDKErrorKindConfiguration)
 
 	var def ChatFunctionDefinition
 	err = json.Unmarshal([]byte(`{"name":""}`), &def)
 	require.Error(t, err)
-	testutils.AssertSDKErrorKind(t, err, internalErrors.SDKErrorKindConfiguration)
+	testutils.AssertSDKErrorKind(t, err, hferrors.SDKErrorKindConfiguration)
 }
 
 func TestChatFunctionCall_Validation(t *testing.T) {
@@ -1335,14 +1335,14 @@ func TestChatFunctionCall_Validation(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			_, err := json.Marshal(tc.value)
 			require.Error(t, err)
-			testutils.AssertSDKErrorKind(t, err, internalErrors.SDKErrorKindValidation)
+			testutils.AssertSDKErrorKind(t, err, hferrors.SDKErrorKindValidation)
 		})
 	}
 
 	var got ChatFunctionCall
 	err := json.Unmarshal([]byte(`{"name":"fn","arguments":""}`), &got)
 	require.Error(t, err)
-	testutils.AssertSDKErrorKind(t, err, internalErrors.SDKErrorKindValidation)
+	testutils.AssertSDKErrorKind(t, err, hferrors.SDKErrorKindValidation)
 }
 
 func TestChatTool_TypeMustBeSet(t *testing.T) {
@@ -1352,7 +1352,7 @@ func TestChatTool_TypeMustBeSet(t *testing.T) {
 	var out ChatTool
 	err := json.Unmarshal(data, &out)
 	require.Error(t, err)
-	testutils.AssertSDKErrorKind(t, err, internalErrors.SDKErrorKindConfiguration)
+	testutils.AssertSDKErrorKind(t, err, hferrors.SDKErrorKindConfiguration)
 }
 
 func TestChatTool_MarshalTypeMissing(t *testing.T) {
@@ -1363,7 +1363,7 @@ func TestChatTool_MarshalTypeMissing(t *testing.T) {
 	}
 	_, err := json.Marshal(value)
 	require.Error(t, err)
-	testutils.AssertSDKErrorKind(t, err, internalErrors.SDKErrorKindConfiguration)
+	testutils.AssertSDKErrorKind(t, err, hferrors.SDKErrorKindConfiguration)
 }
 
 func TestChatTool_UnmarshalSuccess(t *testing.T) {
@@ -1385,19 +1385,19 @@ func TestChatToolCallOutput_Validation(t *testing.T) {
 		name        string
 		data        []byte
 		wantErr     bool
-		wantErrKind internalErrors.SDKErrorKind
+		wantErrKind hferrors.SDKErrorKind
 	}{
 		{
 			name:        "type empty",
 			data:        []byte(`{"id":"id","type":"","function":{"name":"fn","arguments":"{}"}}`),
 			wantErr:     true,
-			wantErrKind: internalErrors.SDKErrorKindValidation,
+			wantErrKind: hferrors.SDKErrorKindValidation,
 		},
 		{
 			name:        "type missing",
 			data:        []byte(`{"id":"id","function":{"name":"fn","arguments":"{}"}}`),
 			wantErr:     true,
-			wantErrKind: internalErrors.SDKErrorKindValidation,
+			wantErrKind: hferrors.SDKErrorKindValidation,
 		},
 		{
 			name: "id missing",
@@ -1405,7 +1405,7 @@ func TestChatToolCallOutput_Validation(t *testing.T) {
 				`{"type":"function","function":{"name":"fn","arguments":"{}"}}`,
 			),
 			wantErr:     true,
-			wantErrKind: internalErrors.SDKErrorKindValidation,
+			wantErrKind: hferrors.SDKErrorKindValidation,
 		},
 		{
 			name: "function name missing",
@@ -1413,7 +1413,7 @@ func TestChatToolCallOutput_Validation(t *testing.T) {
 				`{"id":"id","type":"function","function":{"arguments":"{}"}}`,
 			),
 			wantErr:     true,
-			wantErrKind: internalErrors.SDKErrorKindValidation,
+			wantErrKind: hferrors.SDKErrorKindValidation,
 		},
 		{
 			name: "function arguments missing",
@@ -1421,7 +1421,7 @@ func TestChatToolCallOutput_Validation(t *testing.T) {
 				`{"id":"id","type":"function","function":{"name":"fn"}}`,
 			),
 			wantErr:     true,
-			wantErrKind: internalErrors.SDKErrorKindValidation,
+			wantErrKind: hferrors.SDKErrorKindValidation,
 		},
 	}
 
@@ -1446,7 +1446,7 @@ func TestChatToolCallOutput_MarshalValidation(t *testing.T) {
 	cases := []struct {
 		name        string
 		value       ChatToolCallOutput
-		wantErrKind internalErrors.SDKErrorKind
+		wantErrKind hferrors.SDKErrorKind
 	}{
 		{
 			name: "missing type",
@@ -1454,7 +1454,7 @@ func TestChatToolCallOutput_MarshalValidation(t *testing.T) {
 				ID:       "id",
 				Function: ChatFunctionCall{Name: "fn", Arguments: "{}"},
 			},
-			wantErrKind: internalErrors.SDKErrorKindValidation,
+			wantErrKind: hferrors.SDKErrorKindValidation,
 		},
 		{
 			name: "missing id",
@@ -1462,7 +1462,7 @@ func TestChatToolCallOutput_MarshalValidation(t *testing.T) {
 				Type:     "function",
 				Function: ChatFunctionCall{Name: "fn", Arguments: "{}"},
 			},
-			wantErrKind: internalErrors.SDKErrorKindValidation,
+			wantErrKind: hferrors.SDKErrorKindValidation,
 		},
 		{
 			name: "missing function name",
@@ -1473,7 +1473,7 @@ func TestChatToolCallOutput_MarshalValidation(t *testing.T) {
 					Arguments: "{}",
 				},
 			},
-			wantErrKind: internalErrors.SDKErrorKindValidation,
+			wantErrKind: hferrors.SDKErrorKindValidation,
 		},
 		{
 			name: "missing function arguments",
@@ -1484,7 +1484,7 @@ func TestChatToolCallOutput_MarshalValidation(t *testing.T) {
 					Name: "fn",
 				},
 			},
-			wantErrKind: internalErrors.SDKErrorKindValidation,
+			wantErrKind: hferrors.SDKErrorKindValidation,
 		},
 	}
 
@@ -1517,7 +1517,7 @@ func TestChatStreamToolCall_Validation(t *testing.T) {
 		name        string
 		data        []byte
 		wantErr     bool
-		wantErrKind internalErrors.SDKErrorKind
+		wantErrKind hferrors.SDKErrorKind
 	}{
 		{
 			name: "type empty",
@@ -1525,13 +1525,13 @@ func TestChatStreamToolCall_Validation(t *testing.T) {
 				`{"id":"id","type":"","index":0,"function":{"name":"fn","arguments":"{}"}}`,
 			),
 			wantErr:     true,
-			wantErrKind: internalErrors.SDKErrorKindValidation,
+			wantErrKind: hferrors.SDKErrorKindValidation,
 		},
 		{
 			name:        "type missing",
 			data:        []byte(`{"id":"id","index":0,"function":{"name":"fn","arguments":"{}"}}`),
 			wantErr:     true,
-			wantErrKind: internalErrors.SDKErrorKindValidation,
+			wantErrKind: hferrors.SDKErrorKindValidation,
 		},
 		{
 			name: "id missing",
@@ -1539,7 +1539,7 @@ func TestChatStreamToolCall_Validation(t *testing.T) {
 				`{"type":"function","index":0,"function":{"name":"fn","arguments":"{}"}}`,
 			),
 			wantErr:     true,
-			wantErrKind: internalErrors.SDKErrorKindValidation,
+			wantErrKind: hferrors.SDKErrorKindValidation,
 		},
 		{
 			name: "function name missing",
@@ -1547,7 +1547,7 @@ func TestChatStreamToolCall_Validation(t *testing.T) {
 				`{"id":"id","type":"function","index":0,"function":{"arguments":"{}"}}`,
 			),
 			wantErr:     true,
-			wantErrKind: internalErrors.SDKErrorKindValidation,
+			wantErrKind: hferrors.SDKErrorKindValidation,
 		},
 		{
 			name: "function arguments missing",
@@ -1555,7 +1555,7 @@ func TestChatStreamToolCall_Validation(t *testing.T) {
 				`{"id":"id","type":"function","index":0,"function":{"name":"fn"}}`,
 			),
 			wantErr:     true,
-			wantErrKind: internalErrors.SDKErrorKindValidation,
+			wantErrKind: hferrors.SDKErrorKindValidation,
 		},
 	}
 
@@ -1580,7 +1580,7 @@ func TestChatStreamToolCall_MarshalValidation(t *testing.T) {
 	cases := []struct {
 		name        string
 		value       ChatStreamToolCall
-		wantErrKind internalErrors.SDKErrorKind
+		wantErrKind hferrors.SDKErrorKind
 	}{
 		{
 			name: "missing type",
@@ -1589,7 +1589,7 @@ func TestChatStreamToolCall_MarshalValidation(t *testing.T) {
 				Index:    0,
 				Function: ChatStreamFunction{Name: "fn", Arguments: "{}"},
 			},
-			wantErrKind: internalErrors.SDKErrorKindValidation,
+			wantErrKind: hferrors.SDKErrorKindValidation,
 		},
 		{
 			name: "missing id",
@@ -1598,7 +1598,7 @@ func TestChatStreamToolCall_MarshalValidation(t *testing.T) {
 				Index:    0,
 				Function: ChatStreamFunction{Name: "fn", Arguments: "{}"},
 			},
-			wantErrKind: internalErrors.SDKErrorKindValidation,
+			wantErrKind: hferrors.SDKErrorKindValidation,
 		},
 		{
 			name: "missing function name",
@@ -1610,7 +1610,7 @@ func TestChatStreamToolCall_MarshalValidation(t *testing.T) {
 					Arguments: "{}",
 				},
 			},
-			wantErrKind: internalErrors.SDKErrorKindValidation,
+			wantErrKind: hferrors.SDKErrorKindValidation,
 		},
 		{
 			name: "missing function arguments",
@@ -1622,7 +1622,7 @@ func TestChatStreamToolCall_MarshalValidation(t *testing.T) {
 					Name: "fn",
 				},
 			},
-			wantErrKind: internalErrors.SDKErrorKindValidation,
+			wantErrKind: hferrors.SDKErrorKindValidation,
 		},
 	}
 
@@ -1669,14 +1669,14 @@ func TestChatStreamFunction_Validation(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			_, err := json.Marshal(tc.value)
 			require.Error(t, err)
-			testutils.AssertSDKErrorKind(t, err, internalErrors.SDKErrorKindValidation)
+			testutils.AssertSDKErrorKind(t, err, hferrors.SDKErrorKindValidation)
 		})
 	}
 
 	var got ChatStreamFunction
 	err := json.Unmarshal([]byte(`{"name":"fn","arguments":""}`), &got)
 	require.Error(t, err)
-	testutils.AssertSDKErrorKind(t, err, internalErrors.SDKErrorKindValidation)
+	testutils.AssertSDKErrorKind(t, err, hferrors.SDKErrorKindValidation)
 }
 
 func TestChatRequest_UnmarshalTypeValidation(t *testing.T) {

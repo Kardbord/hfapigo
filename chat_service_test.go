@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"testing"
 
-	internalErrors "github.com/Kardbord/hfapigo/v4/internal/errors"
+	"github.com/Kardbord/hfapigo/v4/internal/hferrors"
 	"github.com/Kardbord/hfapigo/v4/internal/request"
 	"github.com/Kardbord/hfapigo/v4/internal/testutils"
 	"github.com/stretchr/testify/require"
@@ -117,7 +117,7 @@ func TestChatService_Complete_ModelValidation(t *testing.T) {
 
 	_, err := svc.Complete(req)
 	require.Error(t, err)
-	testutils.AssertSDKErrorKind(t, err, internalErrors.SDKErrorKindConfiguration)
+	testutils.AssertSDKErrorKind(t, err, hferrors.SDKErrorKindConfiguration)
 	if mt.LastRequest != nil {
 		t.Fatalf("expected no request, got %#v", mt.LastRequest)
 	}
@@ -133,7 +133,7 @@ func TestChatService_Complete_NilRequest(t *testing.T) {
 
 	_, err := svc.Complete(nil)
 	require.Error(t, err)
-	testutils.AssertSDKErrorKind(t, err, internalErrors.SDKErrorKindConfiguration)
+	testutils.AssertSDKErrorKind(t, err, hferrors.SDKErrorKindConfiguration)
 	if mt.LastRequest != nil {
 		t.Fatalf("expected no request, got %#v", mt.LastRequest)
 	}
@@ -158,7 +158,7 @@ func TestChatService_Complete_StreamNotAllowed(t *testing.T) {
 
 	_, err := svc.Complete(req)
 	require.Error(t, err)
-	testutils.AssertSDKErrorKind(t, err, internalErrors.SDKErrorKindConfiguration)
+	testutils.AssertSDKErrorKind(t, err, hferrors.SDKErrorKindConfiguration)
 	if mt.LastRequest != nil {
 		t.Fatalf("expected no request, got %#v", mt.LastRequest)
 	}
@@ -225,7 +225,7 @@ func TestChatService_CompleteStream_NilRequest(t *testing.T) {
 
 	_, err := svc.CompleteStream(nil)
 	require.Error(t, err)
-	testutils.AssertSDKErrorKind(t, err, internalErrors.SDKErrorKindConfiguration)
+	testutils.AssertSDKErrorKind(t, err, hferrors.SDKErrorKindConfiguration)
 	if mt.LastRequest != nil {
 		t.Fatalf("expected no request, got %#v", mt.LastRequest)
 	}

@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	internalErrors "github.com/Kardbord/hfapigo/v4/internal/errors"
+	"github.com/Kardbord/hfapigo/v4/internal/hferrors"
 	"github.com/Kardbord/hfapigo/v4/internal/testutils"
 	"github.com/stretchr/testify/require"
 )
@@ -120,7 +120,7 @@ func TestDoJSON(t *testing.T) {
 			validateErr: func(t *testing.T, err error) {
 				t.Helper()
 				require.Error(t, err)
-				testutils.AssertSDKErrorKind(t, err, internalErrors.SDKErrorKindTransport)
+				testutils.AssertSDKErrorKind(t, err, hferrors.SDKErrorKindTransport)
 			},
 		},
 		{
@@ -139,7 +139,7 @@ func TestDoJSON(t *testing.T) {
 			validateErr: func(t *testing.T, err error) {
 				t.Helper()
 				require.Error(t, err)
-				testutils.AssertSDKErrorKind(t, err, internalErrors.SDKErrorKindSerialization)
+				testutils.AssertSDKErrorKind(t, err, hferrors.SDKErrorKindSerialization)
 			},
 		},
 		{
@@ -157,7 +157,7 @@ func TestDoJSON(t *testing.T) {
 			wantErr: true,
 			validateErr: func(t *testing.T, err error) {
 				t.Helper()
-				testutils.AssertSDKErrorKind(t, err, internalErrors.SDKErrorKindSerialization)
+				testutils.AssertSDKErrorKind(t, err, hferrors.SDKErrorKindSerialization)
 			},
 		},
 		{
@@ -180,7 +180,7 @@ func TestDoJSON(t *testing.T) {
 			wantErr: true,
 			validateErr: func(t *testing.T, err error) {
 				t.Helper()
-				testutils.AssertSDKErrorKind(t, err, internalErrors.SDKErrorKindConfiguration)
+				testutils.AssertSDKErrorKind(t, err, hferrors.SDKErrorKindConfiguration)
 			},
 		},
 		{
@@ -242,7 +242,7 @@ func TestDoJSON(t *testing.T) {
 			wantErr: true,
 			validateErr: func(t *testing.T, err error) {
 				t.Helper()
-				testutils.AssertSDKErrorKind(t, err, internalErrors.SDKErrorKindConfiguration)
+				testutils.AssertSDKErrorKind(t, err, hferrors.SDKErrorKindConfiguration)
 			},
 		},
 		{
@@ -329,7 +329,7 @@ func TestDoJSON(t *testing.T) {
 			wantErr: true,
 			validateErr: func(t *testing.T, err error) {
 				t.Helper()
-				testutils.AssertSDKErrorKind(t, err, internalErrors.SDKErrorKindSerialization)
+				testutils.AssertSDKErrorKind(t, err, hferrors.SDKErrorKindSerialization)
 			},
 		},
 		{
@@ -346,11 +346,11 @@ func TestDoJSON(t *testing.T) {
 			wantErr: true,
 			validateErr: func(t *testing.T, err error) {
 				t.Helper()
-				var sdkErr *internalErrors.SDKError
+				var sdkErr *hferrors.SDKError
 				if !errors.As(err, &sdkErr) {
 					t.Fatalf("expected SDKError, got %T", err)
 				}
-				if sdkErr.Kind != internalErrors.SDKErrorKindSerialization {
+				if sdkErr.Kind != hferrors.SDKErrorKindSerialization {
 					t.Errorf("expected serialization SDKError, got %q", sdkErr.Kind)
 				}
 			},
@@ -545,7 +545,7 @@ func TestDoJSONStream_InvalidContentType(t *testing.T) {
 
 	stream, err := DoJSONStream[struct{}, struct{}](opts, http.MethodGet, "/stream", struct{}{})
 	require.Nil(t, stream)
-	testutils.AssertSDKErrorKind(t, err, internalErrors.SDKErrorKindSerialization)
+	testutils.AssertSDKErrorKind(t, err, hferrors.SDKErrorKindSerialization)
 }
 
 func TestJSONStream_InvalidChunk(t *testing.T) {
@@ -563,7 +563,7 @@ func TestJSONStream_InvalidChunk(t *testing.T) {
 	defer func() { _ = stream.Close() }()
 
 	_, err = stream.Recv(context.Background())
-	testutils.AssertSDKErrorKind(t, err, internalErrors.SDKErrorKindSerialization)
+	testutils.AssertSDKErrorKind(t, err, hferrors.SDKErrorKindSerialization)
 }
 
 func TestDoJSONStream_APIError(t *testing.T) {
@@ -622,11 +622,11 @@ func TestDoJSON_MarshalError(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected marshal error, got nil")
 	}
-	var sdkErr *internalErrors.SDKError
+	var sdkErr *hferrors.SDKError
 	if !errors.As(err, &sdkErr) {
 		t.Fatalf("expected SDKError, got %T", err)
 	}
-	if sdkErr.Kind != internalErrors.SDKErrorKindSerialization {
+	if sdkErr.Kind != hferrors.SDKErrorKindSerialization {
 		t.Fatalf("expected serialization SDKError, got %q", sdkErr.Kind)
 	}
 }
@@ -634,8 +634,8 @@ func TestDoJSON_MarshalError(t *testing.T) {
 type configurationReq struct{}
 
 func (configurationReq) MarshalJSON() ([]byte, error) {
-	return nil, &internalErrors.SDKError{
-		Kind:    internalErrors.SDKErrorKindConfiguration,
+	return nil, &hferrors.SDKError{
+		Kind:    hferrors.SDKErrorKindConfiguration,
 		Message: "invalid payload",
 	}
 }
@@ -655,5 +655,5 @@ func TestDoJSON_MarshalConfigurationError(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected marshal error, got nil")
 	}
-	testutils.AssertSDKErrorKind(t, err, internalErrors.SDKErrorKindConfiguration)
+	testutils.AssertSDKErrorKind(t, err, hferrors.SDKErrorKindConfiguration)
 }

@@ -7,8 +7,8 @@ import (
 	"net/textproto"
 	"net/url"
 
-	"github.com/Kardbord/hfapigo/v4/internal/errors"
-	"github.com/Kardbord/hfapigo/v4/internal/version"
+	"github.com/Kardbord/hfapigo/v4/internal/hferrors"
+	"github.com/Kardbord/hfapigo/v4/internal/sdkversion"
 )
 
 // Options holds configuration settings for API requests.
@@ -69,7 +69,7 @@ func NewOptions() Options {
 		Token:                DefaultToken,
 		Model:                DefaultModel,
 		Provider:             DefaultProvider,
-		UserAgent:            version.UserAgent(),
+		UserAgent:            sdkversion.UserAgent(),
 		Headers:              nil,
 		MaxResponseBodyBytes: DefaultMaxResponseBodyBytes,
 		HTTPClient:           DefaultHTTPClient(),
@@ -85,30 +85,30 @@ type Option func(*Options)
 // Validate returns a configuration error if the options are invalid.
 func (o Options) Validate() error {
 	if o.HTTPClient == nil {
-		return &errors.SDKError{
-			Kind:    errors.SDKErrorKindConfiguration,
+		return &hferrors.SDKError{
+			Kind:    hferrors.SDKErrorKindConfiguration,
 			Message: "http client is nil",
 			Err:     nil,
 		}
 	}
 	parsedBase, err := url.Parse(o.BaseURL)
 	if err != nil {
-		return &errors.SDKError{
-			Kind:    errors.SDKErrorKindConfiguration,
+		return &hferrors.SDKError{
+			Kind:    hferrors.SDKErrorKindConfiguration,
 			Message: fmt.Sprintf("invalid base URL %q", o.BaseURL),
 			Err:     err,
 		}
 	}
 	if parsedBase.Scheme == "" || parsedBase.Host == "" {
-		return &errors.SDKError{
-			Kind:    errors.SDKErrorKindConfiguration,
+		return &hferrors.SDKError{
+			Kind:    hferrors.SDKErrorKindConfiguration,
 			Message: fmt.Sprintf("base URL must include scheme and host, got %q", o.BaseURL),
 			Err:     nil,
 		}
 	}
 	if parsedBase.RawQuery != "" || parsedBase.Fragment != "" {
-		return &errors.SDKError{
-			Kind:    errors.SDKErrorKindConfiguration,
+		return &hferrors.SDKError{
+			Kind:    hferrors.SDKErrorKindConfiguration,
 			Message: fmt.Sprintf("base URL must not include query or fragment, got %q", o.BaseURL),
 			Err:     nil,
 		}
@@ -175,7 +175,7 @@ func (o Options) WithUserAgentSuffix(suffix string) Options {
 	}
 	base := o.UserAgent
 	if base == "" {
-		base = version.UserAgent()
+		base = sdkversion.UserAgent()
 	}
 	o.UserAgent = fmt.Sprintf("%s %s", base, suffix)
 
@@ -309,7 +309,7 @@ func WithUserAgentSuffix(suffix string) Option {
 		}
 		base := opts.UserAgent
 		if base == "" {
-			base = version.UserAgent()
+			base = sdkversion.UserAgent()
 		}
 		opts.UserAgent = fmt.Sprintf("%s %s", base, suffix)
 	}

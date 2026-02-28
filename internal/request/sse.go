@@ -4,14 +4,14 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	stderrs "errors"
+	"errors"
 	"io"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
-	internalerrors "github.com/Kardbord/hfapigo/v4/internal/errors"
+	"github.com/Kardbord/hfapigo/v4/internal/hferrors"
 )
 
 // RawEvent represents a single parsed SSE event payload.
@@ -55,8 +55,8 @@ type RawStream struct {
 // will only stop once the server closes the stream).
 func StreamRaw(ctx context.Context, body io.ReadCloser) (*RawStream, error) {
 	if body == nil {
-		return nil, &internalerrors.SDKError{
-			Kind:    internalerrors.SDKErrorKindConfiguration,
+		return nil, &hferrors.SDKError{
+			Kind:    hferrors.SDKErrorKindConfiguration,
 			Message: "sse: body is nil",
 			Err:     nil,
 		}
@@ -85,8 +85,8 @@ func StreamRaw(ctx context.Context, body io.ReadCloser) (*RawStream, error) {
 // or the stream ends. It returns io.EOF when no more events remain.
 func (s *RawStream) Recv(ctx context.Context) (RawEvent, error) {
 	if s == nil {
-		return RawEvent{}, &internalerrors.SDKError{
-			Kind:    internalerrors.SDKErrorKindInternal,
+		return RawEvent{}, &hferrors.SDKError{
+			Kind:    hferrors.SDKErrorKindInternal,
 			Message: "sse: stream is nil",
 			Err:     nil,
 		}
@@ -114,8 +114,8 @@ func (s *RawStream) Recv(ctx context.Context) (RawEvent, error) {
 // Close stops the decoder and releases the underlying body. It is safe to call multiple times.
 func (s *RawStream) Close() error {
 	if s == nil {
-		return &internalerrors.SDKError{
-			Kind:    internalerrors.SDKErrorKindInternal,
+		return &hferrors.SDKError{
+			Kind:    hferrors.SDKErrorKindInternal,
 			Message: "sse: stream is nil",
 			Err:     nil,
 		}
@@ -127,7 +127,7 @@ func (s *RawStream) Close() error {
 			if err := s.body.Close(); err != nil {
 				s.closeError = wrapStreamError(
 					err,
-					internalerrors.SDKErrorKindTransport,
+					hferrors.SDKErrorKindTransport,
 					"close stream body",
 				)
 			}
@@ -161,7 +161,7 @@ func (s *RawStream) run(ctx context.Context, results chan<- rawResult) {
 		}
 
 		if err != nil {
-			if stderrs.Is(err, io.EOF) {
+			if errors.Is(err, io.EOF) {
 				state.emit(results)
 
 				return
@@ -178,7 +178,7 @@ func (s *RawStream) run(ctx context.Context, results chan<- rawResult) {
 					ID:    "",
 					Retry: nil,
 				},
-				err: wrapStreamError(err, internalerrors.SDKErrorKindTransport, "read sse line"),
+				err: wrapStreamError(err, hferrors.SDKErrorKindTransport, "read sse line"),
 			}
 
 			return
@@ -206,14 +206,14 @@ func parseSSEField(line string) (string, string) {
 
 // wrapStreamError converts stream read errors into SDK errors, preserving caller
 // cancellation errors as-is while retaining the calling context message.
-func wrapStreamError(err error, kind internalerrors.SDKErrorKind, contextMsg string) error {
+func wrapStreamError(err error, kind hferrors.SDKErrorKind, contextMsg string) error {
 	switch {
 	case err == nil:
 		return nil
-	case stderrs.Is(err, context.Canceled), stderrs.Is(err, context.DeadlineExceeded):
+	case errors.Is(err, context.Canceled), errors.Is(err, context.DeadlineExceeded):
 		return err
 	default:
-		return &internalerrors.SDKError{
+		return &hferrors.SDKError{
 			Kind:    kind,
 			Message: "sse: failed to " + contextMsg,
 			Err:     err,
