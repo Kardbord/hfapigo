@@ -162,6 +162,42 @@ func TestStreamRaw_Errors(t *testing.T) {
 	})
 }
 
+func TestSSEStateEmit_CancelUnblocksSend(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	state := &sseState{}
+	state.data.WriteString("hi")
+	state.data.WriteByte('\n')
+
+	results := make(chan rawResult)
+	done := make(chan bool, 1)
+
+	go func() {
+		done <- state.emit(ctx, results)
+	}()
+
+	select {
+	case res := <-done:
+		t.Fatalf("emit returned before cancellation: %v", res)
+	case <-time.After(50 * time.Millisecond):
+		// emit should still be blocked on sending without a receiver.
+	}
+
+	cancel()
+
+	select {
+	case res := <-done:
+		if res {
+			t.Fatalf("emit unexpectedly succeeded after cancellation")
+		}
+	case <-time.After(time.Second):
+		t.Fatalf("emit did not exit after cancellation")
+	}
+}
+
 type errorReadCloser struct {
 	io.Reader
 

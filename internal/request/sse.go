@@ -138,7 +138,9 @@ func (s *RawStream) Close() error {
 }
 
 // run drives the background goroutine that parses the SSE stream and forwards
-// data or errors onto the results channel.
+// data or errors onto the results channel. The helper returns as soon as the
+// context is canceled, the body ends, or handleLine/emit report that no more
+// work should be performed (for example because the send path was canceled).
 func (s *RawStream) run(ctx context.Context, results chan<- rawResult) {
 	defer close(results)
 	defer func() { _ = s.Close() }()
@@ -154,15 +156,16 @@ func (s *RawStream) run(ctx context.Context, results chan<- rawResult) {
 
 	for {
 		line, err := reader.ReadString('\n')
-		hasData := line != ""
-		if hasData {
+		if line != "" {
 			line = strings.TrimRight(line, "\r\n")
-			state.handleLine(line, results)
+			if !state.handleLine(ctx, line, results) {
+				return
+			}
 		}
 
 		if err != nil {
 			if errors.Is(err, io.EOF) {
-				state.emit(results)
+				_ = state.emit(ctx, results)
 
 				return
 			}
@@ -171,7 +174,7 @@ func (s *RawStream) run(ctx context.Context, results chan<- rawResult) {
 			}
 			// Any data parsed before the error has already been emitted, so
 			// callers just observe the terminal error once they drain the queue.
-			results <- rawResult{
+			if !sendResult(ctx, results, rawResult{
 				event: RawEvent{
 					Data:  nil,
 					Event: "",
@@ -179,6 +182,8 @@ func (s *RawStream) run(ctx context.Context, results chan<- rawResult) {
 					Retry: nil,
 				},
 				err: wrapStreamError(err, hferrors.SDKErrorKindTransport, "read sse line"),
+			}) {
+				return
 			}
 
 			return
@@ -230,11 +235,13 @@ type sseState struct {
 	retry     time.Duration
 }
 
-// handleLine processes a single SSE line and emits an event if needed.
-func (s *sseState) handleLine(line string, results chan<- rawResult) {
+// handleLine processes a single SSE line and emits an event if needed. It
+// returns true when parsing should continue or false when the context has been
+// canceled and the caller should exit the read loop.
+func (s *sseState) handleLine(ctx context.Context, line string, results chan<- rawResult) bool {
 	switch {
 	case line == "":
-		s.emit(results)
+		return s.emit(ctx, results)
 	case strings.HasPrefix(line, ":"):
 		// comment, ignore
 	default:
@@ -254,12 +261,16 @@ func (s *sseState) handleLine(line string, results chan<- rawResult) {
 			}
 		}
 	}
+
+	return true
 }
 
-// emit forwards the buffered event (if any) to the results channel.
-func (s *sseState) emit(results chan<- rawResult) {
+// emit forwards the buffered event (if any) to the results channel. It returns
+// true when the event was delivered (or there was nothing to emit) and false
+// when the context was canceled before a receiver accepted the result.
+func (s *sseState) emit(ctx context.Context, results chan<- rawResult) bool {
 	if s.isEmpty() {
-		return
+		return true
 	}
 
 	payload := s.data.Bytes()
@@ -274,7 +285,7 @@ func (s *sseState) emit(results chan<- rawResult) {
 		retryPtr = &d
 	}
 
-	results <- rawResult{
+	if !sendResult(ctx, results, rawResult{
 		event: RawEvent{
 			Data:  data,
 			Event: s.eventType,
@@ -282,9 +293,13 @@ func (s *sseState) emit(results chan<- rawResult) {
 			Retry: retryPtr,
 		},
 		err: nil,
+	}) {
+		return false
 	}
 
 	s.reset()
+
+	return true
 }
 
 func (s *sseState) isEmpty() bool {
@@ -297,4 +312,22 @@ func (s *sseState) reset() {
 	s.eventID = ""
 	s.retrySet = false
 	s.retry = 0
+}
+
+// sendResult forwards a decoder result, still attempting a non-blocking send
+// after cancellation so errors can reach a waiting receiver. It returns true
+// when a receiver consumed the result and false when the context was canceled
+// and the channel buffer was full (meaning no caller is waiting anymore).
+func sendResult(ctx context.Context, results chan<- rawResult, res rawResult) bool {
+	select {
+	case <-ctx.Done():
+		select {
+		case results <- res:
+			return true
+		default:
+			return false
+		}
+	case results <- res:
+		return true
+	}
 }
