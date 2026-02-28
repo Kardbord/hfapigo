@@ -20,6 +20,7 @@ linters:
     - gomodguard
     - lll
     - noinlineerr
+    - nonamedreturns
     - paralleltest
     - promlinter
     - recvcheck
