@@ -18,7 +18,7 @@ func TestRawService_Stream_Success(t *testing.T) {
 	mt := testutils.NewMockTransport(http.StatusOK, body, nil)
 	mt.Response.Header.Set("Content-Type", "text/event-stream")
 
-	opts := request.NewRequestOptions().
+	opts := request.NewOptions().
 		WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) })
 	svc := newRawService(opts)
 
@@ -48,7 +48,7 @@ func TestRawService_Stream_DoError(t *testing.T) {
 	t.Parallel()
 
 	mt := &testutils.MockTransport{Err: errors.New("boom")}
-	opts := request.NewRequestOptions().
+	opts := request.NewOptions().
 		WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) })
 	svc := newRawService(opts)
 
@@ -65,7 +65,7 @@ func TestRawService_StreamRaw_AllowsNon2xx(t *testing.T) {
 	mt := testutils.NewMockTransport(http.StatusUnauthorized, body, nil)
 	mt.Response.Header.Set("Content-Type", "text/event-stream")
 
-	opts := request.NewRequestOptions().
+	opts := request.NewOptions().
 		WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) })
 	svc := newRawService(opts)
 

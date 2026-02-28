@@ -25,7 +25,7 @@ func TestDoJSON(t *testing.T) {
 
 	type testCase struct {
 		name              string
-		setupOpts         func() RequestOptions
+		setupOpts         func() Options
 		method            string
 		path              string
 		reqBody           req
@@ -39,9 +39,15 @@ func TestDoJSON(t *testing.T) {
 	tests := []testCase{
 		{
 			name: "successful request",
-			setupOpts: func() RequestOptions {
-				return NewRequestOptions().WithHTTPClientFactory(func() http.Client {
-					return testutils.NewMockHTTPClient(testutils.NewJSONMockTransport(http.StatusOK, `{"generated_text":"hello"}`, nil))
+			setupOpts: func() Options {
+				return NewOptions().WithHTTPClientFactory(func() http.Client {
+					return testutils.NewMockHTTPClient(
+						testutils.NewJSONMockTransport(
+							http.StatusOK,
+							`{"generated_text":"hello"}`,
+							nil,
+						),
+					)
 				})
 			},
 			method:  http.MethodPost,
@@ -54,9 +60,11 @@ func TestDoJSON(t *testing.T) {
 		},
 		{
 			name: "401 error status",
-			setupOpts: func() RequestOptions {
-				return NewRequestOptions().WithHTTPClientFactory(func() http.Client {
-					return testutils.NewMockHTTPClient(testutils.NewMockTransport(http.StatusUnauthorized, `unauthorized`, nil))
+			setupOpts: func() Options {
+				return NewOptions().WithHTTPClientFactory(func() http.Client {
+					return testutils.NewMockHTTPClient(
+						testutils.NewMockTransport(http.StatusUnauthorized, `unauthorized`, nil),
+					)
 				})
 			},
 			method:  http.MethodGet,
@@ -64,6 +72,7 @@ func TestDoJSON(t *testing.T) {
 			reqBody: req{},
 			wantErr: true,
 			validateErr: func(t *testing.T, err error) {
+				t.Helper()
 				apiErr := testutils.AssertAPIErrorStatus(t, err, http.StatusUnauthorized)
 				if !apiErr.IsAuthenticationError() {
 					t.Error("expected IsAuthenticationError() to return true")
@@ -72,9 +81,15 @@ func TestDoJSON(t *testing.T) {
 		},
 		{
 			name: "500 error status",
-			setupOpts: func() RequestOptions {
-				return NewRequestOptions().WithHTTPClientFactory(func() http.Client {
-					return testutils.NewMockHTTPClient(testutils.NewMockTransport(http.StatusInternalServerError, `internal server error`, nil))
+			setupOpts: func() Options {
+				return NewOptions().WithHTTPClientFactory(func() http.Client {
+					return testutils.NewMockHTTPClient(
+						testutils.NewMockTransport(
+							http.StatusInternalServerError,
+							`internal server error`,
+							nil,
+						),
+					)
 				})
 			},
 			method:  http.MethodGet,
@@ -82,6 +97,7 @@ func TestDoJSON(t *testing.T) {
 			reqBody: req{},
 			wantErr: true,
 			validateErr: func(t *testing.T, err error) {
+				t.Helper()
 				apiErr := testutils.AssertAPIErrorStatus(t, err, http.StatusInternalServerError)
 				if !apiErr.IsServerError() {
 					t.Error("expected IsServerError() to return true")
@@ -90,26 +106,30 @@ func TestDoJSON(t *testing.T) {
 		},
 		{
 			name: "transport error",
-			setupOpts: func() RequestOptions {
+			setupOpts: func() Options {
 				mt := &testutils.MockTransport{
 					Err: errors.New("network down"),
 				}
-				return NewRequestOptions().WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) })
+
+				return NewOptions().WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) })
 			},
 			method:  http.MethodGet,
 			path:    "/test",
 			reqBody: req{},
 			wantErr: true,
 			validateErr: func(t *testing.T, err error) {
+				t.Helper()
 				require.Error(t, err)
 				testutils.AssertSDKErrorKind(t, err, internalErrors.SDKErrorKindTransport)
 			},
 		},
 		{
 			name: "invalid JSON response",
-			setupOpts: func() RequestOptions {
-				return NewRequestOptions().WithHTTPClientFactory(func() http.Client {
-					return testutils.NewMockHTTPClient(testutils.NewJSONMockTransport(http.StatusOK, `{not valid json}`, nil))
+			setupOpts: func() Options {
+				return NewOptions().WithHTTPClientFactory(func() http.Client {
+					return testutils.NewMockHTTPClient(
+						testutils.NewJSONMockTransport(http.StatusOK, `{not valid json}`, nil),
+					)
 				})
 			},
 			method:  http.MethodGet,
@@ -117,15 +137,18 @@ func TestDoJSON(t *testing.T) {
 			reqBody: req{},
 			wantErr: true,
 			validateErr: func(t *testing.T, err error) {
+				t.Helper()
 				require.Error(t, err)
 				testutils.AssertSDKErrorKind(t, err, internalErrors.SDKErrorKindSerialization)
 			},
 		},
 		{
 			name: "empty response body",
-			setupOpts: func() RequestOptions {
-				return NewRequestOptions().WithHTTPClientFactory(func() http.Client {
-					return testutils.NewMockHTTPClient(testutils.NewJSONMockTransport(http.StatusOK, ``, nil))
+			setupOpts: func() Options {
+				return NewOptions().WithHTTPClientFactory(func() http.Client {
+					return testutils.NewMockHTTPClient(
+						testutils.NewJSONMockTransport(http.StatusOK, ``, nil),
+					)
 				})
 			},
 			method:  http.MethodGet,
@@ -133,15 +156,22 @@ func TestDoJSON(t *testing.T) {
 			reqBody: req{},
 			wantErr: true,
 			validateErr: func(t *testing.T, err error) {
+				t.Helper()
 				testutils.AssertSDKErrorKind(t, err, internalErrors.SDKErrorKindSerialization)
 			},
 		},
 		{
 			name: "response body too large",
-			setupOpts: func() RequestOptions {
-				large := `{"generated_text":"` + strings.Repeat("a", int(DefaultMaxResponseBodyBytes)) + `"}`
-				return NewRequestOptions().WithHTTPClientFactory(func() http.Client {
-					return testutils.NewMockHTTPClient(testutils.NewJSONMockTransport(http.StatusOK, large, nil))
+			setupOpts: func() Options {
+				large := `{"generated_text":"` + strings.Repeat(
+					"a",
+					int(DefaultMaxResponseBodyBytes),
+				) + `"}`
+
+				return NewOptions().WithHTTPClientFactory(func() http.Client {
+					return testutils.NewMockHTTPClient(
+						testutils.NewJSONMockTransport(http.StatusOK, large, nil),
+					)
 				})
 			},
 			method:  http.MethodGet,
@@ -149,15 +179,22 @@ func TestDoJSON(t *testing.T) {
 			reqBody: req{},
 			wantErr: true,
 			validateErr: func(t *testing.T, err error) {
+				t.Helper()
 				testutils.AssertSDKErrorKind(t, err, internalErrors.SDKErrorKindConfiguration)
 			},
 		},
 		{
 			name: "custom response limit allows larger body",
-			setupOpts: func() RequestOptions {
-				large := `{"generated_text":"` + strings.Repeat("a", int(DefaultMaxResponseBodyBytes)) + `"}`
-				return NewRequestOptions().WithHTTPClientFactory(func() http.Client {
-					return testutils.NewMockHTTPClient(testutils.NewJSONMockTransport(http.StatusOK, large, nil))
+			setupOpts: func() Options {
+				large := `{"generated_text":"` + strings.Repeat(
+					"a",
+					int(DefaultMaxResponseBodyBytes),
+				) + `"}`
+
+				return NewOptions().WithHTTPClientFactory(func() http.Client {
+					return testutils.NewMockHTTPClient(
+						testutils.NewJSONMockTransport(http.StatusOK, large, nil),
+					)
 				}).WithMaxResponseBodyBytes(DefaultMaxResponseBodyBytes + 64)
 			},
 			method:  http.MethodGet,
@@ -170,9 +207,11 @@ func TestDoJSON(t *testing.T) {
 		},
 		{
 			name: "sets Content-Type header",
-			setupOpts: func() RequestOptions {
-				return NewRequestOptions().WithHTTPClientFactory(func() http.Client {
-					return testutils.NewMockHTTPClient(testutils.NewJSONMockTransport(http.StatusOK, `{}`, nil))
+			setupOpts: func() Options {
+				return NewOptions().WithHTTPClientFactory(func() http.Client {
+					return testutils.NewMockHTTPClient(
+						testutils.NewJSONMockTransport(http.StatusOK, `{}`, nil),
+					)
 				})
 			},
 			method:  http.MethodPost,
@@ -180,6 +219,7 @@ func TestDoJSON(t *testing.T) {
 			reqBody: req{},
 			wantErr: false,
 			validateReq: func(t *testing.T, req *http.Request) {
+				t.Helper()
 				if got := req.Header.Get("Content-Type"); got != "application/json" {
 					t.Errorf("expected Content-Type 'application/json', got %q", got)
 				}
@@ -187,10 +227,13 @@ func TestDoJSON(t *testing.T) {
 		},
 		{
 			name: "rejects non-JSON Content-Type override",
-			setupOpts: func() RequestOptions {
-				opts := NewRequestOptions().WithHeader("Content-Type", "text/plain")
+			setupOpts: func() Options {
+				opts := NewOptions().WithHeader("Content-Type", "text/plain")
+
 				return opts.WithHTTPClientFactory(func() http.Client {
-					return testutils.NewMockHTTPClient(testutils.NewJSONMockTransport(http.StatusOK, `{}`, nil))
+					return testutils.NewMockHTTPClient(
+						testutils.NewJSONMockTransport(http.StatusOK, `{}`, nil),
+					)
 				})
 			},
 			method:  http.MethodPost,
@@ -198,15 +241,19 @@ func TestDoJSON(t *testing.T) {
 			reqBody: req{},
 			wantErr: true,
 			validateErr: func(t *testing.T, err error) {
+				t.Helper()
 				testutils.AssertSDKErrorKind(t, err, internalErrors.SDKErrorKindConfiguration)
 			},
 		},
 		{
 			name: "fills empty Content-Type override",
-			setupOpts: func() RequestOptions {
-				opts := NewRequestOptions().WithHeader("Content-Type", "")
+			setupOpts: func() Options {
+				opts := NewOptions().WithHeader("Content-Type", "")
+
 				return opts.WithHTTPClientFactory(func() http.Client {
-					return testutils.NewMockHTTPClient(testutils.NewJSONMockTransport(http.StatusOK, `{}`, nil))
+					return testutils.NewMockHTTPClient(
+						testutils.NewJSONMockTransport(http.StatusOK, `{}`, nil),
+					)
 				})
 			},
 			method:  http.MethodPost,
@@ -214,6 +261,7 @@ func TestDoJSON(t *testing.T) {
 			reqBody: req{},
 			wantErr: false,
 			validateReq: func(t *testing.T, req *http.Request) {
+				t.Helper()
 				if got := req.Header.Get("Content-Type"); got != "application/json" {
 					t.Errorf("expected Content-Type 'application/json', got %q", got)
 				}
@@ -221,9 +269,11 @@ func TestDoJSON(t *testing.T) {
 		},
 		{
 			name: "returns zero value on error",
-			setupOpts: func() RequestOptions {
-				return NewRequestOptions().WithHTTPClientFactory(func() http.Client {
-					return testutils.NewMockHTTPClient(testutils.NewMockTransport(http.StatusInternalServerError, `boom`, nil))
+			setupOpts: func() Options {
+				return NewOptions().WithHTTPClientFactory(func() http.Client {
+					return testutils.NewMockHTTPClient(
+						testutils.NewMockTransport(http.StatusInternalServerError, `boom`, nil),
+					)
 				})
 			},
 			method:   http.MethodGet,
@@ -234,9 +284,11 @@ func TestDoJSON(t *testing.T) {
 		},
 		{
 			name: "sets Accept header",
-			setupOpts: func() RequestOptions {
-				return NewRequestOptions().WithHTTPClientFactory(func() http.Client {
-					return testutils.NewMockHTTPClient(testutils.NewJSONMockTransport(http.StatusOK, `{}`, nil))
+			setupOpts: func() Options {
+				return NewOptions().WithHTTPClientFactory(func() http.Client {
+					return testutils.NewMockHTTPClient(
+						testutils.NewJSONMockTransport(http.StatusOK, `{}`, nil),
+					)
 				})
 			},
 			method:  http.MethodPost,
@@ -244,6 +296,7 @@ func TestDoJSON(t *testing.T) {
 			reqBody: req{},
 			wantErr: false,
 			validateReq: func(t *testing.T, req *http.Request) {
+				t.Helper()
 				if got := req.Header.Get("Accept"); got != "application/json" {
 					t.Errorf("expected Accept 'application/json', got %q", got)
 				}
@@ -251,9 +304,10 @@ func TestDoJSON(t *testing.T) {
 		},
 		{
 			name: "allows missing response Content-Type",
-			setupOpts: func() RequestOptions {
+			setupOpts: func() Options {
 				mt := testutils.NewMockTransport(http.StatusOK, `{}`, nil)
-				return NewRequestOptions().WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) })
+
+				return NewOptions().WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) })
 			},
 			method:   http.MethodGet,
 			path:     "/test",
@@ -263,31 +317,35 @@ func TestDoJSON(t *testing.T) {
 		},
 		{
 			name: "errors on non-JSON response Content-Type",
-			setupOpts: func() RequestOptions {
+			setupOpts: func() Options {
 				mt := testutils.NewMockTransport(http.StatusOK, `{}`, nil)
 				mt.Response.Header.Set("Content-Type", "text/plain")
-				return NewRequestOptions().WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) })
+
+				return NewOptions().WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) })
 			},
 			method:  http.MethodGet,
 			path:    "/test",
 			reqBody: req{},
 			wantErr: true,
 			validateErr: func(t *testing.T, err error) {
+				t.Helper()
 				testutils.AssertSDKErrorKind(t, err, internalErrors.SDKErrorKindSerialization)
 			},
 		},
 		{
 			name: "errors on invalid response Content-Type syntax",
-			setupOpts: func() RequestOptions {
+			setupOpts: func() Options {
 				mt := testutils.NewMockTransport(http.StatusOK, `{}`, nil)
 				mt.Response.Header.Set("Content-Type", "application/json; charset")
-				return NewRequestOptions().WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) })
+
+				return NewOptions().WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) })
 			},
 			method:  http.MethodGet,
 			path:    "/test",
 			reqBody: req{},
 			wantErr: true,
 			validateErr: func(t *testing.T, err error) {
+				t.Helper()
 				var sdkErr *internalErrors.SDKError
 				if !errors.As(err, &sdkErr) {
 					t.Fatalf("expected SDKError, got %T", err)
@@ -299,10 +357,11 @@ func TestDoJSON(t *testing.T) {
 		},
 		{
 			name: "accepts +json response Content-Type",
-			setupOpts: func() RequestOptions {
+			setupOpts: func() Options {
 				mt := testutils.NewMockTransport(http.StatusOK, `{"generated_text":"hello"}`, nil)
 				mt.Response.Header.Set("Content-Type", "application/problem+json")
-				return NewRequestOptions().WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) })
+
+				return NewOptions().WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) })
 			},
 			method:  http.MethodGet,
 			path:    "/test",
@@ -314,9 +373,11 @@ func TestDoJSON(t *testing.T) {
 		},
 		{
 			name: "returns zero value on 204 No Content",
-			setupOpts: func() RequestOptions {
-				return NewRequestOptions().WithHTTPClientFactory(func() http.Client {
-					return testutils.NewMockHTTPClient(testutils.NewMockTransport(http.StatusNoContent, ``, nil))
+			setupOpts: func() Options {
+				return NewOptions().WithHTTPClientFactory(func() http.Client {
+					return testutils.NewMockHTTPClient(
+						testutils.NewMockTransport(http.StatusNoContent, ``, nil),
+					)
 				})
 			},
 			method:   http.MethodGet,
@@ -327,9 +388,11 @@ func TestDoJSON(t *testing.T) {
 		},
 		{
 			name: "returns zero value on 205 Reset Content",
-			setupOpts: func() RequestOptions {
-				return NewRequestOptions().WithHTTPClientFactory(func() http.Client {
-					return testutils.NewMockHTTPClient(testutils.NewMockTransport(http.StatusResetContent, ``, nil))
+			setupOpts: func() Options {
+				return NewOptions().WithHTTPClientFactory(func() http.Client {
+					return testutils.NewMockHTTPClient(
+						testutils.NewMockTransport(http.StatusResetContent, ``, nil),
+					)
 				})
 			},
 			method:   http.MethodGet,
@@ -340,7 +403,7 @@ func TestDoJSON(t *testing.T) {
 		},
 		{
 			name: "drains response on size error",
-			setupOpts: func() RequestOptions {
+			setupOpts: func() Options {
 				data := strings.Repeat("a", 16)
 				tracker := &testutils.ReadTracker{Data: []byte(data)}
 				mt := &testutils.MockTransport{
@@ -351,7 +414,8 @@ func TestDoJSON(t *testing.T) {
 					},
 				}
 				mt.Response.Header.Set("Content-Type", "application/json")
-				return NewRequestOptions().WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }).
+
+				return NewOptions().WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }).
 					WithMaxResponseBodyBytes(4)
 			},
 			method:  http.MethodGet,
@@ -359,12 +423,17 @@ func TestDoJSON(t *testing.T) {
 			reqBody: req{},
 			wantErr: true,
 			validateTransport: func(t *testing.T, mt *testutils.MockTransport) {
+				t.Helper()
 				tracker, ok := mt.Response.Body.(*testutils.ReadTracker)
 				if !ok {
 					t.Fatal("expected readTracker body")
 				}
 				if tracker.ReadBytes != len(tracker.Data) {
-					t.Fatalf("expected body to be drained, read %d bytes, want %d", tracker.ReadBytes, len(tracker.Data))
+					t.Fatalf(
+						"expected body to be drained, read %d bytes, want %d",
+						tracker.ReadBytes,
+						len(tracker.Data),
+					)
 				}
 				if !tracker.Closed {
 					t.Fatal("expected response body to be closed")
@@ -406,7 +475,8 @@ func TestDoJSON(t *testing.T) {
 				if opts.HTTPClient == nil {
 					t.Fatal("expected http client")
 				}
-				if mt, ok := opts.HTTPClient.Transport.(*testutils.MockTransport); ok && mt.LastRequest != nil {
+				if mt, ok := opts.HTTPClient.Transport.(*testutils.MockTransport); ok &&
+					mt.LastRequest != nil {
 					tt.validateReq(t, mt.LastRequest)
 				}
 			}
@@ -440,7 +510,7 @@ func TestDoJSONStream_Success(t *testing.T) {
 	mt := testutils.NewMockTransport(http.StatusOK, body, nil)
 	mt.Response.Header.Set("Content-Type", "text/event-stream")
 
-	opts := NewRequestOptions().
+	opts := NewOptions().
 		WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) })
 
 	stream, err := DoJSONStream[req, chunk](opts, http.MethodPost, "/stream", req{Prompt: "hi"})
@@ -470,7 +540,7 @@ func TestDoJSONStream_InvalidContentType(t *testing.T) {
 	t.Parallel()
 
 	mt := testutils.NewJSONMockTransport(http.StatusOK, "{}", nil)
-	opts := NewRequestOptions().
+	opts := NewOptions().
 		WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) })
 
 	stream, err := DoJSONStream[struct{}, struct{}](opts, http.MethodGet, "/stream", struct{}{})
@@ -485,7 +555,7 @@ func TestJSONStream_InvalidChunk(t *testing.T) {
 	mt := testutils.NewMockTransport(http.StatusOK, body, nil)
 	mt.Response.Header.Set("Content-Type", "text/event-stream")
 
-	opts := NewRequestOptions().
+	opts := NewOptions().
 		WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) })
 
 	stream, err := DoJSONStream[struct{}, struct{}](opts, http.MethodPost, "/stream", struct{}{})
@@ -502,7 +572,7 @@ func TestDoJSONStream_APIError(t *testing.T) {
 	mt := testutils.NewMockTransport(http.StatusUnauthorized, "unauthorized", nil)
 	mt.Response.Header.Set("Content-Type", "text/event-stream")
 
-	opts := NewRequestOptions().
+	opts := NewOptions().
 		WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) })
 
 	stream, err := DoJSONStream[struct{}, struct{}](opts, http.MethodPost, "/stream", struct{}{})
@@ -517,7 +587,7 @@ func TestJSONStream_RecvNilContext(t *testing.T) {
 	mt := testutils.NewMockTransport(http.StatusOK, body, nil)
 	mt.Response.Header.Set("Content-Type", "text/event-stream")
 
-	opts := NewRequestOptions().
+	opts := NewOptions().
 		WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) })
 
 	stream, err := DoJSONStream[struct{}, struct {
@@ -526,7 +596,7 @@ func TestJSONStream_RecvNilContext(t *testing.T) {
 	require.NoError(t, err)
 	defer func() { _ = stream.Close() }()
 
-	chunk, err := stream.Recv(nil)
+	chunk, err := stream.Recv(testutils.NilContext())
 	require.NoError(t, err)
 	require.Equal(t, "hello", chunk.Text)
 }
@@ -535,7 +605,7 @@ func TestDoJSON_MarshalError(t *testing.T) {
 	t.Parallel()
 
 	// This test is separate because it uses an unmarshalable type
-	opts := NewRequestOptions()
+	opts := NewOptions()
 
 	// Channels cannot be marshaled to JSON
 	type badReq struct {
@@ -573,7 +643,7 @@ func (configurationReq) MarshalJSON() ([]byte, error) {
 func TestDoJSON_MarshalConfigurationError(t *testing.T) {
 	t.Parallel()
 
-	opts := NewRequestOptions()
+	opts := NewOptions()
 
 	_, err := DoJSON[configurationReq, struct{}](
 		opts,

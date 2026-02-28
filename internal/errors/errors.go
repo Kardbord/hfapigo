@@ -31,8 +31,14 @@ type APIError struct {
 // Error implements the error interface for APIError.
 func (e *APIError) Error() string {
 	if e.RequestID != "" {
-		return fmt.Sprintf("hf api error (%d): %s [request_id: %s]", e.StatusCode, e.Message, e.RequestID)
+		return fmt.Sprintf(
+			"hf api error (%d): %s [request_id: %s]",
+			e.StatusCode,
+			e.Message,
+			e.RequestID,
+		)
 	}
+
 	return fmt.Sprintf("hf api error (%d): %s", e.StatusCode, e.Message)
 }
 
@@ -101,6 +107,7 @@ func (e *SDKError) Error() string {
 	if e.Message != "" {
 		return fmt.Sprintf("sdk error (%s): %s", e.Kind, e.Message)
 	}
+
 	return fmt.Sprintf("sdk error (%s)", e.Kind)
 }
 
@@ -109,5 +116,6 @@ func (e *SDKError) Unwrap() error {
 	if e == nil {
 		return nil
 	}
+
 	return e.Err
 }

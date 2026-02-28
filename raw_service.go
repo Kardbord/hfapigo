@@ -12,11 +12,11 @@ import (
 
 // RawService sends raw HTTP requests using the configured request options.
 type RawService struct {
-	opts request.RequestOptions
+	opts request.Options
 }
 
 // newRawService builds a raw service with a snapshot of the provided options.
-func newRawService(opts request.RequestOptions) RawService {
+func newRawService(opts request.Options) RawService {
 	return RawService{opts: opts}
 }
 
@@ -26,7 +26,7 @@ func (r RawService) Do(
 	requestBody []byte,
 	method string,
 	path string,
-	opts ...RequestOption,
+	opts ...Option,
 ) (*http.Response, error) {
 	return r.DoReader(bytes.NewReader(requestBody), method, path, opts...)
 }
@@ -37,7 +37,7 @@ func (r RawService) DoRaw(
 	requestBody []byte,
 	method string,
 	path string,
-	opts ...RequestOption,
+	opts ...Option,
 ) (*http.Response, error) {
 	return r.DoRawReader(bytes.NewReader(requestBody), method, path, opts...)
 }
@@ -48,7 +48,7 @@ func (r RawService) DoReader(
 	requestBody io.Reader,
 	method string,
 	path string,
-	opts ...RequestOption,
+	opts ...Option,
 ) (*http.Response, error) {
 	return request.Do(
 		r.opts.With(opts...),
@@ -64,7 +64,7 @@ func (r RawService) DoRawReader(
 	requestBody io.Reader,
 	method string,
 	path string,
-	opts ...RequestOption,
+	opts ...Option,
 ) (*http.Response, error) {
 	return request.DoRaw(
 		r.opts.With(opts...),
@@ -80,7 +80,7 @@ func (r RawService) Stream(
 	requestBody []byte,
 	method string,
 	path string,
-	opts ...RequestOption,
+	opts ...Option,
 ) (*RawStream, error) {
 	return r.StreamReader(bytes.NewReader(requestBody), method, path, opts...)
 }
@@ -91,7 +91,7 @@ func (r RawService) StreamReader(
 	requestBody io.Reader,
 	method string,
 	path string,
-	opts ...RequestOption,
+	opts ...Option,
 ) (*RawStream, error) {
 	resp, err := request.Do(
 		r.opts.With(opts...),
@@ -103,10 +103,7 @@ func (r RawService) StreamReader(
 		return nil, err
 	}
 
-	ctx := resp.Request.Context()
-	if ctx == nil {
-		ctx = context.Background()
-	}
+	ctx := request.NormalizeContext(resp.Request.Context())
 
 	raw, err := request.StreamRaw(ctx, resp.Body)
 	if err != nil {
@@ -126,7 +123,7 @@ func (r RawService) StreamRaw(
 	requestBody []byte,
 	method string,
 	path string,
-	opts ...RequestOption,
+	opts ...Option,
 ) (*RawStream, error) {
 	return r.StreamRawReader(bytes.NewReader(requestBody), method, path, opts...)
 }
@@ -139,7 +136,7 @@ func (r RawService) StreamRawReader(
 	requestBody io.Reader,
 	method string,
 	path string,
-	opts ...RequestOption,
+	opts ...Option,
 ) (*RawStream, error) {
 	resp, err := request.DoRaw(
 		r.opts.With(opts...),
@@ -151,10 +148,7 @@ func (r RawService) StreamRawReader(
 		return nil, err
 	}
 
-	ctx := resp.Request.Context()
-	if ctx == nil {
-		ctx = context.Background()
-	}
+	ctx := request.NormalizeContext(resp.Request.Context())
 
 	raw, err := request.StreamRaw(ctx, resp.Body)
 	if err != nil {

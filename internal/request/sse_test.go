@@ -9,6 +9,7 @@ import (
 	"time"
 
 	internalerrors "github.com/Kardbord/hfapigo/v4/internal/errors"
+	"github.com/Kardbord/hfapigo/v4/internal/testutils"
 )
 
 func TestStreamRaw_BasicEvents(t *testing.T) {
@@ -23,6 +24,7 @@ func TestStreamRaw_BasicEvents(t *testing.T) {
 			name:    "single event",
 			payload: "data: hello\n\n",
 			validate: func(t *testing.T, ev RawEvent) {
+				t.Helper()
 				if string(ev.Data) != "hello" {
 					t.Fatalf("unexpected data: %q", string(ev.Data))
 				}
@@ -32,6 +34,7 @@ func TestStreamRaw_BasicEvents(t *testing.T) {
 			name:    "multi line event",
 			payload: "data: foo\ndata: bar\n\n",
 			validate: func(t *testing.T, ev RawEvent) {
+				t.Helper()
 				if string(ev.Data) != "foo\nbar" {
 					t.Fatalf("unexpected data: %q", string(ev.Data))
 				}
@@ -41,6 +44,7 @@ func TestStreamRaw_BasicEvents(t *testing.T) {
 			name:    "metadata event",
 			payload: "event: chunk\nid: 42\nretry: 1000\ndata: hi\n\n",
 			validate: func(t *testing.T, ev RawEvent) {
+				t.Helper()
 				if ev.Event != "chunk" || ev.ID != "42" {
 					t.Fatalf("unexpected metadata: %+v", ev)
 				}
@@ -143,14 +147,14 @@ func TestStreamRaw_Errors(t *testing.T) {
 		t.Parallel()
 
 		body := io.NopCloser(strings.NewReader("data: hi\n\n"))
-		stream, err := StreamRaw(nil, body)
+		stream, err := StreamRaw(testutils.NilContext(), body)
 		if err != nil {
 			t.Fatalf("StreamRaw: %v", err)
 		}
 		defer func() { _ = stream.Close() }()
 
 		// Passing nil context should fall back to context.Background and still succeed.
-		ev, err := stream.Recv(nil)
+		ev, err := stream.Recv(testutils.NilContext())
 		if err != nil {
 			t.Fatalf("Recv with nil context: %v", err)
 		}
@@ -162,6 +166,7 @@ func TestStreamRaw_Errors(t *testing.T) {
 
 type errorReadCloser struct {
 	io.Reader
+
 	Err error
 }
 

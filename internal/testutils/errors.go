@@ -32,5 +32,6 @@ func AssertAPIErrorStatus(t *testing.T, err error, want int) *internalErrors.API
 	if apiErr.StatusCode != want {
 		t.Fatalf("expected status %d, got %d", want, apiErr.StatusCode)
 	}
+
 	return apiErr
 }

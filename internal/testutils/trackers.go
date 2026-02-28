@@ -18,6 +18,7 @@ func (c *CloseTracker) Read([]byte) (int, error) {
 // Close marks the tracker as closed.
 func (c *CloseTracker) Close() error {
 	c.Closed = true
+
 	return nil
 }
 
@@ -37,12 +38,14 @@ func (r *ReadTracker) Read(p []byte) (int, error) {
 	n := copy(p, r.Data[r.Offset:])
 	r.Offset += n
 	r.ReadBytes += n
+
 	return n, nil
 }
 
 // Close marks the tracker as closed.
 func (r *ReadTracker) Close() error {
 	r.Closed = true
+
 	return nil
 }
 

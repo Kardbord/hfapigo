@@ -50,7 +50,7 @@ func TestChatService_Complete_ModelSelection(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			mt := testutils.NewJSONMockTransport(http.StatusOK, chatServiceResponseBody, nil)
-			opts := request.NewRequestOptions().
+			opts := request.NewOptions().
 				WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }).
 				WithModel(tc.clientModel)
 			svc := newChatService(opts)
@@ -104,7 +104,7 @@ func TestChatService_Complete_ModelValidation(t *testing.T) {
 	t.Parallel()
 
 	mt := testutils.NewJSONMockTransport(http.StatusOK, chatServiceResponseBody, nil)
-	opts := request.NewRequestOptions().
+	opts := request.NewOptions().
 		WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) })
 	svc := newChatService(opts)
 
@@ -127,7 +127,7 @@ func TestChatService_Complete_NilRequest(t *testing.T) {
 	t.Parallel()
 
 	mt := testutils.NewJSONMockTransport(http.StatusOK, chatServiceResponseBody, nil)
-	opts := request.NewRequestOptions().
+	opts := request.NewOptions().
 		WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) })
 	svc := newChatService(opts)
 
@@ -143,7 +143,7 @@ func TestChatService_Complete_StreamNotAllowed(t *testing.T) {
 	t.Parallel()
 
 	mt := testutils.NewJSONMockTransport(http.StatusOK, chatServiceResponseBody, nil)
-	opts := request.NewRequestOptions().
+	opts := request.NewOptions().
 		WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) })
 	svc := newChatService(opts)
 
@@ -172,7 +172,7 @@ func TestChatService_CompleteStream_Success(t *testing.T) {
 	mt := testutils.NewMockTransport(http.StatusOK, body, nil)
 	mt.Response.Header.Set("Content-Type", "text/event-stream")
 
-	opts := request.NewRequestOptions().
+	opts := request.NewOptions().
 		WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }).
 		WithModel("default-model")
 	svc := newChatService(opts)
@@ -219,7 +219,7 @@ func TestChatService_CompleteStream_NilRequest(t *testing.T) {
 
 	mt := testutils.NewMockTransport(http.StatusOK, "", nil)
 	mt.Response.Header.Set("Content-Type", "text/event-stream")
-	opts := request.NewRequestOptions().
+	opts := request.NewOptions().
 		WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) })
 	svc := newChatService(opts)
 

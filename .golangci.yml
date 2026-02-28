@@ -63,6 +63,19 @@ linters:
           - gocognit
           - goconst
           - gocyclo
+          - maintidx
+          - varnamelen
+      - path: internal/testutils/.*\.go
+        linters:
+          - bodyclose
+          - canonicalheader
+          - cyclop
+          - errcheck
+          - exhaustruct
+          - gocognit
+          - goconst
+          - gocyclo
+          - maintidx
           - varnamelen
       # Run some linter only for test files by excluding its issues for everything else.
       - path-except: _test\.go
@@ -76,6 +89,11 @@ linters:
           - lll
         source: "^//go:generate "
   settings:
+    ireturn:
+      allow:
+        - error
+        - generic
+        - stdlib
     gocritic:
       # Enable all checks.
       # Default: false

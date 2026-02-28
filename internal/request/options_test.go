@@ -11,22 +11,23 @@ import (
 	"github.com/Kardbord/hfapigo/v4/internal/version"
 )
 
-func TestRequestOptions_With(t *testing.T) {
+func TestOptions_With(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
 		name     string
-		initial  RequestOptions
-		options  []RequestOption
-		validate func(t *testing.T, orig, updated RequestOptions)
+		initial  Options
+		options  []Option
+		validate func(t *testing.T, orig, updated Options)
 	}{
 		{
 			name:    "is immutable",
-			initial: NewRequestOptions(),
-			options: []RequestOption{
+			initial: NewOptions(),
+			options: []Option{
 				WithToken("secret"),
 			},
-			validate: func(t *testing.T, orig, updated RequestOptions) {
+			validate: func(t *testing.T, orig, updated Options) {
+				t.Helper()
 				if orig.Token != "" {
 					t.Errorf("expected original Token to be empty, got %q", orig.Token)
 				}
@@ -37,12 +38,13 @@ func TestRequestOptions_With(t *testing.T) {
 		},
 		{
 			name:    "duplicate options - last wins",
-			initial: NewRequestOptions(),
-			options: []RequestOption{
+			initial: NewOptions(),
+			options: []Option{
 				WithToken("first"),
 				WithToken("second"),
 			},
-			validate: func(t *testing.T, orig, updated RequestOptions) {
+			validate: func(t *testing.T, _ Options, updated Options) {
+				t.Helper()
 				if updated.Token != "second" {
 					t.Errorf("expected last option to win, got %q", updated.Token)
 				}
@@ -50,14 +52,15 @@ func TestRequestOptions_With(t *testing.T) {
 		},
 		{
 			name:    "multiple fields",
-			initial: NewRequestOptions(),
-			options: []RequestOption{
+			initial: NewOptions(),
+			options: []Option{
 				WithToken("token123"),
 				WithModel("llama-3"),
 				WithProvider("aws"),
 				WithUserAgent("myapp/1.2.3"),
 			},
-			validate: func(t *testing.T, orig, updated RequestOptions) {
+			validate: func(t *testing.T, _ Options, updated Options) {
+				t.Helper()
 				if updated.Token != "token123" {
 					t.Errorf("expected Token 'token123', got %q", updated.Token)
 				}
@@ -74,12 +77,13 @@ func TestRequestOptions_With(t *testing.T) {
 		},
 		{
 			name:    "user agent suffix uses default when base is empty",
-			initial: NewRequestOptions(),
-			options: []RequestOption{
+			initial: NewOptions(),
+			options: []Option{
 				WithUserAgent(""),
 				WithUserAgentSuffix("custom/1.0"),
 			},
-			validate: func(t *testing.T, orig, updated RequestOptions) {
+			validate: func(t *testing.T, _ Options, updated Options) {
+				t.Helper()
 				want := version.UserAgent() + " custom/1.0"
 				if updated.UserAgent != want {
 					t.Errorf("expected UserAgent %q, got %q", want, updated.UserAgent)
@@ -88,12 +92,13 @@ func TestRequestOptions_With(t *testing.T) {
 		},
 		{
 			name:    "user agent suffix uses existing base",
-			initial: NewRequestOptions(),
-			options: []RequestOption{
+			initial: NewOptions(),
+			options: []Option{
 				WithUserAgent("myapp/2.0"),
 				WithUserAgentSuffix("custom/1.0"),
 			},
-			validate: func(t *testing.T, orig, updated RequestOptions) {
+			validate: func(t *testing.T, _ Options, updated Options) {
+				t.Helper()
 				want := "myapp/2.0 custom/1.0"
 				if updated.UserAgent != want {
 					t.Errorf("expected UserAgent %q, got %q", want, updated.UserAgent)
@@ -102,13 +107,16 @@ func TestRequestOptions_With(t *testing.T) {
 		},
 		{
 			name:    "http client factory replaces default client",
-			initial: NewRequestOptions(),
-			options: []RequestOption{
+			initial: NewOptions(),
+			options: []Option{
 				WithHTTPClientFactory(func() http.Client {
-					return testutils.NewMockHTTPClient(testutils.NewMockTransport(http.StatusOK, `{}`, nil))
+					return testutils.NewMockHTTPClient(
+						testutils.NewMockTransport(http.StatusOK, `{}`, nil),
+					)
 				}),
 			},
-			validate: func(t *testing.T, orig, updated RequestOptions) {
+			validate: func(t *testing.T, orig, updated Options) {
+				t.Helper()
 				if orig.HTTPClient == nil || updated.HTTPClient == nil {
 					t.Fatal("expected http clients to be set")
 				}
@@ -122,13 +130,16 @@ func TestRequestOptions_With(t *testing.T) {
 		},
 		{
 			name: "default http client resets custom client",
-			initial: NewRequestOptions().WithHTTPClientFactory(func() http.Client {
-				return testutils.NewMockHTTPClient(testutils.NewMockTransport(http.StatusOK, `{}`, nil))
+			initial: NewOptions().WithHTTPClientFactory(func() http.Client {
+				return testutils.NewMockHTTPClient(
+					testutils.NewMockTransport(http.StatusOK, `{}`, nil),
+				)
 			}),
-			options: []RequestOption{
+			options: []Option{
 				WithDefaultHTTPClient(),
 			},
-			validate: func(t *testing.T, orig, updated RequestOptions) {
+			validate: func(t *testing.T, orig, updated Options) {
+				t.Helper()
 				if orig.HTTPClient == nil || updated.HTTPClient == nil {
 					t.Fatal("expected http clients to be set")
 				}
@@ -142,7 +153,8 @@ func TestRequestOptions_With(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			orig := tt.initial
 			updated := orig.With(tt.options...)
@@ -154,13 +166,13 @@ func TestRequestOptions_With(t *testing.T) {
 	}
 }
 
-func TestRequestOptions_WithHelpers(t *testing.T) {
+func TestOptions_WithHelpers(t *testing.T) {
 	t.Parallel()
 
-	ctx := context.WithValue(context.Background(), struct{}{}, "ok")
+	ctx := context.Background()
 	mt := testutils.NewMockTransport(http.StatusOK, `{}`, nil)
 
-	opts := NewRequestOptions().
+	opts := NewOptions().
 		WithBaseURL("https://example.com").
 		WithToken("token").
 		WithModel("model").
@@ -184,7 +196,7 @@ func TestRequestOptions_WithHelpers(t *testing.T) {
 	if opts.Provider != "provider" {
 		t.Errorf("expected Provider to be set, got %q", opts.Provider)
 	}
-	if opts.Ctx != ctx {
+	if opts.Context() != ctx {
 		t.Error("expected context to be set")
 	}
 	if opts.MaxResponseBodyBytes != 42 {
@@ -198,7 +210,7 @@ func TestRequestOptions_WithHelpers(t *testing.T) {
 func TestWithUserAgentSuffix(t *testing.T) {
 	t.Parallel()
 
-	opts := NewRequestOptions().WithUserAgentSuffix("custom/1.0")
+	opts := NewOptions().WithUserAgentSuffix("custom/1.0")
 	want := version.UserAgent() + " custom/1.0"
 	if opts.UserAgent != want {
 		t.Errorf("expected UserAgent %q, got %q", want, opts.UserAgent)
@@ -209,7 +221,7 @@ func TestWithUserAgentSuffix_Empty(t *testing.T) {
 	t.Parallel()
 
 	t.Run("default user agent unchanged", func(t *testing.T) {
-		opts := NewRequestOptions().WithUserAgentSuffix("")
+		opts := NewOptions().WithUserAgentSuffix("")
 		want := version.UserAgent()
 		if opts.UserAgent != want {
 			t.Errorf("expected UserAgent %q, got %q", want, opts.UserAgent)
@@ -217,7 +229,7 @@ func TestWithUserAgentSuffix_Empty(t *testing.T) {
 	})
 
 	t.Run("empty base remains empty", func(t *testing.T) {
-		opts := NewRequestOptions().WithUserAgent("").WithUserAgentSuffix("")
+		opts := NewOptions().WithUserAgent("").WithUserAgentSuffix("")
 		if opts.UserAgent != "" {
 			t.Errorf("expected empty UserAgent, got %q", opts.UserAgent)
 		}
@@ -228,7 +240,7 @@ func TestWithHeaders_CopiesMap(t *testing.T) {
 	t.Parallel()
 
 	headers := http.Header{"X-Test": []string{"one"}}
-	opts := NewRequestOptions().WithHeaders(headers)
+	opts := NewOptions().WithHeaders(headers)
 	headers.Set("X-Test", "two")
 
 	if opts.Headers == nil || opts.Headers.Get("X-Test") != "one" {
@@ -236,72 +248,72 @@ func TestWithHeaders_CopiesMap(t *testing.T) {
 	}
 }
 
-func TestRequestOptions_DefensiveHeaderClone(t *testing.T) {
+func TestOptions_DefensiveHeaderClone(t *testing.T) {
 	t.Parallel()
 
 	mt := testutils.NewMockTransport(http.StatusOK, `{}`, nil)
 
 	tests := []struct {
 		name  string
-		apply func(RequestOptions) RequestOptions
+		apply func(Options) Options
 	}{
 		{
 			name: "With",
-			apply: func(opts RequestOptions) RequestOptions {
+			apply: func(opts Options) Options {
 				return opts.With(WithToken("token"))
 			},
 		},
 		{
 			name: "WithBaseURL",
-			apply: func(opts RequestOptions) RequestOptions {
+			apply: func(opts Options) Options {
 				return opts.WithBaseURL("https://example.com")
 			},
 		},
 		{
 			name: "WithToken",
-			apply: func(opts RequestOptions) RequestOptions {
+			apply: func(opts Options) Options {
 				return opts.WithToken("token")
 			},
 		},
 		{
 			name: "WithModel",
-			apply: func(opts RequestOptions) RequestOptions {
+			apply: func(opts Options) Options {
 				return opts.WithModel("model")
 			},
 		},
 		{
 			name: "WithProvider",
-			apply: func(opts RequestOptions) RequestOptions {
+			apply: func(opts Options) Options {
 				return opts.WithProvider("provider")
 			},
 		},
 		{
 			name: "WithUserAgent",
-			apply: func(opts RequestOptions) RequestOptions {
+			apply: func(opts Options) Options {
 				return opts.WithUserAgent("ua/1.0")
 			},
 		},
 		{
 			name: "WithUserAgentSuffix",
-			apply: func(opts RequestOptions) RequestOptions {
+			apply: func(opts Options) Options {
 				return opts.WithUserAgentSuffix("custom/1.0")
 			},
 		},
 		{
 			name: "WithMaxResponseBodyBytes",
-			apply: func(opts RequestOptions) RequestOptions {
+			apply: func(opts Options) Options {
 				return opts.WithMaxResponseBodyBytes(42)
 			},
 		},
 		{
 			name: "WithContext",
-			apply: func(opts RequestOptions) RequestOptions {
+			apply: func(opts Options) Options {
 				return opts.WithContext(context.Background())
 			},
 		},
 		{
 			name: "WithHTTPClientFactory",
-			apply: func(opts RequestOptions) RequestOptions {
+			apply: func(opts Options) Options {
 				return opts.WithHTTPClientFactory(func() http.Client {
 					return testutils.NewMockHTTPClient(mt)
 				})
@@ -309,19 +321,19 @@ func TestRequestOptions_DefensiveHeaderClone(t *testing.T) {
 		},
 		{
 			name: "WithHeaders",
-			apply: func(opts RequestOptions) RequestOptions {
+			apply: func(opts Options) Options {
 				return opts.WithHeaders(http.Header{"X-Other": []string{"value"}})
 			},
 		},
 		{
 			name: "WithHeader",
-			apply: func(opts RequestOptions) RequestOptions {
+			apply: func(opts Options) Options {
 				return opts.WithHeader("X-Other", "value")
 			},
 		},
 		{
 			name: "WithDefaultHeader",
-			apply: func(opts RequestOptions) RequestOptions {
+			apply: func(opts Options) Options {
 				return opts.WithDefaultHeader("X-Test", "default")
 			},
 		},
@@ -329,7 +341,7 @@ func TestRequestOptions_DefensiveHeaderClone(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			orig := NewRequestOptions().WithHeader("X-Test", "one")
+			orig := NewOptions().WithHeader("X-Test", "one")
 			derived := tt.apply(orig)
 
 			orig.Headers.Set("X-Test", "two")
@@ -348,7 +360,7 @@ func TestRequestOptions_DefensiveHeaderClone(t *testing.T) {
 func TestWithHeaders_CanonicalizesAndOverrides(t *testing.T) {
 	t.Parallel()
 
-	opts := NewRequestOptions().
+	opts := NewOptions().
 		WithHeaders(http.Header{"x-test": []string{"one"}}).
 		WithHeader("X-TEST", "two")
 
@@ -365,7 +377,7 @@ func TestWithHeaders_CanonicalizesAndOverrides(t *testing.T) {
 func TestWithDefaultHeader_CaseInsensitiveAndEmpty(t *testing.T) {
 	t.Parallel()
 
-	opts := NewRequestOptions().
+	opts := NewOptions().
 		WithHeader("x-test", "").
 		WithDefaultHeader("X-Test", "default")
 
@@ -379,24 +391,26 @@ func TestWithDefaultHeader_CaseInsensitiveAndEmpty(t *testing.T) {
 	}
 }
 
-func TestNewRequestOptions(t *testing.T) {
+func TestNewOptions(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
 		name     string
-		validate func(t *testing.T, opts RequestOptions)
+		validate func(t *testing.T, opts Options)
 	}{
 		{
 			name: "has default context",
-			validate: func(t *testing.T, opts RequestOptions) {
-				if opts.Ctx == nil {
+			validate: func(t *testing.T, opts Options) {
+				t.Helper()
+				if opts.Context() == nil {
 					t.Error("expected default context, got nil")
 				}
 			},
 		},
 		{
 			name: "has default BaseURL",
-			validate: func(t *testing.T, opts RequestOptions) {
+			validate: func(t *testing.T, opts Options) {
+				t.Helper()
 				if opts.BaseURL != DefaultBaseURL {
 					t.Errorf("expected BaseURL %q, got %q", DefaultBaseURL, opts.BaseURL)
 				}
@@ -404,7 +418,8 @@ func TestNewRequestOptions(t *testing.T) {
 		},
 		{
 			name: "has default Token",
-			validate: func(t *testing.T, opts RequestOptions) {
+			validate: func(t *testing.T, opts Options) {
+				t.Helper()
 				if opts.Token != DefaultToken {
 					t.Errorf("expected Token %q, got %q", DefaultToken, opts.Token)
 				}
@@ -412,7 +427,8 @@ func TestNewRequestOptions(t *testing.T) {
 		},
 		{
 			name: "has default Model",
-			validate: func(t *testing.T, opts RequestOptions) {
+			validate: func(t *testing.T, opts Options) {
+				t.Helper()
 				if opts.Model != DefaultModel {
 					t.Errorf("expected Model %q, got %q", DefaultModel, opts.Model)
 				}
@@ -420,7 +436,8 @@ func TestNewRequestOptions(t *testing.T) {
 		},
 		{
 			name: "has default Provider",
-			validate: func(t *testing.T, opts RequestOptions) {
+			validate: func(t *testing.T, opts Options) {
+				t.Helper()
 				if opts.Provider != DefaultProvider {
 					t.Errorf("expected Provider %q, got %q", DefaultProvider, opts.Provider)
 				}
@@ -428,7 +445,8 @@ func TestNewRequestOptions(t *testing.T) {
 		},
 		{
 			name: "has default UserAgent",
-			validate: func(t *testing.T, opts RequestOptions) {
+			validate: func(t *testing.T, opts Options) {
+				t.Helper()
 				if opts.UserAgent != version.UserAgent() {
 					t.Errorf("expected UserAgent %q, got %q", version.UserAgent(), opts.UserAgent)
 				}
@@ -436,7 +454,8 @@ func TestNewRequestOptions(t *testing.T) {
 		},
 		{
 			name: "has default headers",
-			validate: func(t *testing.T, opts RequestOptions) {
+			validate: func(t *testing.T, opts Options) {
+				t.Helper()
 				if opts.Headers != nil {
 					t.Errorf("expected default headers to be nil, got %#v", opts.Headers)
 				}
@@ -444,7 +463,8 @@ func TestNewRequestOptions(t *testing.T) {
 		},
 		{
 			name: "has default HTTP client",
-			validate: func(t *testing.T, opts RequestOptions) {
+			validate: func(t *testing.T, opts Options) {
+				t.Helper()
 				if opts.HTTPClient == nil {
 					t.Error("expected default http client, got nil")
 				}
@@ -452,9 +472,14 @@ func TestNewRequestOptions(t *testing.T) {
 		},
 		{
 			name: "has default max response body size",
-			validate: func(t *testing.T, opts RequestOptions) {
+			validate: func(t *testing.T, opts Options) {
+				t.Helper()
 				if opts.MaxResponseBodyBytes != DefaultMaxResponseBodyBytes {
-					t.Errorf("expected %d max response body bytes, got %d", DefaultMaxResponseBodyBytes, opts.MaxResponseBodyBytes)
+					t.Errorf(
+						"expected %d max response body bytes, got %d",
+						DefaultMaxResponseBodyBytes,
+						opts.MaxResponseBodyBytes,
+					)
 				}
 			},
 		},
@@ -462,7 +487,7 @@ func TestNewRequestOptions(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			opts := NewRequestOptions()
+			opts := NewOptions()
 			if tt.validate != nil {
 				tt.validate(t, opts)
 			}
@@ -470,59 +495,60 @@ func TestNewRequestOptions(t *testing.T) {
 	}
 }
 
-func TestRequestOptions_Validate(t *testing.T) {
+func TestOptions_Validate(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
 		name    string
-		opts    RequestOptions
+		opts    Options
 		wantErr bool
 		kind    internalErrors.SDKErrorKind
 	}{
 		{
 			name:    "valid options",
-			opts:    NewRequestOptions(),
+			opts:    NewOptions(),
 			wantErr: false,
 		},
 		{
 			name:    "nil http client",
-			opts:    NewRequestOptions().WithHTTPClientFactory(nil),
+			opts:    NewOptions().WithHTTPClientFactory(nil),
 			wantErr: true,
 			kind:    internalErrors.SDKErrorKindConfiguration,
 		},
 		{
 			name:    "invalid base URL",
-			opts:    NewRequestOptions().WithBaseURL("http://[::1"),
+			opts:    NewOptions().WithBaseURL("http://[::1"),
 			wantErr: true,
 			kind:    internalErrors.SDKErrorKindConfiguration,
 		},
 		{
 			name:    "base URL missing scheme",
-			opts:    NewRequestOptions().WithBaseURL("example.com/api"),
+			opts:    NewOptions().WithBaseURL("example.com/api"),
 			wantErr: true,
 			kind:    internalErrors.SDKErrorKindConfiguration,
 		},
 		{
 			name:    "base URL missing host",
-			opts:    NewRequestOptions().WithBaseURL("https:///api"),
+			opts:    NewOptions().WithBaseURL("https:///api"),
 			wantErr: true,
 			kind:    internalErrors.SDKErrorKindConfiguration,
 		},
 		{
 			name:    "base URL with query",
-			opts:    NewRequestOptions().WithBaseURL("https://example.com/api?token=abc"),
+			opts:    NewOptions().WithBaseURL("https://example.com/api?token=abc"),
 			wantErr: true,
 			kind:    internalErrors.SDKErrorKindConfiguration,
 		},
 		{
 			name:    "base URL with fragment",
-			opts:    NewRequestOptions().WithBaseURL("https://example.com/api#section"),
+			opts:    NewOptions().WithBaseURL("https://example.com/api#section"),
 			wantErr: true,
 			kind:    internalErrors.SDKErrorKindConfiguration,
 		},
 	}
 
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			err := tt.opts.Validate()
 			if (err != nil) != tt.wantErr {

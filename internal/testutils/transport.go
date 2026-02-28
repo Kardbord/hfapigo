@@ -14,25 +14,6 @@ type MockTransport struct {
 	Err         error
 }
 
-// RoundTrip executes a mock HTTP request, storing the request for inspection and returning
-// the predefined response and error. It respects context cancellation.
-func (m *MockTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	m.LastRequest = req
-
-	select {
-	case <-req.Context().Done():
-		return nil, req.Context().Err()
-	default:
-	}
-
-	return m.Response, m.Err
-}
-
-// NewMockHTTPClient returns an http.Client that uses the provided mock transport.
-func NewMockHTTPClient(mt *MockTransport) http.Client {
-	return http.Client{Transport: mt}
-}
-
 // NewMockTransport creates a new mock transport with the specified response status,
 // body, and error. This is useful for testing HTTP request handling without making
 // actual network calls.
@@ -51,5 +32,25 @@ func NewMockTransport(respStatus int, respBody string, err error) *MockTransport
 func NewJSONMockTransport(respStatus int, respBody string, err error) *MockTransport {
 	mt := NewMockTransport(respStatus, respBody, err)
 	mt.Response.Header.Set("Content-Type", "application/json")
+
 	return mt
+}
+
+// RoundTrip executes a mock HTTP request, storing the request for inspection and returning
+// the predefined response and error. It respects context cancellation.
+func (m *MockTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	m.LastRequest = req
+
+	select {
+	case <-req.Context().Done():
+		return nil, req.Context().Err()
+	default:
+	}
+
+	return m.Response, m.Err
+}
+
+// NewMockHTTPClient returns an http.Client that uses the provided mock transport.
+func NewMockHTTPClient(mt *MockTransport) http.Client {
+	return http.Client{Transport: mt}
 }

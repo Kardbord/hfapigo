@@ -12,16 +12,16 @@ const EndpointChatCompletion = "/v1/chat/completions"
 
 // ChatService implements chat completion calls using the configured request options.
 type ChatService struct {
-	opts request.RequestOptions
+	opts request.Options
 }
 
 // newChatService builds a chat service with a snapshot of the provided options.
-func newChatService(opts request.RequestOptions) ChatService {
+func newChatService(opts request.Options) ChatService {
 	return ChatService{opts: opts}
 }
 
 // Complete sends a chat completion request and returns a chat completion response.
-func (s ChatService) Complete(req *ChatRequest, opts ...RequestOption) (ChatResponse, error) {
+func (s ChatService) Complete(req *ChatRequest, opts ...Option) (ChatResponse, error) {
 	if req == nil {
 		return ChatResponse{}, &SDKError{
 			Kind:    SDKErrorKindConfiguration,
@@ -58,7 +58,7 @@ func (s ChatService) Complete(req *ChatRequest, opts ...RequestOption) (ChatResp
 // CompleteStream sends a chat completion request and returns a streaming response.
 // Callers should Close the returned ChatStream when finished so the underlying HTTP
 // connection and decoder goroutine are released promptly.
-func (s ChatService) CompleteStream(req *ChatRequest, opts ...RequestOption) (*ChatStream, error) {
+func (s ChatService) CompleteStream(req *ChatRequest, opts ...Option) (*ChatStream, error) {
 	if req == nil {
 		return nil, &SDKError{
 			Kind:    SDKErrorKindConfiguration,

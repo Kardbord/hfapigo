@@ -11,15 +11,15 @@ import (
 // or ensure their own synchronization.
 // Services capture a snapshot of these options when created.
 type Client struct {
-	opts request.RequestOptions
+	opts request.Options
 }
 
 // NewClient creates a new Client instance with the provided request options.
 // If no options are provided, default options will be used.
 // Clients are immutable; to change options, create a new Client to keep calls deterministic.
-func NewClient(opts ...RequestOption) Client {
+func NewClient(opts ...Option) Client {
 	return Client{
-		opts: request.NewRequestOptions().With(opts...),
+		opts: request.NewOptions().With(opts...),
 	}
 }
 

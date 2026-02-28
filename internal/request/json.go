@@ -13,6 +13,11 @@ import (
 	"github.com/Kardbord/hfapigo/v4/internal/errors"
 )
 
+const (
+	mimeApplicationJSON = "application/json"
+	mimeEventStream     = "text/event-stream"
+)
+
 // DoJSON performs an HTTP request with a JSON request body and expects a JSON response.
 // It marshals the request body to JSON, sends the request, and unmarshals the response
 // into the specified response type. The function uses Go generics to provide type-safe
@@ -25,13 +30,14 @@ import (
 // Returns an error if JSON marshaling/unmarshaling fails or the HTTP request fails.
 // For HTTP errors, Do returns an *errors.APIError which includes the status code,
 // response body, and other metadata.
+//
+//nolint:bodyclose // drainAndCloseBody closes the response body.
 func DoJSON[TReq any, TResp any](
-	opts RequestOptions,
+	opts Options,
 	method string,
 	path string,
 	reqBody TReq,
 ) (TResp, error) {
-
 	var zero TResp
 
 	buf, err := marshalJSONRequestBody(reqBody)
@@ -39,21 +45,22 @@ func DoJSON[TReq any, TResp any](
 		return zero, err
 	}
 
-	opts, err = prepareJSONRequestOptions(opts, "application/json")
+	opts, err = prepareJSONOptions(opts, mimeApplicationJSON)
 	if err != nil {
 		return zero, err
 	}
 
-	resp, err := DoBytes(
-		opts,
-		method,
-		path,
-		buf,
-	)
+	resp, err := DoBytes(opts, method, path, buf)
 	if err != nil {
 		return zero, err
 	}
 	defer drainAndCloseBody(resp.Body)
+
+	return decodeJSONResponse[TResp](resp, opts.MaxResponseBodyBytes)
+}
+
+func decodeJSONResponse[T any](resp *http.Response, maxResponseBodyBytes int64) (T, error) {
+	var zero T
 
 	if resp.StatusCode == http.StatusNoContent || resp.StatusCode == http.StatusResetContent {
 		return zero, nil
@@ -62,8 +69,7 @@ func DoJSON[TReq any, TResp any](
 		return zero, err
 	}
 
-	var out TResp
-	body, err := readResponseBodyLimited(resp.Body, opts.MaxResponseBodyBytes)
+	body, err := readResponseBodyLimited(resp.Body, maxResponseBodyBytes)
 	if err != nil {
 		return zero, err
 	}
@@ -71,15 +77,20 @@ func DoJSON[TReq any, TResp any](
 		return zero, &errors.SDKError{
 			Kind:    errors.SDKErrorKindSerialization,
 			Message: "empty response body",
+			Err:     nil,
 		}
 	}
+
+	var out T
 	if err := json.Unmarshal(body, &out); err != nil {
 		if stderrors.Is(err, io.EOF) {
 			return zero, &errors.SDKError{
 				Kind:    errors.SDKErrorKindSerialization,
 				Message: "empty response body",
+				Err:     err,
 			}
 		}
+
 		return zero, &errors.SDKError{
 			Kind:    errors.SDKErrorKindSerialization,
 			Message: "failed to decode response body",
@@ -94,7 +105,7 @@ func DoJSON[TReq any, TResp any](
 // The response body must be a Server-Sent Events (SSE) stream where each data chunk contains JSON.
 // Callers are responsible for closing the returned stream to release resources.
 func DoJSONStream[TReq any, TResp any](
-	opts RequestOptions,
+	opts Options,
 	method string,
 	path string,
 	reqBody TReq,
@@ -104,7 +115,7 @@ func DoJSONStream[TReq any, TResp any](
 		return nil, err
 	}
 
-	opts, err = prepareJSONRequestOptions(opts, "text/event-stream")
+	opts, err = prepareJSONOptions(opts, mimeEventStream)
 	if err != nil {
 		return nil, err
 	}
@@ -121,17 +132,14 @@ func DoJSONStream[TReq any, TResp any](
 
 	if err := validateEventStreamResponseContentType(resp.Header); err != nil {
 		_ = resp.Body.Close()
+
 		return nil, err
 	}
 
-	ctx := opts.Ctx
-	if ctx == nil {
-		ctx = context.Background()
-	}
-
-	raw, err := StreamRaw(ctx, resp.Body)
+	raw, err := StreamRaw(opts.Context(), resp.Body)
 	if err != nil {
 		_ = resp.Body.Close()
+
 		return nil, err
 	}
 
@@ -151,6 +159,7 @@ func (s *JSONStream[T]) Recv(ctx context.Context) (T, error) {
 		return zero, &errors.SDKError{
 			Kind:    errors.SDKErrorKindInternal,
 			Message: "json stream is nil",
+			Err:     nil,
 		}
 	}
 
@@ -165,6 +174,7 @@ func (s *JSONStream[T]) Recv(ctx context.Context) (T, error) {
 		}
 		if bytes.Equal(data, []byte("[DONE]")) {
 			_ = s.raw.Close()
+
 			return zero, io.EOF
 		}
 		var out T
@@ -186,6 +196,7 @@ func (s *JSONStream[T]) Close() error {
 		return &errors.SDKError{
 			Kind:    errors.SDKErrorKindInternal,
 			Message: "json stream is nil",
+			Err:     nil,
 		}
 	}
 
@@ -193,7 +204,7 @@ func (s *JSONStream[T]) Close() error {
 }
 
 // ensureHeader returns a copy of headers with a default value set when missing or empty.
-func ensureHeader(h http.Header, key string, value string) http.Header {
+func ensureHeader(h http.Header, key, value string) http.Header {
 	out := cloneHeader(h)
 	if out == nil {
 		out = make(http.Header, 1)
@@ -201,16 +212,17 @@ func ensureHeader(h http.Header, key string, value string) http.Header {
 	if v := out.Get(key); v == "" {
 		out.Set(key, value)
 	}
+
 	return out
 }
 
 // validateJSONRequestContentType validates that Content-Type is application/json when provided.
 func validateJSONRequestContentType(headers http.Header) error {
-	ct := headers.Get("Content-Type")
-	if ct == "" {
+	contentType := headers.Get("Content-Type")
+	if contentType == "" {
 		return nil
 	}
-	mediatype, _, err := mime.ParseMediaType(ct)
+	mediatype, _, err := mime.ParseMediaType(contentType)
 	if err != nil {
 		return &errors.SDKError{
 			Kind:    errors.SDKErrorKindConfiguration,
@@ -218,22 +230,24 @@ func validateJSONRequestContentType(headers http.Header) error {
 			Err:     err,
 		}
 	}
-	if mediatype != "application/json" {
+	if mediatype != mimeApplicationJSON {
 		return &errors.SDKError{
 			Kind:    errors.SDKErrorKindConfiguration,
 			Message: "Content-Type must be application/json for DoJSON requests",
+			Err:     nil,
 		}
 	}
+
 	return nil
 }
 
 // validateJSONResponseContentType validates that the response Content-Type indicates JSON.
 func validateJSONResponseContentType(headers http.Header) error {
-	ct := headers.Get("Content-Type")
-	if ct == "" {
+	contentType := headers.Get("Content-Type")
+	if contentType == "" {
 		return nil
 	}
-	mediatype, _, err := mime.ParseMediaType(ct)
+	mediatype, _, err := mime.ParseMediaType(contentType)
 	if err != nil {
 		return &errors.SDKError{
 			Kind:    errors.SDKErrorKindSerialization,
@@ -245,21 +259,24 @@ func validateJSONResponseContentType(headers http.Header) error {
 		return &errors.SDKError{
 			Kind:    errors.SDKErrorKindSerialization,
 			Message: "response Content-Type must be application/json",
+			Err:     nil,
 		}
 	}
+
 	return nil
 }
 
 // validateEventStreamResponseContentType ensures the response advertises text/event-stream.
 func validateEventStreamResponseContentType(headers http.Header) error {
-	ct := headers.Get("Content-Type")
-	if ct == "" {
+	contentType := headers.Get("Content-Type")
+	if contentType == "" {
 		return &errors.SDKError{
 			Kind:    errors.SDKErrorKindSerialization,
 			Message: "response Content-Type must be text/event-stream",
+			Err:     nil,
 		}
 	}
-	mediatype, _, err := mime.ParseMediaType(ct)
+	mediatype, _, err := mime.ParseMediaType(contentType)
 	if err != nil {
 		return &errors.SDKError{
 			Kind:    errors.SDKErrorKindSerialization,
@@ -267,12 +284,14 @@ func validateEventStreamResponseContentType(headers http.Header) error {
 			Err:     err,
 		}
 	}
-	if mediatype != "text/event-stream" {
+	if mediatype != mimeEventStream {
 		return &errors.SDKError{
 			Kind:    errors.SDKErrorKindSerialization,
 			Message: "response Content-Type must be text/event-stream",
+			Err:     nil,
 		}
 	}
+
 	return nil
 }
 
@@ -284,6 +303,7 @@ func marshalJSONRequestBody(payload any) ([]byte, error) {
 		if stderrors.As(err, &sdkErr) {
 			return nil, sdkErr
 		}
+
 		return nil, &errors.SDKError{
 			Kind:    errors.SDKErrorKindSerialization,
 			Message: "failed to marshal request body",
@@ -294,12 +314,12 @@ func marshalJSONRequestBody(payload any) ([]byte, error) {
 	return buf, nil
 }
 
-// prepareJSONRequestOptions sets standard headers and validates Content-Type for JSON requests.
-func prepareJSONRequestOptions(opts RequestOptions, accept string) (RequestOptions, error) {
-	opts = opts.WithDefaultHeader("Content-Type", "application/json")
+// prepareJSONOptions sets standard headers and validates Content-Type for JSON requests.
+func prepareJSONOptions(opts Options, accept string) (Options, error) {
+	opts = opts.WithDefaultHeader("Content-Type", mimeApplicationJSON)
 	opts = opts.WithDefaultHeader("Accept", accept)
 	if err := validateJSONRequestContentType(opts.Headers); err != nil {
-		return RequestOptions{}, err
+		return Options{}, err
 	}
 
 	return opts, nil
@@ -307,8 +327,9 @@ func prepareJSONRequestOptions(opts RequestOptions, accept string) (RequestOptio
 
 // isJSONMediaType reports whether the media type is JSON or a +json subtype.
 func isJSONMediaType(mediatype string) bool {
-	if mediatype == "application/json" {
+	if mediatype == mimeApplicationJSON {
 		return true
 	}
+
 	return strings.HasSuffix(mediatype, "+json")
 }

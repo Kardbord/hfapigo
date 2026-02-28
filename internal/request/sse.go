@@ -58,21 +58,22 @@ func StreamRaw(ctx context.Context, body io.ReadCloser) (*RawStream, error) {
 		return nil, &internalerrors.SDKError{
 			Kind:    internalerrors.SDKErrorKindConfiguration,
 			Message: "sse: body is nil",
+			Err:     nil,
 		}
 	}
 
-	if ctx == nil {
-		ctx = context.Background()
-	}
-	ctx, cancel := context.WithCancel(ctx)
+	ctx, cancel := context.WithCancel(NormalizeContext(ctx))
 	// Buffered with size 1 so the decoder goroutine can enqueue a single event or
 	// error without blocking, while still applying backpressure once the caller
 	// falls behind (preventing unbounded buffering).
 	results := make(chan rawResult, 1)
 	stream := &RawStream{
-		results: results,
-		cancel:  cancel,
-		body:    body,
+		results:    results,
+		cancel:     cancel,
+		body:       body,
+		bodyOnce:   sync.Once{},
+		closeOnce:  sync.Once{},
+		closeError: nil,
 	}
 
 	go stream.run(ctx, results)
@@ -87,13 +88,13 @@ func (s *RawStream) Recv(ctx context.Context) (RawEvent, error) {
 		return RawEvent{}, &internalerrors.SDKError{
 			Kind:    internalerrors.SDKErrorKindInternal,
 			Message: "sse: stream is nil",
+			Err:     nil,
 		}
 	}
 
+	ctx = NormalizeContext(ctx)
+
 	for {
-		if ctx == nil {
-			ctx = context.Background()
-		}
 		select {
 		case <-ctx.Done():
 			return RawEvent{}, ctx.Err()
@@ -116,6 +117,7 @@ func (s *RawStream) Close() error {
 		return &internalerrors.SDKError{
 			Kind:    internalerrors.SDKErrorKindInternal,
 			Message: "sse: stream is nil",
+			Err:     nil,
 		}
 	}
 
@@ -123,7 +125,11 @@ func (s *RawStream) Close() error {
 		s.cancel()
 		s.bodyOnce.Do(func() {
 			if err := s.body.Close(); err != nil {
-				s.closeError = wrapStreamError(err, internalerrors.SDKErrorKindTransport, "close stream body")
+				s.closeError = wrapStreamError(
+					err,
+					internalerrors.SDKErrorKindTransport,
+					"close stream body",
+				)
 			}
 		})
 	})
@@ -135,14 +141,20 @@ func (s *RawStream) Close() error {
 // data or errors onto the results channel.
 func (s *RawStream) run(ctx context.Context, results chan<- rawResult) {
 	defer close(results)
-	defer s.Close()
+	defer func() { _ = s.Close() }()
 
 	reader := bufio.NewReader(s.body)
-	state := &sseState{}
+	state := &sseState{
+		data:      bytes.Buffer{},
+		eventType: "",
+		eventID:   "",
+		retrySet:  false,
+		retry:     0,
+	}
 
 	for {
 		line, err := reader.ReadString('\n')
-		hasData := len(line) > 0
+		hasData := line != ""
 		if hasData {
 			line = strings.TrimRight(line, "\r\n")
 			state.handleLine(line, results)
@@ -151,6 +163,7 @@ func (s *RawStream) run(ctx context.Context, results chan<- rawResult) {
 		if err != nil {
 			if stderrs.Is(err, io.EOF) {
 				state.emit(results)
+
 				return
 			}
 			if ctxErr := ctx.Err(); ctxErr != nil {
@@ -158,23 +171,33 @@ func (s *RawStream) run(ctx context.Context, results chan<- rawResult) {
 			}
 			// Any data parsed before the error has already been emitted, so
 			// callers just observe the terminal error once they drain the queue.
-			results <- rawResult{err: wrapStreamError(err, internalerrors.SDKErrorKindTransport, "read sse line")}
+			results <- rawResult{
+				event: RawEvent{
+					Data:  nil,
+					Event: "",
+					ID:    "",
+					Retry: nil,
+				},
+				err: wrapStreamError(err, internalerrors.SDKErrorKindTransport, "read sse line"),
+			}
 
 			return
 		}
 	}
 }
 
-// parseSSEField splits an SSE line into its field/value components while
-// trimming the optional leading space defined by the spec.
-func parseSSEField(line string) (field string, value string) {
-	parts := strings.SplitN(line, ":", 2)
-	field = parts[0]
+func parseSSEField(line string) (string, string) {
+	// parseSSEField splits an SSE line into its field/value components while
+	// trimming the optional leading space defined by the spec.
+	const sseFieldSplitParts = 2
+
+	parts := strings.SplitN(line, ":", sseFieldSplitParts)
+	field := parts[0]
 	if len(parts) == 1 {
 		return field, ""
 	}
-	value = parts[1]
-	if len(value) > 0 && value[0] == ' ' {
+	value := parts[1]
+	if value != "" && value[0] == ' ' {
 		value = value[1:]
 	}
 
@@ -258,6 +281,7 @@ func (s *sseState) emit(results chan<- rawResult) {
 			ID:    s.eventID,
 			Retry: retryPtr,
 		},
+		err: nil,
 	}
 
 	s.reset()

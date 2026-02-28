@@ -124,7 +124,12 @@ func TestAPIError_IsAuthenticationError(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := &APIError{StatusCode: tt.statusCode}
-			assert.Equal(t, tt.want, err.IsAuthenticationError(), "APIError.IsAuthenticationError()")
+			assert.Equal(
+				t,
+				tt.want,
+				err.IsAuthenticationError(),
+				"APIError.IsAuthenticationError()",
+			)
 		})
 	}
 }
@@ -193,8 +198,18 @@ func TestSDKError_Error(t *testing.T) {
 				assert.Contains(t, got, tt.err.Message, "Error() should mention message")
 			}
 			if tt.err.Err != nil {
-				assert.Contains(t, got, tt.err.Err.Error(), "Error() should mention underlying error")
-				assert.ErrorIs(t, tt.err, tt.err.Err, "expected errors.Is to match underlying error")
+				assert.Contains(
+					t,
+					got,
+					tt.err.Err.Error(),
+					"Error() should mention underlying error",
+				)
+				assert.ErrorIs(
+					t,
+					tt.err,
+					tt.err.Err,
+					"expected errors.Is to match underlying error",
+				)
 			}
 		})
 	}

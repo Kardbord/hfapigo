@@ -2,7 +2,6 @@ package request
 
 import (
 	"bytes"
-	"context"
 	stderrors "errors"
 	"fmt"
 	"io"
@@ -18,7 +17,7 @@ import (
 // For HTTP status codes >= 400, it returns an *errors.APIError.
 // The caller must close resp.Body on success.
 func Do(
-	opts RequestOptions,
+	opts Options,
 	method string,
 	path string,
 	body io.Reader,
@@ -28,17 +27,21 @@ func Do(
 		return nil, err
 	}
 
-	if resp.StatusCode >= 400 {
+	if resp.StatusCode >= http.StatusBadRequest {
 		if resp.Body == nil || resp.Body == http.NoBody {
 			return nil, &errors.APIError{
 				StatusCode: resp.StatusCode,
 				Message:    "error response body is missing",
+				Body:       nil,
 				Method:     method,
 				URL:        resp.Request.URL.String(),
 				RequestID:  resp.Header.Get("X-Request-ID"),
 			}
 		}
-		b, truncated, readErr := readResponseBodyTruncated(resp.Body, opts.MaxResponseBodyBytes)
+		bodyBytes, truncated, readErr := readResponseBodyTruncated(
+			resp.Body,
+			opts.MaxResponseBodyBytes,
+		)
 		if resp.Body != nil {
 			drainAndCloseBody(resp.Body)
 		}
@@ -49,14 +52,15 @@ func Do(
 				Err:     readErr,
 			}
 		}
-		msg := string(b)
+		msg := string(bodyBytes)
 		if truncated {
-			msg = msg + " [truncated]"
+			msg += " [truncated]"
 		}
+
 		return nil, &errors.APIError{
 			StatusCode: resp.StatusCode,
 			Message:    msg,
-			Body:       b,
+			Body:       bodyBytes,
 			Method:     method,
 			URL:        resp.Request.URL.String(),
 			RequestID:  resp.Header.Get("X-Request-ID"),
@@ -70,7 +74,7 @@ func Do(
 // without translating non-2xx status codes into SDK errors.
 // The caller must close resp.Body on success.
 func DoRaw(
-	opts RequestOptions,
+	opts Options,
 	method string,
 	path string,
 	body io.Reader,
@@ -79,10 +83,16 @@ func DoRaw(
 		return nil, err
 	}
 
-	ctx := opts.Ctx
-	if ctx == nil {
-		ctx = context.Background()
+	req, err := buildHTTPRequest(opts, method, path, body)
+	if err != nil {
+		return nil, err
 	}
+
+	return executeRequest(opts.HTTPClient, req)
+}
+
+func buildHTTPRequest(opts Options, method, path string, body io.Reader) (*http.Request, error) {
+	ctx := opts.Context()
 
 	reqURL, err := joinURL(opts.BaseURL, path)
 	if err != nil {
@@ -90,18 +100,15 @@ func DoRaw(
 		if stderrors.As(err, &sdkErr) {
 			return nil, sdkErr
 		}
+
 		return nil, &errors.SDKError{
 			Kind:    errors.SDKErrorKindConfiguration,
 			Message: fmt.Sprintf("failed to join base URL %q with path %q", opts.BaseURL, path),
 			Err:     err,
 		}
 	}
-	req, err := http.NewRequestWithContext(
-		ctx,
-		method,
-		reqURL,
-		body,
-	)
+
+	req, err := http.NewRequestWithContext(ctx, method, reqURL, body)
 	if err != nil {
 		return nil, &errors.SDKError{
 			Kind:    errors.SDKErrorKindInternal,
@@ -110,22 +117,25 @@ func DoRaw(
 		}
 	}
 
-	// Set standard headers
 	if opts.UserAgent != "" {
 		req.Header.Set("User-Agent", opts.UserAgent)
 	}
 	if opts.Token != "" {
 		req.Header.Set("Authorization", "Bearer "+opts.Token)
 	}
-
-	// Set custom headers (can override defaults if needed).
 	req.Header = overrideHeaders(req.Header, opts.Headers)
 
-	resp, err := opts.HTTPClient.Do(req)
+	return req, nil
+}
+
+func executeRequest(client *http.Client, req *http.Request) (*http.Response, error) {
+	//nolint:gosec // Callers control the endpoint; client.Do respects provided options.
+	resp, err := client.Do(req)
 	if err != nil {
 		if resp != nil && resp.Body != nil {
 			_ = resp.Body.Close()
 		}
+
 		return nil, &errors.SDKError{
 			Kind:    errors.SDKErrorKindTransport,
 			Message: "request failed",
@@ -136,6 +146,7 @@ func DoRaw(
 		return nil, &errors.SDKError{
 			Kind:    errors.SDKErrorKindTransport,
 			Message: "http client returned nil response without error",
+			Err:     nil,
 		}
 	}
 
@@ -150,7 +161,7 @@ func DoRaw(
 }
 
 // joinURL combines a base URL with a relative path while preserving query and fragment.
-func joinURL(baseURL string, path string) (string, error) {
+func joinURL(baseURL, path string) (string, error) {
 	if path == "" {
 		return baseURL, nil
 	}
@@ -166,14 +177,19 @@ func joinURL(baseURL string, path string) (string, error) {
 		return "", &errors.SDKError{
 			Kind:    errors.SDKErrorKindConfiguration,
 			Message: fmt.Sprintf("path must be relative, got %q", path),
+			Err:     nil,
 		}
 	}
 	joined, err := url.JoinPath(baseURL, parsedPath.Path)
 	if err != nil {
 		return "", &errors.SDKError{
-			Kind:    errors.SDKErrorKindConfiguration,
-			Message: fmt.Sprintf("failed to join base URL %q with path %q", baseURL, parsedPath.Path),
-			Err:     err,
+			Kind: errors.SDKErrorKindConfiguration,
+			Message: fmt.Sprintf(
+				"failed to join base URL %q with path %q",
+				baseURL,
+				parsedPath.Path,
+			),
+			Err: err,
 		}
 	}
 	joinedURL, err := url.Parse(joined)
@@ -186,6 +202,7 @@ func joinURL(baseURL string, path string) (string, error) {
 	}
 	joinedURL.RawQuery = parsedPath.RawQuery
 	joinedURL.Fragment = parsedPath.Fragment
+
 	return joinedURL.String(), nil
 }
 
@@ -193,7 +210,7 @@ func joinURL(baseURL string, path string) (string, error) {
 // It is a convenience wrapper around Do that converts the byte slice to an io.Reader.
 // The caller must close resp.Body on success.
 func DoBytes(
-	opts RequestOptions,
+	opts Options,
 	method string,
 	path string,
 	data []byte,
@@ -206,7 +223,7 @@ func DoBytes(
 // It is a convenience wrapper around DoRaw that converts the byte slice to an io.Reader.
 // The caller must close resp.Body on success.
 func DoBytesRaw(
-	opts RequestOptions,
+	opts Options,
 	method string,
 	path string,
 	data []byte,
@@ -215,8 +232,8 @@ func DoBytesRaw(
 }
 
 // readResponseBodyLimited reads up to maxBytes and returns an error if the body is larger.
-func readResponseBodyLimited(r io.Reader, maxBytes int64) ([]byte, error) {
-	b, truncated, err := readResponseBodyTruncated(r, maxBytes)
+func readResponseBodyLimited(reader io.Reader, maxBytes int64) ([]byte, error) {
+	bodyBytes, truncated, err := readResponseBodyTruncated(reader, maxBytes)
 	if err != nil {
 		return nil, err
 	}
@@ -224,27 +241,30 @@ func readResponseBodyLimited(r io.Reader, maxBytes int64) ([]byte, error) {
 		return nil, &errors.SDKError{
 			Kind:    errors.SDKErrorKindConfiguration,
 			Message: fmt.Sprintf("response body exceeds max size (limit %d bytes)", maxBytes),
+			Err:     nil,
 		}
 	}
-	return b, nil
+
+	return bodyBytes, nil
 }
 
 // readResponseBodyTruncated reads up to maxBytes and reports if truncation occurred.
-func readResponseBodyTruncated(r io.Reader, maxBytes int64) ([]byte, bool, error) {
+func readResponseBodyTruncated(reader io.Reader, maxBytes int64) ([]byte, bool, error) {
 	if maxBytes <= 0 {
 		maxBytes = DefaultMaxResponseBodyBytes
 	}
 	// LimitReader doesn't error on overflow; it just stops at the limit and returns EOF.
 	// Read one extra byte so we can detect truncation by checking len(b) > maxBytes.
-	limitReader := io.LimitReader(r, maxBytes+1)
-	b, err := io.ReadAll(limitReader)
+	limitReader := io.LimitReader(reader, maxBytes+1)
+	bodyBytes, err := io.ReadAll(limitReader)
 	if err != nil {
 		return nil, false, err
 	}
-	if int64(len(b)) > maxBytes {
-		return b[:maxBytes], true, nil
+	if int64(len(bodyBytes)) > maxBytes {
+		return bodyBytes[:maxBytes], true, nil
 	}
-	return b, false, nil
+
+	return bodyBytes, false, nil
 }
 
 // drainAndCloseBody drains any remaining data and closes the body.
