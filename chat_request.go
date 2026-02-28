@@ -2,7 +2,6 @@ package hfapigo
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 )
 
@@ -145,25 +144,6 @@ func (m ChatMessage) MarshalJSON() ([]byte, error) {
 	return json.Marshal(alias(m))
 }
 
-// UnmarshalJSON enforces the union shape for ChatMessage.
-func (m *ChatMessage) UnmarshalJSON(data []byte) error {
-	if m == nil {
-		return errors.New("chat message: nil receiver")
-	}
-	type alias ChatMessage
-	var tmp alias
-	if err := json.Unmarshal(data, &tmp); err != nil {
-		return err
-	}
-	out := ChatMessage(tmp)
-	if err := out.validate(); err != nil {
-		return err
-	}
-	*m = out
-
-	return nil
-}
-
 // validate enforces the union shape for ChatMessage.
 func (m ChatMessage) validate() error {
 	if m.Role == "" {
@@ -219,41 +199,6 @@ func (c ChatMessageContent) MarshalJSON() ([]byte, error) {
 	return []byte("null"), nil
 }
 
-// UnmarshalJSON enforces the union shape for ChatMessageContent.
-func (c *ChatMessageContent) UnmarshalJSON(data []byte) error {
-	if c == nil {
-		return errors.New("chat message content: nil receiver")
-	}
-	if string(data) == "null" {
-		return nil
-	}
-	if len(data) == 0 {
-		return errors.New("chat message content: empty payload")
-	}
-	switch data[0] {
-	case '"':
-		var text string
-		if err := json.Unmarshal(data, &text); err != nil {
-			return err
-		}
-		c.Text = &text
-		c.Chunks = nil
-
-		return c.validate()
-	case '[':
-		var chunks []ChatMessageChunk
-		if err := json.Unmarshal(data, &chunks); err != nil {
-			return err
-		}
-		c.Text = nil
-		c.Chunks = chunks
-
-		return c.validate()
-	default:
-		return errors.New("chat message content: expected string or array")
-	}
-}
-
 // validate enforces the union shape for ChatMessageContent.
 func (c ChatMessageContent) validate() error {
 	if c.Text != nil && len(c.Chunks) > 0 {
@@ -286,25 +231,6 @@ func (c ChatMessageChunk) MarshalJSON() ([]byte, error) {
 	type alias ChatMessageChunk
 
 	return json.Marshal(alias(c))
-}
-
-// UnmarshalJSON enforces the union shape for ChatMessageChunk.
-func (c *ChatMessageChunk) UnmarshalJSON(data []byte) error {
-	if c == nil {
-		return errors.New("chat message chunk: nil receiver")
-	}
-	type alias ChatMessageChunk
-	var tmp alias
-	if err := json.Unmarshal(data, &tmp); err != nil {
-		return err
-	}
-	out := ChatMessageChunk(tmp)
-	if err := out.validate(); err != nil {
-		return err
-	}
-	*c = out
-
-	return nil
 }
 
 // validate enforces the union shape for ChatMessageChunk.
@@ -367,25 +293,6 @@ func (u ChatImageURL) MarshalJSON() ([]byte, error) {
 	return json.Marshal(alias(u))
 }
 
-// UnmarshalJSON enforces the required URL on ChatImageURL.
-func (u *ChatImageURL) UnmarshalJSON(data []byte) error {
-	if u == nil {
-		return errors.New("chat image url: nil receiver")
-	}
-	type alias ChatImageURL
-	var tmp alias
-	if err := json.Unmarshal(data, &tmp); err != nil {
-		return err
-	}
-	out := ChatImageURL(tmp)
-	if err := out.validate(); err != nil {
-		return err
-	}
-	*u = out
-
-	return nil
-}
-
 func (u ChatImageURL) validate() error {
 	if u.URL == "" {
 		return &SDKError{
@@ -430,25 +337,6 @@ func (c ChatToolCall) MarshalJSON() ([]byte, error) {
 	return json.Marshal(alias(c))
 }
 
-// UnmarshalJSON enforces the tool call shape for ChatToolCall.
-func (c *ChatToolCall) UnmarshalJSON(data []byte) error {
-	if c == nil {
-		return errors.New("chat tool call: nil receiver")
-	}
-	type alias ChatToolCall
-	var tmp alias
-	if err := json.Unmarshal(data, &tmp); err != nil {
-		return err
-	}
-	out := ChatToolCall(tmp)
-	if err := out.validate(); err != nil {
-		return err
-	}
-	*c = out
-
-	return nil
-}
-
 // validate enforces the tool call shape for ChatToolCall.
 func (c ChatToolCall) validate() error {
 	if c.ID == "" {
@@ -487,25 +375,6 @@ func (f ChatFunctionDefinition) MarshalJSON() ([]byte, error) {
 	type alias ChatFunctionDefinition
 
 	return json.Marshal(alias(f))
-}
-
-// UnmarshalJSON enforces required fields on ChatFunctionDefinition.
-func (f *ChatFunctionDefinition) UnmarshalJSON(data []byte) error {
-	if f == nil {
-		return errors.New("chat function definition: nil receiver")
-	}
-	type alias ChatFunctionDefinition
-	var tmp alias
-	if err := json.Unmarshal(data, &tmp); err != nil {
-		return err
-	}
-	out := ChatFunctionDefinition(tmp)
-	if err := out.validate(); err != nil {
-		return err
-	}
-	*f = out
-
-	return nil
 }
 
 func (f ChatFunctionDefinition) validate() error {
@@ -549,25 +418,6 @@ func (r ChatResponseFormat) MarshalJSON() ([]byte, error) {
 	type alias ChatResponseFormat
 
 	return json.Marshal(alias(r))
-}
-
-// UnmarshalJSON enforces the union shape for ChatResponseFormat.
-func (r *ChatResponseFormat) UnmarshalJSON(data []byte) error {
-	if r == nil {
-		return errors.New("chat response format: nil receiver")
-	}
-	type alias ChatResponseFormat
-	var tmp alias
-	if err := json.Unmarshal(data, &tmp); err != nil {
-		return err
-	}
-	out := ChatResponseFormat(tmp)
-	if err := out.validate(); err != nil {
-		return err
-	}
-	*r = out
-
-	return nil
 }
 
 // validate enforces the union shape for ChatResponseFormat.
@@ -656,25 +506,6 @@ func (t ChatTool) MarshalJSON() ([]byte, error) {
 	return json.Marshal(alias(t))
 }
 
-// UnmarshalJSON enforces the tool shape for ChatTool.
-func (t *ChatTool) UnmarshalJSON(data []byte) error {
-	if t == nil {
-		return errors.New("chat tool: nil receiver")
-	}
-	type alias ChatTool
-	var tmp alias
-	if err := json.Unmarshal(data, &tmp); err != nil {
-		return err
-	}
-	out := ChatTool(tmp)
-	if err := out.validate(); err != nil {
-		return err
-	}
-	*t = out
-
-	return nil
-}
-
 // validate enforces the tool shape for ChatTool.
 func (t ChatTool) validate() error {
 	if t.Type == "" {
@@ -735,50 +566,6 @@ func (t ChatToolChoice) MarshalJSON() ([]byte, error) {
 	return []byte("null"), nil
 }
 
-// UnmarshalJSON enforces the union shape for ChatToolChoice.
-func (t *ChatToolChoice) UnmarshalJSON(data []byte) error {
-	if t == nil {
-		return errors.New("tool choice: nil receiver")
-	}
-	if string(data) == "null" {
-		return nil
-	}
-	if len(data) == 0 {
-		return errors.New("tool choice: empty payload")
-	}
-	mode, function, err := parseToolChoice(data)
-	if err != nil {
-		return err
-	}
-	t.Mode = mode
-	t.Function = function
-
-	return t.validate()
-}
-
-func parseToolChoice(data []byte) (*ToolChoiceMode, *ChatFunctionName, error) {
-	// try string mode first
-	var mode ToolChoiceMode
-	if err := json.Unmarshal(data, &mode); err == nil {
-		if mode == "" {
-			return nil, nil, errors.New("tool choice: mode must be set")
-		}
-
-		return &mode, nil, nil
-	}
-
-	var payload toolChoiceFunctionPayload
-	if err := json.Unmarshal(data, &payload); err == nil {
-		if payload.Function == nil {
-			return nil, nil, errors.New("tool choice: function object required")
-		}
-
-		return nil, payload.Function, nil
-	}
-
-	return nil, nil, errors.New("tool choice: expected string or object")
-}
-
 // validate enforces the union shape for ChatToolChoice.
 func (t ChatToolChoice) validate() error {
 	if t.Mode != nil && t.Function != nil {
@@ -805,343 +592,24 @@ type ChatFunctionName struct {
 	Name string `json:"name"`
 }
 
-// ChatResponse represents a non-streaming completion response from the chat API.
-// This is returned when Stream is false (the default).
-type ChatResponse struct {
-	// Required.
-	ID string `json:"id"`
-	// Unix timestamp in seconds.
-	// Required.
-	Created int64 `json:"created"`
-	// Required.
-	Model string `json:"model"`
-	// Required.
-	SystemFingerprint string `json:"system_fingerprint"`
-	// Required.
-	Choices []ChatChoice `json:"choices"`
-	// Required.
-	Usage ChatUsage `json:"usage"`
-}
-
-// ChatChoice is a single non-streaming completion choice.
-type ChatChoice struct {
-	// Required.
-	FinishReason string `json:"finish_reason"`
-	// Required.
-	Index    int           `json:"index"`
-	LogProbs *ChatLogProbs `json:"logprobs,omitempty"`
-	// Required.
-	Message ChatCompletionMessage `json:"message"`
-}
-
-// ChatLogProbs contains per-token log probabilities.
-type ChatLogProbs struct {
-	// Required.
-	Content []ChatLogProb `json:"content"`
-}
-
-// ChatLogProb contains logprob information for a token.
-type ChatLogProb struct {
-	// Required.
-	Token string `json:"token"`
-	// Required.
-	LogProb float64 `json:"logprob"`
-	// Required.
-	TopLogProbs []ChatTopLogProb `json:"top_logprobs"`
-}
-
-// ChatTopLogProb is a top log probability entry for a token position.
-type ChatTopLogProb struct {
-	// Required.
-	Token string `json:"token"`
-	// Required.
-	LogProb float64 `json:"logprob"`
-}
-
-// ChatCompletionMessage is a message returned by the model.
-// It is either a text message (Content) or a tool call message (ToolCalls).
-type ChatCompletionMessage struct {
-	Role string `json:"role"`
-	// Content is present for text responses.
-	Content *string `json:"content,omitempty"`
-	// ToolCallID is set when returning tool-specific content.
-	ToolCallID *string `json:"tool_call_id,omitempty"`
-	// ToolCalls is present for tool call responses.
-	ToolCalls []ChatToolCallOutput `json:"tool_calls,omitempty"`
-}
-
-// MarshalJSON enforces the union shape for ChatCompletionMessage.
-func (m ChatCompletionMessage) MarshalJSON() ([]byte, error) {
-	if err := m.validate(); err != nil {
-		return nil, err
-	}
-	type alias ChatCompletionMessage
-
-	return json.Marshal(alias(m))
-}
-
-// UnmarshalJSON enforces the union shape for ChatCompletionMessage.
-func (m *ChatCompletionMessage) UnmarshalJSON(data []byte) error {
-	if m == nil {
-		return errors.New("completion message: nil receiver")
-	}
-	type alias ChatCompletionMessage
-	var tmp alias
-	if err := json.Unmarshal(data, &tmp); err != nil {
-		return err
-	}
-	out := ChatCompletionMessage(tmp)
-	if err := out.validate(); err != nil {
-		return err
-	}
-	*m = out
-
-	return nil
-}
-
-// validate enforces the union shape for ChatCompletionMessage.
-func (m ChatCompletionMessage) validate() error {
-	if m.Content != nil {
-		if len(m.ToolCalls) > 0 {
-			return &SDKError{
-				Kind:    SDKErrorKindValidation,
-				Message: "completion message: content and tool_calls are mutually exclusive",
-				Err:     nil,
-			}
-		}
-	} else if len(m.ToolCalls) == 0 {
-		return &SDKError{
-			Kind:    SDKErrorKindValidation,
-			Message: "completion message: either content or tool_calls must be set",
-			Err:     nil,
-		}
-	}
-	if m.Content == nil && m.ToolCallID != nil {
-		return &SDKError{
-			Kind:    SDKErrorKindValidation,
-			Message: "completion message: tool_call_id requires content",
-			Err:     nil,
-		}
-	}
-
-	return nil
-}
-
-// ChatToolCallOutput represents a tool call in a response message.
-type ChatToolCallOutput struct {
-	// Required.
-	ID string `json:"id"`
-	// Required.
-	Type string `json:"type"`
-	// Required.
-	Function ChatFunctionCall `json:"function"`
-}
-
-// MarshalJSON enforces the tool call shape for ChatToolCallOutput.
-func (c ChatToolCallOutput) MarshalJSON() ([]byte, error) {
-	if err := c.validate(); err != nil {
-		return nil, err
-	}
-	type alias ChatToolCallOutput
-
-	return json.Marshal(alias(c))
-}
-
-// UnmarshalJSON enforces the tool call shape for ChatToolCallOutput.
-func (c *ChatToolCallOutput) UnmarshalJSON(data []byte) error {
-	if c == nil {
-		return errors.New("chat tool call output: nil receiver")
-	}
-	type alias ChatToolCallOutput
-	var tmp alias
-	if err := json.Unmarshal(data, &tmp); err != nil {
-		return err
-	}
-	out := ChatToolCallOutput(tmp)
-	if err := out.validate(); err != nil {
-		return err
-	}
-	*c = out
-
-	return nil
-}
-
-// validate enforces the tool call shape for ChatToolCallOutput.
-func (c ChatToolCallOutput) validate() error {
-	if c.ID == "" {
-		return &SDKError{
-			Kind:    SDKErrorKindValidation,
-			Message: "chat tool call output: id must be set",
-			Err:     nil,
-		}
-	}
-	if c.Type == "" {
-		return &SDKError{
-			Kind:    SDKErrorKindValidation,
-			Message: "chat tool call output: type must be set",
-			Err:     nil,
-		}
-	}
-
-	return nil
-}
-
-// ChatFunctionCall represents a tool function call with arguments.
-type ChatFunctionCall struct {
-	// Required.
-	Name string `json:"name"`
-	// Required.
-	Arguments   string  `json:"arguments"`
-	Description *string `json:"description,omitempty"`
-}
-
-// MarshalJSON enforces required fields on ChatFunctionCall.
-func (f ChatFunctionCall) MarshalJSON() ([]byte, error) {
+// MarshalJSON enforces required fields on ChatFunctionName.
+func (f ChatFunctionName) MarshalJSON() ([]byte, error) {
 	if err := f.validate(); err != nil {
 		return nil, err
 	}
-	type alias ChatFunctionCall
+	type alias ChatFunctionName
 
 	return json.Marshal(alias(f))
 }
 
-// UnmarshalJSON enforces required fields on ChatFunctionCall.
-func (f *ChatFunctionCall) UnmarshalJSON(data []byte) error {
-	if f == nil {
-		return errors.New("chat function call: nil receiver")
-	}
-	type alias ChatFunctionCall
-	var tmp alias
-	if err := json.Unmarshal(data, &tmp); err != nil {
-		return err
-	}
-	out := ChatFunctionCall(tmp)
-	if err := out.validate(); err != nil {
-		return err
-	}
-	*f = out
-
-	return nil
-}
-
-func (f ChatFunctionCall) validate() error {
+func (f ChatFunctionName) validate() error {
 	if f.Name == "" {
 		return &SDKError{
-			Kind:    SDKErrorKindValidation,
-			Message: "chat function call: name must be set",
-			Err:     nil,
-		}
-	}
-	if f.Arguments == "" {
-		return &SDKError{
-			Kind:    SDKErrorKindValidation,
-			Message: "chat function call: arguments must be set",
+			Kind:    SDKErrorKindConfiguration,
+			Message: "chat function name: name must be set",
 			Err:     nil,
 		}
 	}
 
 	return nil
-}
-
-// ChatUsage contains token usage statistics.
-type ChatUsage struct {
-	// Required.
-	CompletionTokens int `json:"completion_tokens"`
-	// Required.
-	PromptTokens int `json:"prompt_tokens"`
-	// Required.
-	TotalTokens int `json:"total_tokens"`
-}
-
-// ChatStreamResponse represents a streaming response chunk.
-// This is returned when Stream is true.
-type ChatStreamResponse struct {
-	ID string `json:"id"`
-	// Unix timestamp in seconds.
-	Created           int64              `json:"created"`
-	Model             string             `json:"model"`
-	SystemFingerprint string             `json:"system_fingerprint"`
-	Choices           []ChatStreamChoice `json:"choices"`
-	Usage             *ChatUsage         `json:"usage,omitempty"`
-}
-
-// ChatStreamChoice is a single streaming completion choice.
-type ChatStreamChoice struct {
-	// Required.
-	Delta        ChatStreamDelta `json:"delta"`
-	FinishReason *string         `json:"finish_reason,omitempty"`
-	// Required.
-	Index    int           `json:"index"`
-	LogProbs *ChatLogProbs `json:"logprobs,omitempty"`
-}
-
-// ChatStreamDelta holds incremental updates for a stream.
-// Deltas may include content/role/tool_call_id or role/tool_calls.
-type ChatStreamDelta struct {
-	// Content is present for text deltas.
-	Content *string `json:"content,omitempty"`
-	// Role may be included with the first delta.
-	Role *string `json:"role,omitempty"`
-	// ToolCallID may be included for tool-specific content.
-	ToolCallID *string `json:"tool_call_id,omitempty"`
-	// ToolCalls is present for tool call deltas.
-	ToolCalls []ChatStreamToolCall `json:"tool_calls,omitempty"`
-}
-
-// MarshalJSON enforces the union shape for ChatStreamDelta.
-func (d ChatStreamDelta) MarshalJSON() ([]byte, error) {
-	if err := d.validate(); err != nil {
-		return nil, err
-	}
-	type alias ChatStreamDelta
-
-	return json.Marshal(alias(d))
-}
-
-// UnmarshalJSON enforces the union shape for ChatStreamDelta.
-func (d *ChatStreamDelta) UnmarshalJSON(data []byte) error {
-	if d == nil {
-		return errors.New("stream delta: nil receiver")
-	}
-	type alias ChatStreamDelta
-	var tmp alias
-	if err := json.Unmarshal(data, &tmp); err != nil {
-		return err
-	}
-	out := ChatStreamDelta(tmp)
-	if err := out.validate(); err != nil {
-		return err
-	}
-	*d = out
-
-	return nil
-}
-
-// validate enforces the union shape for ChatStreamDelta.
-func (d ChatStreamDelta) validate() error {
-	if len(d.ToolCalls) > 0 {
-		if d.Content != nil || d.ToolCallID != nil {
-			return &SDKError{
-				Kind:    SDKErrorKindValidation,
-				Message: "stream delta: tool_calls cannot include content or tool_call_id",
-				Err:     nil,
-			}
-		}
-	}
-
-	return nil
-}
-
-// ChatStreamToolCall represents a tool call within a streaming delta.
-type ChatStreamToolCall struct {
-	ID       string             `json:"id,omitempty"`
-	Type     string             `json:"type,omitempty"`
-	Index    int                `json:"index"`
-	Function ChatStreamFunction `json:"function"`
-}
-
-// ChatStreamFunction represents a streamed function call.
-type ChatStreamFunction struct {
-	Name      string `json:"name"`
-	Arguments string `json:"arguments"`
 }
