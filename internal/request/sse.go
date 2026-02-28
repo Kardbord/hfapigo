@@ -83,9 +83,9 @@ func StreamRaw(ctx context.Context, body io.ReadCloser) (*RawStream, error) {
 
 // Recv blocks until the next event is available, the provided context is canceled,
 // or the stream ends. It returns io.EOF when no more events remain.
-func (s *RawStream) Recv(ctx context.Context) (RawEvent, error) {
+func (s *RawStream) Recv(ctx context.Context) (event RawEvent, err error) {
 	if s == nil {
-		return RawEvent{}, &hferrors.SDKError{
+		return event, &hferrors.SDKError{
 			Kind:    hferrors.SDKErrorKindInternal,
 			Message: "sse: stream is nil",
 			Err:     nil,
@@ -97,13 +97,13 @@ func (s *RawStream) Recv(ctx context.Context) (RawEvent, error) {
 	for {
 		select {
 		case <-ctx.Done():
-			return RawEvent{}, ctx.Err()
+			return event, ctx.Err()
 		case res, ok := <-s.results:
 			if !ok {
-				return RawEvent{}, io.EOF
+				return event, io.EOF
 			}
 			if res.err != nil {
-				return RawEvent{}, res.err
+				return event, res.err
 			}
 
 			return res.event, nil
@@ -186,17 +186,17 @@ func (s *RawStream) run(ctx context.Context, results chan<- rawResult) {
 	}
 }
 
-func parseSSEField(line string) (string, string) {
+func parseSSEField(line string) (field, value string) {
 	// parseSSEField splits an SSE line into its field/value components while
 	// trimming the optional leading space defined by the spec.
 	const sseFieldSplitParts = 2
 
 	parts := strings.SplitN(line, ":", sseFieldSplitParts)
-	field := parts[0]
+	field = parts[0]
 	if len(parts) == 1 {
 		return field, ""
 	}
-	value := parts[1]
+	value = parts[1]
 	if value != "" && value[0] == ' ' {
 		value = value[1:]
 	}

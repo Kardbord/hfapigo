@@ -166,26 +166,25 @@ type RawStream struct {
 }
 
 // Recv blocks until the next SSE event is available or the context is done.
-func (s *RawStream) Recv(ctx context.Context) (RawEvent, error) {
-	var zero RawEvent
+func (s *RawStream) Recv(ctx context.Context) (event RawEvent, err error) {
 	if s == nil || s.stream == nil {
-		return zero, &SDKError{
+		return event, &SDKError{
 			Kind:    SDKErrorKindInternal,
 			Message: "raw stream is nil",
 			Err:     nil,
 		}
 	}
 
-	event, err := s.stream.Recv(ctx)
+	rawEvent, err := s.stream.Recv(ctx)
 	if err != nil {
-		return zero, err
+		return event, err
 	}
 
 	return RawEvent{
-		Data:  append([]byte(nil), event.Data...),
-		Event: event.Event,
-		ID:    event.ID,
-		Retry: event.Retry,
+		Data:  append([]byte(nil), rawEvent.Data...),
+		Event: rawEvent.Event,
+		ID:    rawEvent.ID,
+		Retry: rawEvent.Retry,
 	}, nil
 }
 

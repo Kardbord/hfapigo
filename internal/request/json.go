@@ -37,61 +37,58 @@ func DoJSON[TReq any, TResp any](
 	method string,
 	path string,
 	reqBody TReq,
-) (TResp, error) {
-	var zero TResp
-
+) (resp TResp, err error) {
 	buf, err := marshalJSONRequestBody(reqBody)
 	if err != nil {
-		return zero, err
+		return resp, err
 	}
 
 	opts, err = prepareJSONOptions(opts, mimeApplicationJSON)
 	if err != nil {
-		return zero, err
+		return resp, err
 	}
 
-	resp, err := DoBytes(opts, method, path, buf)
+	httpResp, err := DoBytes(opts, method, path, buf)
 	if err != nil {
-		return zero, err
+		return resp, err
 	}
-	defer drainAndCloseBody(resp.Body)
+	defer drainAndCloseBody(httpResp.Body)
 
-	return decodeJSONResponse[TResp](resp, opts.MaxResponseBodyBytes)
+	resp, err = decodeJSONResponse[TResp](httpResp, opts.MaxResponseBodyBytes)
+
+	return resp, err
 }
 
-func decodeJSONResponse[T any](resp *http.Response, maxResponseBodyBytes int64) (T, error) {
-	var zero T
-
+func decodeJSONResponse[T any](resp *http.Response, maxResponseBodyBytes int64) (out T, err error) {
 	if resp.StatusCode == http.StatusNoContent || resp.StatusCode == http.StatusResetContent {
-		return zero, nil
+		return out, nil
 	}
 	if err := validateJSONResponseContentType(resp.Header); err != nil {
-		return zero, err
+		return out, err
 	}
 
 	body, err := readResponseBodyLimited(resp.Body, maxResponseBodyBytes)
 	if err != nil {
-		return zero, err
+		return out, err
 	}
 	if len(body) == 0 {
-		return zero, &hferrors.SDKError{
+		return out, &hferrors.SDKError{
 			Kind:    hferrors.SDKErrorKindSerialization,
 			Message: "empty response body",
 			Err:     nil,
 		}
 	}
 
-	var out T
 	if err := json.Unmarshal(body, &out); err != nil {
 		if errors.Is(err, io.EOF) {
-			return zero, &hferrors.SDKError{
+			return out, &hferrors.SDKError{
 				Kind:    hferrors.SDKErrorKindSerialization,
 				Message: "empty response body",
 				Err:     err,
 			}
 		}
 
-		return zero, &hferrors.SDKError{
+		return out, &hferrors.SDKError{
 			Kind:    hferrors.SDKErrorKindSerialization,
 			Message: "failed to decode response body",
 			Err:     err,
@@ -153,10 +150,9 @@ type JSONStream[T any] struct {
 
 // Recv blocks until the next JSON event is available or the stream ends.
 // It skips keepalive events, treats data: [DONE] as EOF, and unmarshals each chunk into T.
-func (s *JSONStream[T]) Recv(ctx context.Context) (T, error) {
-	var zero T
+func (s *JSONStream[T]) Recv(ctx context.Context) (out T, err error) {
 	if s == nil || s.raw == nil {
-		return zero, &hferrors.SDKError{
+		return out, &hferrors.SDKError{
 			Kind:    hferrors.SDKErrorKindInternal,
 			Message: "json stream is nil",
 			Err:     nil,
@@ -166,7 +162,7 @@ func (s *JSONStream[T]) Recv(ctx context.Context) (T, error) {
 	for {
 		event, err := s.raw.Recv(ctx)
 		if err != nil {
-			return zero, err
+			return out, err
 		}
 		data := bytes.TrimSpace(event.Data)
 		if len(data) == 0 {
@@ -175,11 +171,10 @@ func (s *JSONStream[T]) Recv(ctx context.Context) (T, error) {
 		if bytes.Equal(data, []byte("[DONE]")) {
 			_ = s.raw.Close()
 
-			return zero, io.EOF
+			return out, io.EOF
 		}
-		var out T
 		if err := json.Unmarshal(data, &out); err != nil {
-			return zero, &hferrors.SDKError{
+			return out, &hferrors.SDKError{
 				Kind:    hferrors.SDKErrorKindSerialization,
 				Message: "failed to decode stream event",
 				Err:     err,

@@ -249,22 +249,25 @@ func readResponseBodyLimited(reader io.Reader, maxBytes int64) ([]byte, error) {
 }
 
 // readResponseBodyTruncated reads up to maxBytes and reports if truncation occurred.
-func readResponseBodyTruncated(reader io.Reader, maxBytes int64) ([]byte, bool, error) {
+func readResponseBodyTruncated(
+	reader io.Reader,
+	maxBytes int64,
+) (body []byte, truncated bool, err error) {
 	if maxBytes <= 0 {
 		maxBytes = DefaultMaxResponseBodyBytes
 	}
 	// LimitReader doesn't error on overflow; it just stops at the limit and returns EOF.
 	// Read one extra byte so we can detect truncation by checking len(b) > maxBytes.
 	limitReader := io.LimitReader(reader, maxBytes+1)
-	bodyBytes, err := io.ReadAll(limitReader)
+	body, err = io.ReadAll(limitReader)
 	if err != nil {
 		return nil, false, err
 	}
-	if int64(len(bodyBytes)) > maxBytes {
-		return bodyBytes[:maxBytes], true, nil
+	if int64(len(body)) > maxBytes {
+		return body[:maxBytes], true, nil
 	}
 
-	return bodyBytes, false, nil
+	return body, false, nil
 }
 
 // drainAndCloseBody drains any remaining data and closes the body.
