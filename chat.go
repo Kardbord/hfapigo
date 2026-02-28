@@ -417,7 +417,7 @@ type ChatToolCall struct {
 	// Required.
 	Type string `json:"type"`
 	// Required.
-	Function ChatFunctionDefinition `json:"function"`
+	Function ChatFunctionCall `json:"function"`
 }
 
 // MarshalJSON enforces the tool call shape for ChatToolCall.

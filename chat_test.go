@@ -308,7 +308,7 @@ func TestChatMessage_Validation(t *testing.T) {
 			value: ChatMessage{Role: "assistant", ToolCalls: []ChatToolCall{{
 				ID:       "id",
 				Type:     "function",
-				Function: ChatFunctionDefinition{Name: "do"},
+				Function: ChatFunctionCall{Name: "do", Arguments: "{}"},
 			}}},
 		},
 		{
@@ -317,7 +317,11 @@ func TestChatMessage_Validation(t *testing.T) {
 				Role:    "assistant",
 				Content: ChatMessageContent{Text: &text},
 				ToolCalls: []ChatToolCall{
-					{ID: "id", Type: "function", Function: ChatFunctionDefinition{Name: "do"}},
+					{
+						ID:       "id",
+						Type:     "function",
+						Function: ChatFunctionCall{Name: "do", Arguments: "{}"},
+					},
 				},
 			},
 			wantErr:     true,
@@ -361,12 +365,12 @@ func TestChatMessage_UnmarshalValidation(t *testing.T) {
 	}{
 		{
 			name:      "both content and tool_calls",
-			unmarshal: `{"role":"assistant","content":"hi","tool_calls":[{"id":"id","type":"function","function":{"name":"do"}}]}`,
+			unmarshal: `{"role":"assistant","content":"hi","tool_calls":[{"id":"id","type":"function","function":{"name":"do","arguments":"{}"}}]}`,
 			wantErr:   true,
 		},
 		{
 			name:      "content null with tool_calls",
-			unmarshal: `{"role":"assistant","content":null,"tool_calls":[{"id":"id","type":"function","function":{"name":"do"}}]}`,
+			unmarshal: `{"role":"assistant","content":null,"tool_calls":[{"id":"id","type":"function","function":{"name":"do","arguments":"{}"}}]}`,
 		},
 		{
 			name:      "content null without tool_calls",
@@ -416,7 +420,7 @@ func TestChatMessage_UnmarshalSuccess(t *testing.T) {
 		},
 		{
 			name:          "tool_calls",
-			unmarshal:     `{"role":"assistant","tool_calls":[{"id":"id","type":"function","function":{"name":"fn"}}]}`,
+			unmarshal:     `{"role":"assistant","tool_calls":[{"id":"id","type":"function","function":{"name":"fn","arguments":"{}"}}]}`,
 			wantRole:      "assistant",
 			wantToolCalls: 1,
 		},
@@ -449,7 +453,8 @@ func TestChatMessage_UnmarshalSuccess(t *testing.T) {
 					t.Fatalf("unexpected tool calls: %+v", got.ToolCalls)
 				}
 				if got.ToolCalls[0].ID != "id" || got.ToolCalls[0].Type != "function" ||
-					got.ToolCalls[0].Function.Name != "fn" {
+					got.ToolCalls[0].Function.Name != "fn" ||
+					got.ToolCalls[0].Function.Arguments != "{}" {
 					t.Fatalf("unexpected tool call: %+v", got.ToolCalls[0])
 				}
 				require.Nil(t, got.Content.Text)
@@ -1200,42 +1205,123 @@ func TestChatStreamDelta_UnmarshalSuccess(t *testing.T) {
 func TestChatToolCall_Validation(t *testing.T) {
 	t.Parallel()
 
-	cases := []struct {
-		name        string
-		data        []byte
-		wantErr     bool
-		wantErrKind hferrors.SDKErrorKind
-	}{
+	cases := []toolCallDecodeCase{
 		{
 			name:        "type empty",
-			data:        []byte(`{"id":"id","type":"","function":{"name":"fn"}}`),
+			data:        []byte(`{"id":"id","type":"","function":{"name":"fn","arguments":"{}"}}`),
 			wantErr:     true,
 			wantErrKind: hferrors.SDKErrorKindConfiguration,
 		},
 		{
 			name:        "type missing",
-			data:        []byte(`{"id":"id","function":{"name":"fn"}}`),
+			data:        []byte(`{"id":"id","function":{"name":"fn","arguments":"{}"}}`),
 			wantErr:     true,
 			wantErrKind: hferrors.SDKErrorKindConfiguration,
 		},
 		{
-			name:        "id empty",
-			data:        []byte(`{"id":"","type":"function","function":{"name":"fn"}}`),
+			name: "id empty",
+			data: []byte(
+				`{"id":"","type":"function","function":{"name":"fn","arguments":"{}"}}`,
+			),
 			wantErr:     true,
 			wantErrKind: hferrors.SDKErrorKindConfiguration,
 		},
 		{
-			name:        "function name empty",
-			data:        []byte(`{"id":"id","type":"function","function":{"name":""}}`),
+			name: "function name empty",
+			data: []byte(
+				`{"id":"id","type":"function","function":{"name":"","arguments":"{}"}}`,
+			),
 			wantErr:     true,
-			wantErrKind: hferrors.SDKErrorKindConfiguration,
+			wantErrKind: hferrors.SDKErrorKindValidation,
+		},
+		{
+			name:        "function arguments missing",
+			data:        []byte(`{"id":"id","type":"function","function":{"name":"fn"}}`),
+			wantErr:     true,
+			wantErrKind: hferrors.SDKErrorKindValidation,
 		},
 	}
 
+	runToolCallDecodeTests(t, cases, func(data []byte) error {
+		var out ChatToolCall
+
+		return json.Unmarshal(data, &out)
+	})
+}
+
+func TestChatToolCall_MarshalValidation(t *testing.T) {
+	t.Parallel()
+
+	cases := []toolCallMarshalCase{
+		{
+			name: "missing type",
+			value: ChatToolCall{
+				ID:       "id",
+				Function: ChatFunctionCall{Name: "fn", Arguments: "{}"},
+			},
+			wantErrKind: hferrors.SDKErrorKindConfiguration,
+		},
+		{
+			name: "missing id",
+			value: ChatToolCall{
+				Type:     "function",
+				Function: ChatFunctionCall{Name: "fn", Arguments: "{}"},
+			},
+			wantErrKind: hferrors.SDKErrorKindConfiguration,
+		},
+		{
+			name: "missing function name",
+			value: ChatToolCall{
+				ID:       "id",
+				Type:     "function",
+				Function: ChatFunctionCall{Arguments: "{}"},
+			},
+			wantErrKind: hferrors.SDKErrorKindValidation,
+		},
+		{
+			name: "missing function arguments",
+			value: ChatToolCall{
+				ID:       "id",
+				Type:     "function",
+				Function: ChatFunctionCall{Name: "fn"},
+			},
+			wantErrKind: hferrors.SDKErrorKindValidation,
+		},
+	}
+
+	runToolCallMarshalTests(t, cases)
+}
+
+func TestChatToolCall_UnmarshalSuccess(t *testing.T) {
+	t.Parallel()
+
+	data := []byte(`{"id":"id","type":"function","function":{"name":"fn","arguments":"{}"}}`)
+	var got ChatToolCall
+	require.NoError(t, json.Unmarshal(data, &got))
+	if got.ID != "id" || got.Type != "function" || got.Function.Name != "fn" ||
+		got.Function.Arguments != "{}" {
+		t.Fatalf("unexpected value: %+v", got)
+	}
+}
+
+type toolCallDecodeCase struct {
+	name        string
+	data        []byte
+	wantErr     bool
+	wantErrKind hferrors.SDKErrorKind
+}
+
+type toolCallMarshalCase struct {
+	name        string
+	value       any
+	wantErrKind hferrors.SDKErrorKind
+}
+
+func runToolCallDecodeTests(t *testing.T, cases []toolCallDecodeCase, decode func([]byte) error) {
+	t.Helper()
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			var out ChatToolCall
-			err := json.Unmarshal(tc.data, &out)
+			err := decode(tc.data)
 			if tc.wantErr {
 				require.Error(t, err)
 				testutils.AssertSDKErrorKind(t, err, tc.wantErrKind)
@@ -1247,57 +1333,14 @@ func TestChatToolCall_Validation(t *testing.T) {
 	}
 }
 
-func TestChatToolCall_MarshalValidation(t *testing.T) {
-	t.Parallel()
-
-	cases := []struct {
-		name        string
-		value       ChatToolCall
-		wantErrKind hferrors.SDKErrorKind
-	}{
-		{
-			name: "missing type",
-			value: ChatToolCall{
-				ID:       "id",
-				Function: ChatFunctionDefinition{Name: "fn"},
-			},
-			wantErrKind: hferrors.SDKErrorKindConfiguration,
-		},
-		{
-			name: "missing id",
-			value: ChatToolCall{
-				Type:     "function",
-				Function: ChatFunctionDefinition{Name: "fn"},
-			},
-			wantErrKind: hferrors.SDKErrorKindConfiguration,
-		},
-		{
-			name: "missing function name",
-			value: ChatToolCall{
-				ID:   "id",
-				Type: "function",
-			},
-			wantErrKind: hferrors.SDKErrorKindConfiguration,
-		},
-	}
-
+func runToolCallMarshalTests(t *testing.T, cases []toolCallMarshalCase) {
+	t.Helper()
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			_, err := json.Marshal(tc.value)
 			require.Error(t, err)
 			testutils.AssertSDKErrorKind(t, err, tc.wantErrKind)
 		})
-	}
-}
-
-func TestChatToolCall_UnmarshalSuccess(t *testing.T) {
-	t.Parallel()
-
-	data := []byte(`{"id":"id","type":"function","function":{"name":"fn"}}`)
-	var got ChatToolCall
-	require.NoError(t, json.Unmarshal(data, &got))
-	if got.ID != "id" || got.Type != "function" || got.Function.Name != "fn" {
-		t.Fatalf("unexpected value: %+v", got)
 	}
 }
 
@@ -1380,12 +1423,7 @@ func TestChatTool_UnmarshalSuccess(t *testing.T) {
 func TestChatToolCallOutput_Validation(t *testing.T) {
 	t.Parallel()
 
-	cases := []struct {
-		name        string
-		data        []byte
-		wantErr     bool
-		wantErrKind hferrors.SDKErrorKind
-	}{
+	cases := []toolCallDecodeCase{
 		{
 			name:        "type empty",
 			data:        []byte(`{"id":"id","type":"","function":{"name":"fn","arguments":"{}"}}`),
@@ -1424,29 +1462,17 @@ func TestChatToolCallOutput_Validation(t *testing.T) {
 		},
 	}
 
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			var out ChatToolCallOutput
-			err := json.Unmarshal(tc.data, &out)
-			if tc.wantErr {
-				require.Error(t, err)
-				testutils.AssertSDKErrorKind(t, err, tc.wantErrKind)
+	runToolCallDecodeTests(t, cases, func(data []byte) error {
+		var out ChatToolCallOutput
 
-				return
-			}
-			require.NoError(t, err)
-		})
-	}
+		return json.Unmarshal(data, &out)
+	})
 }
 
 func TestChatToolCallOutput_MarshalValidation(t *testing.T) {
 	t.Parallel()
 
-	cases := []struct {
-		name        string
-		value       ChatToolCallOutput
-		wantErrKind hferrors.SDKErrorKind
-	}{
+	cases := []toolCallMarshalCase{
 		{
 			name: "missing type",
 			value: ChatToolCallOutput{
@@ -1487,13 +1513,7 @@ func TestChatToolCallOutput_MarshalValidation(t *testing.T) {
 		},
 	}
 
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			_, err := json.Marshal(tc.value)
-			require.Error(t, err)
-			testutils.AssertSDKErrorKind(t, err, tc.wantErrKind)
-		})
-	}
+	runToolCallMarshalTests(t, cases)
 }
 
 func TestChatToolCallOutput_UnmarshalSuccess(t *testing.T) {
