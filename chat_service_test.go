@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/Kardbord/hfapigo/v4/internal/hferrors"
@@ -212,6 +213,130 @@ func TestChatService_CompleteStream_Success(t *testing.T) {
 	if payload["model"] != "default-model" {
 		t.Fatalf("unexpected model: %#v", payload["model"])
 	}
+}
+
+func TestChatStream_Recv_MergesToolCallMetadata(t *testing.T) {
+	t.Parallel()
+
+	body := strings.Join([]string{
+		`data: {"id":"id","created":1,"model":"stream-model","system_fingerprint":"sig","choices":[{"index":0,"delta":{"tool_calls":[{"id":"call_0","type":"function","index":0,"function":{"name":"fn","arguments":""}}]}}]}`,
+		``,
+		`data: {"id":"id","created":1,"model":"stream-model","system_fingerprint":"sig","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"{\"foo\":1}"}}]}}]}`,
+		``,
+		"data: [DONE]",
+		``,
+		``,
+	}, "\n")
+	assertToolCallStream(t, body, func(chunks []ChatStreamResponse) {
+		require.Len(t, chunks, 2)
+		first, second := chunks[0], chunks[1]
+		require.Equal(t, "call_0", first.Choices[0].Delta.ToolCalls[0].ID)
+		require.Equal(t, "call_0", second.Choices[0].Delta.ToolCalls[0].ID)
+		require.Equal(t, `{"foo":1}`, second.Choices[0].Delta.ToolCalls[0].Function.Arguments)
+	})
+}
+
+func TestChatStream_Recv_MergesAcrossChoices(t *testing.T) {
+	t.Parallel()
+
+	body := strings.Join([]string{
+		`data: {"id":"id","created":1,"model":"stream-model","system_fingerprint":"sig","choices":[{"index":0,"delta":{"tool_calls":[{"id":"call_0","type":"function","index":0,"function":{"name":"fn","arguments":""}}]}},{"index":1,"delta":{"tool_calls":[{"id":"call_1","type":"function","index":0,"function":{"name":"fn2","arguments":""}}]}}]}`,
+		``,
+		`data: {"id":"id","created":1,"model":"stream-model","system_fingerprint":"sig","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"{\"foo\":1}"}}]}},{"index":1,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"{\"bar\":2}"}}]}}]}`,
+		``,
+		"data: [DONE]",
+		``,
+		``,
+	}, "\n")
+
+	assertToolCallStream(t, body, func(chunks []ChatStreamResponse) {
+		require.Len(t, chunks, 2)
+		first, second := chunks[0], chunks[1]
+		require.Equal(t, "call_0", first.Choices[0].Delta.ToolCalls[0].ID)
+		require.Equal(t, "call_1", first.Choices[1].Delta.ToolCalls[0].ID)
+		require.Equal(t, "call_0", second.Choices[0].Delta.ToolCalls[0].ID)
+		require.Equal(t, "call_1", second.Choices[1].Delta.ToolCalls[0].ID)
+		require.Equal(t, `{"foo":1}`, second.Choices[0].Delta.ToolCalls[0].Function.Arguments)
+		require.Equal(t, `{"bar":2}`, second.Choices[1].Delta.ToolCalls[0].Function.Arguments)
+	})
+}
+
+func TestChatStream_Recv_InvalidJSONError(t *testing.T) {
+	t.Parallel()
+
+	body := strings.Join([]string{
+		`data: {"id":"id","created":1,"model":"stream-model","system_fingerprint":"sig","choices":[{"index":0,"delta":{"tool_calls":[{"id":"call_0","type":"function","index":0,"function":{"name":"fn","arguments":""}}]}}]}`,
+		``,
+		"data: {not json}",
+		``,
+	}, "\n")
+
+	mt := testutils.NewMockTransport(http.StatusOK, body, nil)
+	mt.Response.Header.Set("Content-Type", "text/event-stream")
+
+	opts := request.NewOptions().
+		WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }).
+		WithModel("default-model")
+	svc := newChatService(opts)
+
+	text := "hi"
+	req := &ChatRequest{
+		Messages: []ChatMessage{
+			{Role: "user", Content: ChatMessageContent{Text: &text}},
+		},
+	}
+
+	stream, err := svc.CompleteStream(req)
+	require.NoError(t, err)
+	defer func() { _ = stream.Close() }()
+
+	first, err := stream.Recv(context.Background())
+	require.NoError(t, err)
+	require.Equal(t, "call_0", first.Choices[0].Delta.ToolCalls[0].ID)
+
+	_, err = stream.Recv(context.Background())
+	require.Error(t, err)
+}
+
+// assertToolCallStream streams the provided SSE body through ChatStream and
+// passes all decoded chunks to the supplied assertion callback.
+func assertToolCallStream(
+	t *testing.T,
+	body string,
+	assertions func(chunks []ChatStreamResponse),
+) {
+	t.Helper()
+
+	mt := testutils.NewMockTransport(http.StatusOK, body, nil)
+	mt.Response.Header.Set("Content-Type", "text/event-stream")
+
+	opts := request.NewOptions().
+		WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }).
+		WithModel("default-model")
+	svc := newChatService(opts)
+
+	text := "hi"
+	req := &ChatRequest{
+		Messages: []ChatMessage{
+			{Role: "user", Content: ChatMessageContent{Text: &text}},
+		},
+	}
+
+	stream, err := svc.CompleteStream(req)
+	require.NoError(t, err)
+	defer func() { _ = stream.Close() }()
+
+	var chunks []ChatStreamResponse
+	for {
+		chunk, err := stream.Recv(context.Background())
+		if err != nil {
+			require.ErrorIs(t, err, io.EOF)
+
+			break
+		}
+		chunks = append(chunks, chunk)
+	}
+	assertions(chunks)
 }
 
 func TestChatService_CompleteStream_NilRequest(t *testing.T) {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/Kardbord/hfapigo/v4/internal/chatstream"
 	"github.com/Kardbord/hfapigo/v4/internal/request"
 )
 
@@ -89,12 +90,16 @@ func (s ChatService) CompleteStream(req *ChatRequest, opts ...Option) (*ChatStre
 		return nil, err
 	}
 
-	return &ChatStream{stream: streamResp}, nil
+	return &ChatStream{
+		stream:       streamResp,
+		toolCallAccr: chatstream.ToolCallAccumulator{},
+	}, nil
 }
 
 // ChatStream wraps a streaming chat completion response.
 type ChatStream struct {
-	stream *request.JSONStream[ChatStreamResponse]
+	stream       *request.JSONStream[ChatStreamResponse]
+	toolCallAccr chatstream.ToolCallAccumulator
 }
 
 // Recv blocks until the next streaming chunk arrives or the context is done.
@@ -107,7 +112,14 @@ func (c *ChatStream) Recv(ctx context.Context) (ChatStreamResponse, error) {
 		}
 	}
 
-	return c.stream.Recv(ctx)
+	chunk, err := c.stream.Recv(ctx)
+	if err != nil {
+		return chunk, err
+	}
+
+	c.mergeToolCallMetadata(&chunk)
+
+	return chunk, nil
 }
 
 // Close releases the underlying stream resources.
@@ -117,4 +129,31 @@ func (c *ChatStream) Close() error {
 	}
 
 	return c.stream.Close()
+}
+
+// mergeToolCallMetadata ensures streaming tool call deltas include the cached
+// id/type/function-name values observed earlier in the stream.
+func (c *ChatStream) mergeToolCallMetadata(resp *ChatStreamResponse) {
+	if c == nil || resp == nil {
+		return
+	}
+	for i := range resp.Choices {
+		choice := &resp.Choices[i]
+		if len(choice.Delta.ToolCalls) == 0 {
+			continue
+		}
+		for j := range choice.Delta.ToolCalls {
+			call := &choice.Delta.ToolCalls[j]
+			toolID, callType, functionName := c.toolCallAccr.Merge(
+				choice.Index,
+				call.Index,
+				call.ID,
+				call.Type,
+				call.Function.Name,
+			)
+			call.ID = toolID
+			call.Type = callType
+			call.Function.Name = functionName
+		}
+	}
 }
