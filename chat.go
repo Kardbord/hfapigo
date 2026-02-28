@@ -1134,116 +1134,14 @@ func (d ChatStreamDelta) validate() error {
 
 // ChatStreamToolCall represents a tool call within a streaming delta.
 type ChatStreamToolCall struct {
-	// Required.
-	ID string `json:"id"`
-	// Required.
-	Type string `json:"type"`
-	// Required.
+	ID       string             `json:"id,omitempty"`
+	Type     string             `json:"type,omitempty"`
 	Index    int                `json:"index"`
 	Function ChatStreamFunction `json:"function"`
 }
 
-// MarshalJSON enforces the tool call shape for ChatStreamToolCall.
-func (c ChatStreamToolCall) MarshalJSON() ([]byte, error) {
-	if err := c.validate(); err != nil {
-		return nil, err
-	}
-	type alias ChatStreamToolCall
-
-	return json.Marshal(alias(c))
-}
-
-// UnmarshalJSON enforces the tool call shape for ChatStreamToolCall.
-func (c *ChatStreamToolCall) UnmarshalJSON(data []byte) error {
-	if c == nil {
-		return errors.New("chat stream tool call: nil receiver")
-	}
-	type alias ChatStreamToolCall
-	var tmp alias
-	if err := json.Unmarshal(data, &tmp); err != nil {
-		return err
-	}
-	out := ChatStreamToolCall(tmp)
-	if err := out.validate(); err != nil {
-		return err
-	}
-	*c = out
-
-	return nil
-}
-
-// validate enforces the tool call shape for ChatStreamToolCall.
-func (c ChatStreamToolCall) validate() error {
-	if c.ID == "" {
-		return &SDKError{
-			Kind:    SDKErrorKindValidation,
-			Message: "chat stream tool call: id must be set",
-			Err:     nil,
-		}
-	}
-	if c.Type == "" {
-		return &SDKError{
-			Kind:    SDKErrorKindValidation,
-			Message: "chat stream tool call: type must be set",
-			Err:     nil,
-		}
-	}
-
-	return nil
-}
-
 // ChatStreamFunction represents a streamed function call.
 type ChatStreamFunction struct {
-	// Required.
-	Name string `json:"name"`
-	// Required.
+	Name      string `json:"name"`
 	Arguments string `json:"arguments"`
-}
-
-// MarshalJSON enforces required fields on ChatStreamFunction.
-func (f ChatStreamFunction) MarshalJSON() ([]byte, error) {
-	if err := f.validate(); err != nil {
-		return nil, err
-	}
-	type alias ChatStreamFunction
-
-	return json.Marshal(alias(f))
-}
-
-// UnmarshalJSON enforces required fields on ChatStreamFunction.
-func (f *ChatStreamFunction) UnmarshalJSON(data []byte) error {
-	if f == nil {
-		return errors.New("chat stream function: nil receiver")
-	}
-	type alias ChatStreamFunction
-	var tmp alias
-	if err := json.Unmarshal(data, &tmp); err != nil {
-		return err
-	}
-	out := ChatStreamFunction(tmp)
-	if err := out.validate(); err != nil {
-		return err
-	}
-	*f = out
-
-	return nil
-}
-
-func (f ChatStreamFunction) validate() error {
-	if f.Name == "" {
-		return &SDKError{
-			Kind:    SDKErrorKindValidation,
-			Message: "chat stream function: name must be set",
-			Err:     nil,
-		}
-	}
-	if f.Arguments == "" {
-		return &SDKError{
-			Kind:    SDKErrorKindValidation,
-			Message: "chat stream function: arguments must be set",
-			Err:     nil,
-		}
-	}
-
-	return nil
 }
