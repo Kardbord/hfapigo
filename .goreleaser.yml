@@ -1,5 +1,5 @@
 ---
-project_name: hfapigo
+project_name: hfgo
 builds:
   - skip: true
 changelog:
@@ -21,7 +21,7 @@ release:
   footer: |
     ## Full Changelog
 
-    https://github.com/Kardbord/hfapigo/compare/{{ .PreviousTag }}...{{ .Tag }}
+    https://github.com/Kardbord/hfgo/compare/{{ .PreviousTag }}...{{ .Tag }}
 
 # modelines #
 # yaml-language-server: $schema=https://goreleaser.com/static/schema.json

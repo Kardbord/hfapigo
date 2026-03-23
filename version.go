@@ -1,15 +1,15 @@
-package hfapigo
+package hfgo
 
 import (
-	"github.com/Kardbord/hfapigo/v4/internal/sdkversion"
+	"github.com/Kardbord/hfgo/v4/internal/sdkversion"
 )
 
-// Version is the current version of the hfapigo SDK.
+// Version is the current version of the hfgo SDK.
 // This follows semantic versioning (semver.org).
 const Version = sdkversion.Version
 
 // UserAgent returns the User-Agent string used for HTTP requests.
-// The format is: hfapigo/<version> (Go).
+// The format is: hfgo/<version> (Go).
 func UserAgent() string {
 	return sdkversion.UserAgent()
 }

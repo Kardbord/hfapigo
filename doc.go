@@ -1,4 +1,4 @@
-// Package hfapigo provides Go bindings for the Hugging Face Inference API.
+// Package hfgo provides Go bindings for the Hugging Face Inference API.
 //
 // Design notes:
 //   - Clients are immutable; options are fixed at creation time, and services capture a snapshot.
@@ -15,4 +15,4 @@
 //     serialization errors.
 //   - Concurrency assumes externally supplied objects (for example, transports) are not mutated after use
 //     unless callers provide their own synchronization.
-package hfapigo
+package hfgo

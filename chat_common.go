@@ -1,4 +1,4 @@
-package hfapigo
+package hfgo
 
 import (
 	"encoding/json"

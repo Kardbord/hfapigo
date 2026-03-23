@@ -1,11 +1,11 @@
-package hfapigo
+package hfgo
 
 import (
 	"context"
 	"net/http"
 
-	"github.com/Kardbord/hfapigo/v4/internal/chatstream"
-	"github.com/Kardbord/hfapigo/v4/internal/request"
+	"github.com/Kardbord/hfgo/v4/internal/chatstream"
+	"github.com/Kardbord/hfgo/v4/internal/request"
 )
 
 // EndpointChatCompletion specifies the chat completion endpoint.

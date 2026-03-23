@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/Kardbord/hfapigo/v4/internal/hferrors"
+	"github.com/Kardbord/hfgo/v4/internal/hferrors"
 )
 
 // Do performs an HTTP request with the provided options and returns the response.

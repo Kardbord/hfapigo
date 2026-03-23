@@ -1,4 +1,4 @@
-package hfapigo
+package hfgo
 
 import (
 	"bytes"
@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/Kardbord/hfapigo/v4/internal/request"
+	"github.com/Kardbord/hfgo/v4/internal/request"
 )
 
 // RawService sends raw HTTP requests using the configured request options.

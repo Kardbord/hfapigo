@@ -1,11 +1,11 @@
-package hfapigo
+package hfgo
 
 import (
 	"encoding/json"
 	"testing"
 
-	"github.com/Kardbord/hfapigo/v4/internal/hferrors"
-	"github.com/Kardbord/hfapigo/v4/internal/testutils"
+	"github.com/Kardbord/hfgo/v4/internal/hferrors"
+	"github.com/Kardbord/hfgo/v4/internal/testutils"
 	"github.com/stretchr/testify/require"
 )
 

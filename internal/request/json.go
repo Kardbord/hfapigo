@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/Kardbord/hfapigo/v4/internal/hferrors"
+	"github.com/Kardbord/hfgo/v4/internal/hferrors"
 )
 
 const (

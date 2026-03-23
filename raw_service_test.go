@@ -1,4 +1,4 @@
-package hfapigo
+package hfgo
 
 import (
 	"context"
@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/Kardbord/hfapigo/v4/internal/request"
-	"github.com/Kardbord/hfapigo/v4/internal/testutils"
+	"github.com/Kardbord/hfgo/v4/internal/request"
+	"github.com/Kardbord/hfgo/v4/internal/testutils"
 )
 
 func TestRawService_Stream_Success(t *testing.T) {

@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Kardbord/hfapigo/v4/internal/hferrors"
+	"github.com/Kardbord/hfgo/v4/internal/hferrors"
 )
 
 // RawEvent represents a single parsed SSE event payload.

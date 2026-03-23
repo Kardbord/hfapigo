@@ -1,6 +1,6 @@
-package hfapigo
+package hfgo
 
-import "github.com/Kardbord/hfapigo/v4/internal/hferrors"
+import "github.com/Kardbord/hfgo/v4/internal/hferrors"
 
 // APIError represents an error returned by the HuggingFace API.
 // It includes the HTTP status code, error message, response body,
@@ -9,7 +9,7 @@ import "github.com/Kardbord/hfapigo/v4/internal/hferrors"
 // Users can type-assert errors to *APIError to access additional
 // error information and helper methods:
 //
-//	if apiErr, ok := err.(*hfapigo.APIError); ok {
+//	if apiErr, ok := err.(*hfgo.APIError); ok {
 //	    if apiErr.IsAuthenticationError() {
 //	        // Handle authentication error
 //	    }
@@ -22,7 +22,7 @@ type APIError = hferrors.APIError
 // Users can type-assert errors to *SDKError to access
 // the error kind and underlying cause:
 //
-//	if sdkErr, ok := err.(*hfapigo.SDKError); ok {
+//	if sdkErr, ok := err.(*hfgo.SDKError); ok {
 //	    fmt.Printf("Kind %s: %s\n", sdkErr.Kind, sdkErr.Message)
 //	}
 type SDKError = hferrors.SDKError
