@@ -16,3 +16,5 @@
 //   - Concurrency assumes externally supplied objects (for example, transports) are not mutated after use
 //     unless callers provide their own synchronization.
 package hfgo
+
+// TODO Wire up provider options. Currently provider is unused.
