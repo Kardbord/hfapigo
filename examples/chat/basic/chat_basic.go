@@ -62,7 +62,7 @@ func main() {
 	fmt.Printf("  Total Tokens: %d\n", response.Usage.TotalTokens)
 }
 
-// Helper function to create pointers from values
+// Helper function to create pointers from values.
 func Ptr[T any](v T) *T {
 	return &v
 }

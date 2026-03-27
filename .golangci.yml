@@ -84,6 +84,7 @@ linters:
           - mnd
           - exhaustruct
           - errcheck
+          - godoclint
       # Run some linter only for test files by excluding its issues for everything else.
       - path-except: _test\.go
         linters:

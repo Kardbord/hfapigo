@@ -28,39 +28,10 @@ func Do(
 	}
 
 	if resp.StatusCode >= http.StatusBadRequest {
-		if resp.Body == nil || resp.Body == http.NoBody {
-			return nil, &hferrors.APIError{
-				StatusCode: resp.StatusCode,
-				Message:    "error response body is missing",
-				Body:       nil,
-				Method:     method,
-				URL:        resp.Request.URL.String(),
-				RequestID:  resp.Header.Get("X-Request-ID"),
-			}
-		}
-		bodyBytes, truncated, readErr := readResponseBodyTruncated(
-			resp.Body,
-			opts.MaxResponseBodyBytes,
-		)
-		if resp.Body != nil {
-			drainAndCloseBody(resp.Body)
-		}
-		if readErr != nil {
-			return nil, &hferrors.SDKError{
-				Kind:    hferrors.SDKErrorKindInternal,
-				Message: "failed to read error response body",
-				Err:     readErr,
-			}
-		}
-		msg := string(bodyBytes)
-		if truncated {
-			msg += " [truncated]"
-		}
-
 		return nil, &hferrors.APIError{
 			StatusCode: resp.StatusCode,
-			Message:    msg,
-			Body:       bodyBytes,
+			Message:    http.StatusText(resp.StatusCode),
+			Body:       resp.Body,
 			Method:     method,
 			URL:        resp.Request.URL.String(),
 			RequestID:  resp.Header.Get("X-Request-ID"),

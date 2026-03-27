@@ -2,6 +2,7 @@ package hferrors
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 )
 
@@ -15,8 +16,10 @@ type APIError struct {
 	// Message is the human-readable error message
 	Message string
 
-	// Body contains the raw response body from the API
-	Body []byte
+	// Body contains the response body from the API as a readable stream.
+	// The caller is responsible for closing this body to ensure proper resource cleanup.
+	// If Body is nil, no response body was available.
+	Body io.ReadCloser
 
 	// RequestID is the request identifier from the X-Request-ID header, if available
 	RequestID string

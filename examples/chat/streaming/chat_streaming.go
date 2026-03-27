@@ -86,7 +86,7 @@ func main() {
 	fmt.Println("Stream completed successfully!")
 }
 
-// Helper function to create pointers from values
+// Helper function to create pointers from values.
 func Ptr[T any](v T) *T {
 	return &v
 }

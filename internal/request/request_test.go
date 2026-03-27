@@ -275,28 +275,6 @@ func TestDo(t *testing.T) {
 			},
 		},
 		{
-			name: "returns internal SDKError when reading error response fails",
-			setupOpts: func() Options {
-				mt := &testutils.MockTransport{
-					Response: &http.Response{
-						StatusCode: http.StatusBadRequest,
-						Body:       testutils.ErrorReadCloser{},
-						Header:     make(http.Header),
-					},
-				}
-
-				return NewOptions().WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) })
-			},
-			method:  http.MethodGet,
-			path:    "/test",
-			body:    nil,
-			wantErr: true,
-			validateErr: func(t *testing.T, err error) {
-				t.Helper()
-				testutils.AssertSDKErrorKind(t, err, hferrors.SDKErrorKindInternal)
-			},
-		},
-		{
 			name: "returns APIError on nil error response body",
 			setupOpts: func() Options {
 				mt := &testutils.MockTransport{
@@ -354,33 +332,6 @@ func TestDo(t *testing.T) {
 				testutils.AssertSDKErrorKind(t, err, hferrors.SDKErrorKindConfiguration)
 			},
 		},
-		{
-			name: "returns API error with truncated body on oversized error response",
-			setupOpts: func() Options {
-				mt := testutils.NewMockTransport(
-					http.StatusTooManyRequests,
-					strings.Repeat("x", 10),
-					nil,
-				)
-
-				return NewOptions().WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }).
-					WithMaxResponseBodyBytes(5)
-			},
-			method:  http.MethodGet,
-			path:    "/test",
-			body:    nil,
-			wantErr: true,
-			validateErr: func(t *testing.T, err error) {
-				t.Helper()
-				apiErr := testutils.AssertAPIErrorStatus(t, err, http.StatusTooManyRequests)
-				if apiErr.Message != strings.Repeat("x", 5)+" [truncated]" {
-					t.Errorf("unexpected message: %q", apiErr.Message)
-				}
-				if len(apiErr.Body) != 5 {
-					t.Errorf("expected truncated body length 5, got %d", len(apiErr.Body))
-				}
-			},
-		},
 	}
 
 	for _, tt := range tests {
@@ -418,35 +369,6 @@ func TestDo(t *testing.T) {
 				_ = resp.Body.Close()
 			}
 		})
-	}
-}
-
-func TestDo_DrainsErrorResponseBody(t *testing.T) {
-	t.Parallel()
-
-	data := strings.Repeat("a", 10)
-	tracker := &testutils.ReadTracker{Data: []byte(data)}
-	mt := &testutils.MockTransport{
-		Response: &http.Response{
-			StatusCode: http.StatusBadRequest,
-			Body:       tracker,
-			Header:     make(http.Header),
-		},
-	}
-	opts := NewOptions().WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }).
-		WithMaxResponseBodyBytes(4)
-
-	_, err := Do(opts, http.MethodGet, "/test", nil)
-	require.Error(t, err)
-	if tracker.ReadBytes != len(data) {
-		t.Fatalf(
-			"expected body to be drained, read %d bytes, want %d",
-			tracker.ReadBytes,
-			len(data),
-		)
-	}
-	if !tracker.Closed {
-		t.Fatal("expected response body to be closed")
 	}
 }
 
