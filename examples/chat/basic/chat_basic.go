@@ -28,11 +28,11 @@ func main() {
 			{
 				Role: "user",
 				Content: hfgo.ChatMessageContent{
-					Text: strPtr("Hello! What is the capital of France?"),
+					Text: Ptr("Hello! What is the capital of France?"),
 				},
 			},
 		},
-		MaxTokens: intPtr(1024),
+		MaxTokens: Ptr(1024),
 	}
 
 	// Send the request and get the response
@@ -62,12 +62,7 @@ func main() {
 	fmt.Printf("  Total Tokens: %d\n", response.Usage.TotalTokens)
 }
 
-// Helper function to create a string pointer.
-func strPtr(s string) *string {
-	return &s
-}
-
-// Helper function to create an int pointer.
-func intPtr(i int) *int {
-	return &i
+// Helper function to create pointers from values
+func Ptr[T any](v T) *T {
+	return &v
 }

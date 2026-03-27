@@ -38,9 +38,9 @@ func main() {
 			},
 		},
 		StreamOptions: &hfgo.ChatStreamOptions{
-			IncludeUsage: boolPtr(false),
+			IncludeUsage: Ptr(false),
 		},
-		MaxTokens: intPtr(1024),
+		MaxTokens: Ptr(1024),
 	}
 
 	// Create a context for the streaming request/response
@@ -86,12 +86,7 @@ func main() {
 	fmt.Println("Stream completed successfully!")
 }
 
-// Helper function to create a int pointer.
-func intPtr(i int) *int {
-	return &i
-}
-
-// Helper function to create a bool pointer.
-func boolPtr(b bool) *bool {
-	return &b
+// Helper function to create pointers from values
+func Ptr[T any](v T) *T {
+	return &v
 }
