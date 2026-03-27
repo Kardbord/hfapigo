@@ -151,7 +151,7 @@ type JSONStream[T any] struct {
 // Recv blocks until the next JSON event is available or the stream ends.
 // It skips keepalive events, treats data: [DONE] as EOF, and unmarshals each chunk into T.
 func (s *JSONStream[T]) Recv(ctx context.Context) (out T, err error) {
-	if s == nil || s.raw == nil {
+	if s.raw == nil {
 		return out, &hferrors.SDKError{
 			Kind:    hferrors.SDKErrorKindInternal,
 			Message: "json stream is nil",
@@ -187,7 +187,7 @@ func (s *JSONStream[T]) Recv(ctx context.Context) (out T, err error) {
 
 // Close releases the underlying stream resources.
 func (s *JSONStream[T]) Close() error {
-	if s == nil || s.raw == nil {
+	if s.raw == nil {
 		return &hferrors.SDKError{
 			Kind:    hferrors.SDKErrorKindInternal,
 			Message: "json stream is nil",

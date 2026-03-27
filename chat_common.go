@@ -2,7 +2,6 @@ package hfgo
 
 import (
 	"encoding/json"
-	"errors"
 )
 
 // ChatFunctionCall represents a tool function call with arguments.
@@ -26,9 +25,6 @@ func (f ChatFunctionCall) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON enforces required fields on ChatFunctionCall.
 func (f *ChatFunctionCall) UnmarshalJSON(data []byte) error {
-	if f == nil {
-		return errors.New("chat function call: nil receiver")
-	}
 	type alias ChatFunctionCall
 	var tmp alias
 	if err := json.Unmarshal(data, &tmp); err != nil {

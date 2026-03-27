@@ -98,9 +98,6 @@ type SDKError struct {
 
 // Error implements the error interface for SDKError.
 func (e *SDKError) Error() string {
-	if e == nil {
-		return ""
-	}
 	if e.Err != nil && e.Message != "" {
 		return fmt.Sprintf("sdk error (%s): %s: %v", e.Kind, e.Message, e.Err)
 	}
@@ -116,9 +113,5 @@ func (e *SDKError) Error() string {
 
 // Unwrap returns the underlying error, if any.
 func (e *SDKError) Unwrap() error {
-	if e == nil {
-		return nil
-	}
-
 	return e.Err
 }

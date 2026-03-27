@@ -104,7 +104,7 @@ type ChatStream struct {
 
 // Recv blocks until the next streaming chunk arrives or the context is done.
 func (c *ChatStream) Recv(ctx context.Context) (ChatStreamResponse, error) {
-	if c == nil || c.stream == nil {
+	if c.stream == nil {
 		return ChatStreamResponse{}, &SDKError{
 			Kind:    SDKErrorKindInternal,
 			Message: "chat stream is nil",

@@ -66,6 +66,7 @@ func (chatClient *ChatClient) Chat() error {
 	)
 	if err != nil {
 		_ = stream.Close()
+
 		return err
 	}
 
@@ -80,12 +81,14 @@ func (chatClient *ChatClient) Chat() error {
 		input := chatClient.scanner.Text()
 		if input == "" {
 			fmt.Print("\n> ")
+
 			continue
 		}
 
 		stream, err := chatClient.prompt(input)
 		if err != nil {
 			_ = stream.Close()
+
 			return err
 		}
 
@@ -98,6 +101,7 @@ func (chatClient *ChatClient) Chat() error {
 		fmt.Print("\n> ")
 	}
 	fmt.Println()
+
 	return chatClient.scanner.Err()
 }
 

@@ -2,7 +2,6 @@ package hfgo
 
 import (
 	"encoding/json"
-	"errors"
 )
 
 // ChatStreamResponse represents a streaming response chunk.
@@ -42,9 +41,6 @@ type ChatStreamDelta struct {
 
 // UnmarshalJSON enforces the union shape for ChatStreamDelta.
 func (d *ChatStreamDelta) UnmarshalJSON(data []byte) error {
-	if d == nil {
-		return errors.New("stream delta: nil receiver")
-	}
 	type alias ChatStreamDelta
 	var tmp alias
 	if err := json.Unmarshal(data, &tmp); err != nil {
