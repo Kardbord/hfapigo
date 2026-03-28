@@ -1,0 +1,135 @@
+---
+name: Integration Tests
+
+on:
+  schedule:
+    # Run every day at 2 AM UTC
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: integration-tests
+  cancel-in-progress: true
+
+jobs:
+  integration-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: "go.mod"
+          cache: true
+
+      - name: Validate required secrets
+        run: |
+          if [ -z "${{ secrets.HUGGING_FACE_TOKEN }}" ]; then
+            echo "::error::HUGGING_FACE_TOKEN secret is not set"
+            exit 1
+          fi
+
+      - name: Run live API integration tests (with retry)
+        id: integration_tests
+        env:
+          HUGGING_FACE_TOKEN: ${{ secrets.HUGGING_FACE_TOKEN }}
+        run: |
+          max_attempts=3
+          attempt=1
+
+          while [ $attempt -le $max_attempts ]; do
+            echo "Attempt $attempt of $max_attempts..."
+
+            if go test -tags=integration -timeout=600s -v ./...; then
+              echo "Tests passed on attempt $attempt"
+              exit 0
+            fi
+
+            if [ $attempt -lt $max_attempts ]; then
+              echo "Attempt $attempt failed, retrying in 10 seconds..."
+              sleep 10
+            fi
+
+            attempt=$((attempt + 1))
+          done
+
+          echo "All $max_attempts attempts failed"
+          exit 1
+
+      - name: Create or update issue on failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const label = "integration-test-failure";
+            const title = "⚠️ Live API Integration Tests Failing";
+
+            const runUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const timestamp = new Date().toISOString();
+
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: "open",
+              labels: label
+            });
+
+            const bodyUpdate = `### ❌ Failure detected at ${timestamp}\nRun: ${runUrl}`;
+
+            if (issues.length === 0) {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                labels: [label],
+                body: `Integration tests are currently failing.\n\n${bodyUpdate}`
+              });
+            } else {
+              const issue = issues[0];
+
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                body: bodyUpdate
+              });
+            }
+
+      - name: Close issue on success
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const label = "integration-test-failure";
+
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: "open",
+              labels: label
+            });
+
+            for (const issue of issues) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                body: "### ✅ Integration tests are passing again. Closing issue."
+              });
+
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                state: "closed"
+              });
+            }
