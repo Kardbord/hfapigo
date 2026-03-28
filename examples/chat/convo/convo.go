@@ -15,7 +15,6 @@ import (
 
 const Model = "deepseek-ai/DeepSeek-R1"
 
-// FIXME: user prompts are not properly persisted in conversation history
 func main() {
 	chatClient := NewChatClient(
 		"You are a friendly chat bot whose purpose is to chat banally with users. Always respond in no more than two brief sentences.",
@@ -79,7 +78,7 @@ func (chatClient *ChatClient) Chat() error {
 
 	fmt.Print("\n> ")
 	for chatClient.scanner.Scan() {
-		input := chatClient.scanner.Text()
+		input := strings.TrimSpace(chatClient.scanner.Text())
 		if input == "" {
 			fmt.Print("\n> ")
 
@@ -107,14 +106,16 @@ func (chatClient *ChatClient) Chat() error {
 }
 
 func (chatClient *ChatClient) prompt(input string) (*hfgo.ChatStream, error) {
+	chatClient.history = append(chatClient.history, hfgo.ChatMessage{
+		Role: "user",
+		Content: hfgo.ChatMessageContent{
+			Text: &input,
+		},
+	})
+
 	return chatClient.hfClient.Chat().CompleteStream(
 		&hfgo.ChatRequest{
-			Messages: append(chatClient.history, hfgo.ChatMessage{
-				Role: "user",
-				Content: hfgo.ChatMessageContent{
-					Text: &input,
-				},
-			}),
+			Messages: chatClient.history,
 		},
 		hfgo.WithContext(context.Background()),
 	)
