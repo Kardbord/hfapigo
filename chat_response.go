@@ -1,8 +1,7 @@
-package hfapigo
+package hfgo
 
 import (
 	"encoding/json"
-	"errors"
 )
 
 // ChatResponse represents a non-streaming completion response from the chat API.
@@ -72,9 +71,6 @@ type ChatCompletionMessage struct {
 
 // UnmarshalJSON enforces the union shape for ChatCompletionMessage.
 func (m *ChatCompletionMessage) UnmarshalJSON(data []byte) error {
-	if m == nil {
-		return errors.New("completion message: nil receiver")
-	}
 	type alias ChatCompletionMessage
 	var tmp alias
 	if err := json.Unmarshal(data, &tmp); err != nil {
@@ -129,9 +125,6 @@ type ChatToolCallOutput struct {
 
 // UnmarshalJSON enforces the tool call shape for ChatToolCallOutput.
 func (c *ChatToolCallOutput) UnmarshalJSON(data []byte) error {
-	if c == nil {
-		return errors.New("chat tool call output: nil receiver")
-	}
 	type alias ChatToolCallOutput
 	var tmp alias
 	if err := json.Unmarshal(data, &tmp); err != nil {

@@ -7,7 +7,7 @@ set -e
 
 pushd "$(dirname "${BASH_SOURCE[0]}")/.." >/dev/null
 
-export GOCACHE=/tmp/hfapigo-cache
+export GOCACHE=/tmp/hfgo-cache
 
 echo "Formatting code..."
 gofmt -s -w .
@@ -25,11 +25,14 @@ golangci-lint run --fix --disable godox ./...
 echo "Building..."
 go build ./...
 
-echo "Running tests..."
+echo "Running unit tests..."
 go test ./...
 
 echo "Checking for race conditions..."
 go test -race ./...
+
+echo "Running integration tests..."
+go test -tags=integration ./...
 
 echo "Reporting code coverage..."
 go test -cover ./...

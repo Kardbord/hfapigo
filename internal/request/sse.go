@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Kardbord/hfapigo/v4/internal/hferrors"
+	"github.com/Kardbord/hfgo/v4/internal/hferrors"
 )
 
 // RawEvent represents a single parsed SSE event payload.
@@ -62,7 +62,9 @@ func StreamRaw(ctx context.Context, body io.ReadCloser) (*RawStream, error) {
 		}
 	}
 
+	//nolint:gosec // cancel func is captured in RawStream to be called later
 	ctx, cancel := context.WithCancel(NormalizeContext(ctx))
+
 	// Buffered with size 1 so the decoder goroutine can enqueue a single event or
 	// error without blocking, while still applying backpressure once the caller
 	// falls behind (preventing unbounded buffering).
@@ -84,14 +86,6 @@ func StreamRaw(ctx context.Context, body io.ReadCloser) (*RawStream, error) {
 // Recv blocks until the next event is available, the provided context is canceled,
 // or the stream ends. It returns io.EOF when no more events remain.
 func (s *RawStream) Recv(ctx context.Context) (event RawEvent, err error) {
-	if s == nil {
-		return event, &hferrors.SDKError{
-			Kind:    hferrors.SDKErrorKindInternal,
-			Message: "sse: stream is nil",
-			Err:     nil,
-		}
-	}
-
 	ctx = NormalizeContext(ctx)
 
 	for {
@@ -113,14 +107,6 @@ func (s *RawStream) Recv(ctx context.Context) (event RawEvent, err error) {
 
 // Close stops the decoder and releases the underlying body. It is safe to call multiple times.
 func (s *RawStream) Close() error {
-	if s == nil {
-		return &hferrors.SDKError{
-			Kind:    hferrors.SDKErrorKindInternal,
-			Message: "sse: stream is nil",
-			Err:     nil,
-		}
-	}
-
 	s.closeOnce.Do(func() {
 		s.cancel()
 		s.bodyOnce.Do(func() {

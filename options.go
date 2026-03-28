@@ -1,10 +1,10 @@
-package hfapigo
+package hfgo
 
 import (
 	"context"
 	"net/http"
 
-	"github.com/Kardbord/hfapigo/v4/internal/request"
+	"github.com/Kardbord/hfgo/v4/internal/request"
 )
 
 // WithBaseURL returns an Option that sets the base URL for API requests.

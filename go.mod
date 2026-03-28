@@ -1,4 +1,4 @@
-module github.com/Kardbord/hfapigo/v4
+module github.com/Kardbord/hfgo/v4
 
 go 1.25
 

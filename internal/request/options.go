@@ -7,8 +7,8 @@ import (
 	"net/textproto"
 	"net/url"
 
-	"github.com/Kardbord/hfapigo/v4/internal/hferrors"
-	"github.com/Kardbord/hfapigo/v4/internal/sdkversion"
+	"github.com/Kardbord/hfgo/v4/internal/hferrors"
+	"github.com/Kardbord/hfgo/v4/internal/sdkversion"
 )
 
 // Options holds configuration settings for API requests.

@@ -1,12 +1,14 @@
-package hfapigo
+//go:build !integration
+
+package hfgo
 
 import (
 	"errors"
 	"net/http"
 	"testing"
 
-	"github.com/Kardbord/hfapigo/v4/internal/hferrors"
-	"github.com/Kardbord/hfapigo/v4/internal/request"
+	"github.com/Kardbord/hfgo/v4/internal/hferrors"
+	"github.com/Kardbord/hfgo/v4/internal/request"
 	"github.com/stretchr/testify/require"
 )
 

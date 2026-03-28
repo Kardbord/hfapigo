@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/Kardbord/hfapigo/v4/internal/hferrors"
+	"github.com/Kardbord/hfgo/v4/internal/hferrors"
 )
 
 // AssertSDKErrorKind fails the test if err is not an SDKError of the expected kind.

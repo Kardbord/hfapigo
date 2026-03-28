@@ -1,4 +1,4 @@
-package hfapigo
+package hfgo
 
 import (
 	"bytes"
@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/Kardbord/hfapigo/v4/internal/request"
+	"github.com/Kardbord/hfgo/v4/internal/request"
 )
 
 // RawService sends raw HTTP requests using the configured request options.
@@ -167,7 +167,7 @@ type RawStream struct {
 
 // Recv blocks until the next SSE event is available or the context is done.
 func (s *RawStream) Recv(ctx context.Context) (event RawEvent, err error) {
-	if s == nil || s.stream == nil {
+	if s.stream == nil {
 		return event, &SDKError{
 			Kind:    SDKErrorKindInternal,
 			Message: "raw stream is nil",
@@ -190,7 +190,7 @@ func (s *RawStream) Recv(ctx context.Context) (event RawEvent, err error) {
 
 // Close releases the underlying stream resources.
 func (s *RawStream) Close() error {
-	if s == nil || s.stream == nil {
+	if s.stream == nil {
 		return nil
 	}
 

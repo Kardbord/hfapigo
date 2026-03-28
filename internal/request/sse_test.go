@@ -1,3 +1,5 @@
+//go:build !integration
+
 package request
 
 import (
@@ -8,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Kardbord/hfapigo/v4/internal/hferrors"
-	"github.com/Kardbord/hfapigo/v4/internal/testutils"
+	"github.com/Kardbord/hfgo/v4/internal/hferrors"
+	"github.com/Kardbord/hfgo/v4/internal/testutils"
 )
 
 func TestStreamRaw_BasicEvents(t *testing.T) {

@@ -1,9 +1,9 @@
-# hfapigo
+# hfgo
 
-[![Unit Tests](https://github.com/Kardbord/hfapigo/actions/workflows/unit-tests.yml/badge.svg)](https://github.com/Kardbord/hfapigo/actions/workflows/unit-tests.yml)
-[![CodeQL](https://github.com/Kardbord/hfapigo/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/Kardbord/hfapigo/actions/workflows/codeql-analysis.yml)
-[![Go Report Card](https://goreportcard.com/badge/github.com/Kardbord/hfapigo)](https://goreportcard.com/report/github.com/Kardbord/hfapigo)
-[![Go Reference](https://pkg.go.dev/badge/github.com/Kardbord/hfapigo.svg)](https://pkg.go.dev/github.com/Kardbord/hfapigo)
+[![Unit Tests](https://github.com/Kardbord/hfgo/actions/workflows/unit-tests.yml/badge.svg)](https://github.com/Kardbord/hfgo/actions/workflows/unit-tests.yml)
+[![CodeQL](https://github.com/Kardbord/hfgo/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/Kardbord/hfgo/actions/workflows/codeql-analysis.yml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/Kardbord/hfgo)](https://goreportcard.com/report/github.com/Kardbord/hfgo)
+[![Go Reference](https://pkg.go.dev/badge/github.com/Kardbord/hfgo.svg)](https://pkg.go.dev/github.com/Kardbord/hfgo)
 
 (Golang) Go bindings for the [Hugging Face Inference API](https://huggingface.co/docs/inference-providers/tasks/index).
 Directly call any model available in the [Model Hub](https://huggingface.co/models).

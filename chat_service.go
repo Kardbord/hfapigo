@@ -1,11 +1,11 @@
-package hfapigo
+package hfgo
 
 import (
 	"context"
 	"net/http"
 
-	"github.com/Kardbord/hfapigo/v4/internal/chatstream"
-	"github.com/Kardbord/hfapigo/v4/internal/request"
+	"github.com/Kardbord/hfgo/v4/internal/chatstream"
+	"github.com/Kardbord/hfgo/v4/internal/request"
 )
 
 // EndpointChatCompletion specifies the chat completion endpoint.
@@ -104,7 +104,7 @@ type ChatStream struct {
 
 // Recv blocks until the next streaming chunk arrives or the context is done.
 func (c *ChatStream) Recv(ctx context.Context) (ChatStreamResponse, error) {
-	if c == nil || c.stream == nil {
+	if c.stream == nil {
 		return ChatStreamResponse{}, &SDKError{
 			Kind:    SDKErrorKindInternal,
 			Message: "chat stream is nil",
