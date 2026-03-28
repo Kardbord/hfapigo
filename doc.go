@@ -17,4 +17,4 @@
 //     unless callers provide their own synchronization.
 package hfgo
 
-// TODO Wire up provider options. Currently provider is unused.
+// TODO: Wire up provider options. Currently provider is unused.
