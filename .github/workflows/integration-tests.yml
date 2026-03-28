@@ -2,9 +2,14 @@
 name: Integration Tests
 
 on:
+  push:
+    branches: [main]
+  pull_request:
+    branches:
+      - main
+      - v4-draft
   schedule:
-    # Run every day at 2 AM UTC
-    - cron: "0 2 * * *"
+    - cron: "35 21 * * 3"
   workflow_dispatch:
 
 permissions:
