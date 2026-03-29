@@ -25,6 +25,9 @@ func newChatService(opts request.Options) ChatService {
 
 // Complete sends a chat completion request and returns a chat completion response.
 //
+// The caller must not mutate req while the request is being processed.
+// For safe concurrent usage, create a new ChatRequest for each concurrent call.
+//
 // Model Precedence:
 // The Model field is resolved with the following precedence (highest to lowest):
 //  1. ChatRequest.Model field (if non-nil and non-empty)
@@ -73,6 +76,9 @@ func (s ChatService) Complete(req *ChatRequest, opts ...Option) (ChatResponse, e
 // CompleteStream sends a chat completion request and returns a streaming response.
 // Callers should Close the returned ChatStream when finished so the underlying HTTP
 // connection and decoder goroutine are released promptly.
+//
+// The caller must not mutate req while the request is being processed.
+// For safe concurrent usage, create a new ChatRequest for each concurrent call.
 //
 // Model Precedence:
 // The Model field is resolved with the following precedence (highest to lowest):

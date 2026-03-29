@@ -563,7 +563,7 @@ func TestChatService_ProviderFallback(t *testing.T) {
 			name:         "applies request provider to request model",
 			clientModel:  "default-model",
 			reqModel:     testutils.Ptr("mistral-7b"),
-			optsProvider:   testutils.Ptr("huggingface"),
+			optsProvider: testutils.Ptr("huggingface"),
 			wantModel:    "mistral-7b:huggingface",
 			description:  "request model + request provider",
 		},

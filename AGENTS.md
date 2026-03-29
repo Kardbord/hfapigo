@@ -595,42 +595,76 @@ Multi-message conversation example.
 - Check SDKError.Kind for error categorization
 - Always close Body on APIError to release resources
 
-### 3. Request Handling
+### 3. Request Mutation Safety
+- Do not mutate ChatRequest after passing it to Complete or CompleteStream
+- For concurrent requests, create a new ChatRequest for each call
+- This follows Go's standard library conventions (similar to json.Unmarshal)
+- The SDK uses shallow copying for performance; mutating the original request can cause unexpected behavior
+
+Example - Safe concurrent usage:
+```go
+// Each goroutine creates its own request
+for i := 0; i < 10; i++ {
+    go func(id int) {
+        req := &ChatRequest{
+            Model: &model,
+            Messages: []ChatMessage{
+                {Role: "user", Content: fmt.Sprintf("Request %d", id)},
+            },
+        }
+        resp, err := client.Chat().Complete(req)
+        // ...
+    }(i)
+}
+```
+
+Example - Unsafe (don't do this):
+```go
+// DON'T: Sharing and mutating the same request
+req := &ChatRequest{Messages: []ChatMessage{}}
+go func() {
+    resp, _ := client.Chat().Complete(req)
+}()
+// DON'T: Mutating req while request is in progress
+req.Messages = append(req.Messages, newMessage)
+```
+
+### 4. Request Handling
 - Always validate requests before sending
 - Use per-request options to override defaults for single calls
 - Close streams (ChatStream, RawStream) to release resources
 - Use context for cancellation and timeouts
 
-### 4. Configuration
+### 5. Configuration
 - Use immutable patterns; create new Client for different configs
 - Options are applied by value (defensive copies)
 - Per-request options override client defaults
 
-### 5. Streaming
+### 6. Streaming
 - Always call Close() on ChatStream or RawStream
 - Prefer `defer stream.Close()` to ensure cleanup
 - Handle `io.EOF` as normal stream completion
 - Tool call metadata is automatically merged in ChatStream
 
-### 6. Testing
+### 7. Testing
 - Use `go test -race ./...` to catch concurrency issues
 - Mark integration tests with `//go:build integration` or run with `-tags=integration`
 - Mark non-integration tests with //go:build !integration
 - Ensure tests clean up resources (close bodies, streams, etc.)
 - Integration tests require `HUGGING_FACE_TOKEN` environment variable
 
-### 7. Code Quality
+### 8. Code Quality
 - Run `./tools/build.sh` before committing
 - Ensure all linters pass (golangci-lint)
 - Keep functions under 40 statements
 - Document all functions, types, and fields with godoc comments
 
-### 8. Value Receivers vs Pointer Receivers
+### 9. Value Receivers vs Pointer Receivers
 - Use value receivers for immutable types (Client, ChatRequest, etc.)
 - Use pointer receivers for mutable types (ChatStream, RawStream, etc.)
 - Defend against mutations in value receivers (copy mutable state like headers)
 
-### 9. Generics
+### 10. Generics
 - Leverage Go generics for type-safe request/response handling
 - Use consistent naming: `TReq`, `TResp`, `T` for generic types
 
