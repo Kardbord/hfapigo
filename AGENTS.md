@@ -264,7 +264,7 @@ Represents a message in conversation history.
 Represents a function tool available to the model.
 
 - `Type string`: Tool type (currently "function")
-- `Function ChatToolFunction`: Function definition
+- `Function ChatFunctionDefinition`: Function definition
 
 ### ChatToolChoice
 Controls tool selection behavior. Supports:
@@ -284,6 +284,14 @@ Configuration for streaming responses.
 
 - `IncludeUsage *bool`: Include token usage in stream
 
+
+### RawEvent
+Represents a raw SSE event from RawService streaming methods.
+
+- `Data []byte`: Event data payload
+- `Event string`: Event type identifier
+- `ID string`: Event ID
+- `Retry *time.Duration`: Retry duration hint (if provided)
 ## Services
 
 ### ChatService
@@ -380,6 +388,12 @@ SSE stream with error interpretation.
 #### StreamReader(body io.Reader, method, path string, opts ...Option) (*RawStream, error)
 SSE stream from reader with error interpretation.
 
+
+#### StreamRaw(body []byte, method, path string, opts ...Option) (*RawStream, error)
+SSE stream without error interpretation (allows non-2xx responses).
+
+#### StreamRawReader(body io.Reader, method, path string, opts ...Option) (*RawStream, error)
+SSE stream from reader without error interpretation (allows non-2xx responses).
 **Note**: Caller responsible for closing `resp.Body` or `RawStream`.
 
 ## Internal Architecture
