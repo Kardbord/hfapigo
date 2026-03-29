@@ -2,7 +2,9 @@ package hfgo
 
 import (
 	"context"
+	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/Kardbord/hfgo/v4/internal/chatstream"
 	"github.com/Kardbord/hfgo/v4/internal/request"
@@ -22,6 +24,22 @@ func newChatService(opts request.Options) ChatService {
 }
 
 // Complete sends a chat completion request and returns a chat completion response.
+//
+// Model Precedence:
+// The Model field is resolved with the following precedence (highest to lowest):
+//  1. ChatRequest.Model field (if non-nil and non-empty)
+//  2. Per-request options Model override
+//  3. Client-level Model option
+//
+// Provider Precedence:
+// The Provider field is applied as a fallback only if the resolved Model does not
+// already contain a provider (indicated by ":" in the model string). If the Model
+// is in the format "model:provider", the Provider option is ignored.
+//
+// For example:
+//   - Model="mistral-7b", Provider="huggingface" → "mistral-7b:huggingface"
+//   - Model="mistral-7b:huggingface", Provider="mistral" → "mistral-7b:huggingface" (Provider ignored)
+//   - Model="mistral-7b:huggingface", Provider="" → "mistral-7b:huggingface"
 func (s ChatService) Complete(req *ChatRequest, opts ...Option) (ChatResponse, error) {
 	if req == nil {
 		return ChatResponse{}, &SDKError{
@@ -33,12 +51,8 @@ func (s ChatService) Complete(req *ChatRequest, opts ...Option) (ChatResponse, e
 
 	payload := *req
 	optsOverride := s.opts.With(opts...)
-	if payload.Model == nil || *payload.Model == "" {
-		if optsOverride.Model != "" {
-			model := optsOverride.Model
-			payload.Model = &model
-		}
-	}
+
+	resolveModel(&payload, optsOverride)
 
 	if payload.Stream != nil && *payload.Stream {
 		return ChatResponse{}, &SDKError{
@@ -59,6 +73,22 @@ func (s ChatService) Complete(req *ChatRequest, opts ...Option) (ChatResponse, e
 // CompleteStream sends a chat completion request and returns a streaming response.
 // Callers should Close the returned ChatStream when finished so the underlying HTTP
 // connection and decoder goroutine are released promptly.
+//
+// Model Precedence:
+// The Model field is resolved with the following precedence (highest to lowest):
+//  1. ChatRequest.Model field (if non-nil and non-empty)
+//  2. Per-request options Model override
+//  3. Client-level Model option
+//
+// Provider Precedence:
+// The Provider field is applied as a fallback only if the resolved Model does not
+// already contain a provider (indicated by ":" in the model string). If the Model
+// is in the format "model:provider", the Provider option is ignored.
+//
+// For example:
+//   - Model="mistral-7b", Provider="huggingface" → "mistral-7b:huggingface"
+//   - Model="mistral-7b:huggingface", Provider="mistral" → "mistral-7b:huggingface" (Provider ignored)
+//   - Model="mistral-7b:huggingface", Provider="" → "mistral-7b:huggingface"
 func (s ChatService) CompleteStream(req *ChatRequest, opts ...Option) (*ChatStream, error) {
 	if req == nil {
 		return nil, &SDKError{
@@ -70,12 +100,8 @@ func (s ChatService) CompleteStream(req *ChatRequest, opts ...Option) (*ChatStre
 
 	payload := *req
 	optsOverride := s.opts.With(opts...)
-	if payload.Model == nil || *payload.Model == "" {
-		if optsOverride.Model != "" {
-			model := optsOverride.Model
-			payload.Model = &model
-		}
-	}
+
+	resolveModel(&payload, optsOverride)
 
 	stream := true
 	payload.Stream = &stream
@@ -94,6 +120,38 @@ func (s ChatService) CompleteStream(req *ChatRequest, opts ...Option) (*ChatStre
 		stream:       streamResp,
 		toolCallAccr: chatstream.ToolCallAccumulator{},
 	}, nil
+}
+
+// resolveModel resolves the model with precedence and applies the provider fallback.
+// Model precedence: request > options > client.
+// Provider is applied as a fallback only if the resolved model doesn't already contain a provider.
+func resolveModel(payload *ChatRequest, optsOverride request.Options) {
+	// Resolve model with precedence: request > options > client
+	if payload.Model == nil || *payload.Model == "" {
+		if optsOverride.Model != "" {
+			model := optsOverride.Model
+			payload.Model = &model
+		}
+	}
+
+	// Apply provider fallback to the final model
+	payload.Model = applyProvider(payload.Model, optsOverride.Provider)
+}
+
+// applyProvider applies the provider to the model if the model
+// doesn't already contain a provider (indicated by ":").
+func applyProvider(model *string, provider string) *string {
+	if model == nil || *model == "" || provider == "" {
+		return model
+	}
+
+	if !strings.Contains(*model, ":") {
+		newModel := fmt.Sprintf("%s:%s", *model, provider)
+
+		return &newModel
+	}
+
+	return model
 }
 
 // ChatStream wraps a streaming chat completion response.

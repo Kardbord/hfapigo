@@ -41,6 +41,41 @@ From `doc.go` and README:
 - **Streaming**: Server-Sent Events (SSE) based streaming for chat completions
 - **Error Handling**: Distinct APIError vs SDKError types with categorization
 - **HTTP Client Injection**: Factory functions return fresh client values; avoid sharing mutable transports unless synchronized
+
+### Concurrency Safety
+
+This SDK is **safe for concurrent use out of the box**. No explicit synchronization is required when using clients and services from multiple goroutines.
+
+**Concurrency Guarantees**:
+- **Clients**: Fully concurrent-safe as immutable value types
+- **Services**: Concurrent-safe as lightweight snapshots of client options
+- **Per-request calls**: Each call is independent and concurrent-safe
+- **Shared HTTP clients**: If you inject an HTTP client via `WithHTTPClientFactory()`, ensure it's either thread-safe by design or properly synchronized externally
+
+**How It Works**:
+The SDK achieves concurrency safety through immutability and snapshots:
+1. Clients never mutate their options after creation
+2. Services capture a snapshot of client options when created
+3. Per-request options are applied by value (defensive copies)
+4. No shared mutable state between goroutines
+
+**Example**:
+```go
+// Safe: Single client used by multiple goroutines
+client := NewClient(WithToken(token), WithModel("mistral-7b"))
+
+// Each goroutine can safely call methods
+go func() {
+    resp, err := client.Chat().Complete(req)
+    // ...
+}()
+
+go func() {
+    stream, err := client.Chat().CompleteStream(req)
+    // ...
+}()
+```
+
 - **Validation**: Enforced during JSON marshal/unmarshal time
 - **Context Support**: Full context support for cancellation, timeouts, and request-scoped values
 - **Defensive Copies**: Request options applied by value with defensive header copies; contexts and HTTP clients are shared
@@ -99,6 +134,39 @@ if sdkErr, ok := err.(*hfgo.SDKError); ok {
 ## Configuration Options
 
 All options are functions that return `hfgo.Option`. Applied to clients and per-request.
+### Option Precedence
+
+When an option can be specified at multiple levels (client-level, request-level, or in request structures), the following precedence applies (highest to lowest):
+
+1. **Request Structure Fields** (if applicable): Values set directly in request structures (e.g., `ChatRequest.Model`)
+2. **Request-Level Options**: Options passed to individual method calls (e.g., `Complete(req, WithModel("..."))`)
+3. **Client-Level Options**: Options set when creating the Client (e.g., `NewClient(WithModel("..."))`)
+
+This precedence ensures that more specific (request-level) configurations always override more general (client-level) configurations.
+
+**Example**:
+```go
+// Client-level Model: "default-model"
+client := NewClient(WithModel("default-model"))
+
+// Request-level override: "request-model"
+response, err := client.Chat().Complete(
+    &ChatRequest{Messages: msgs},
+    WithModel("request-model"),
+)
+// Result: Uses "request-model"
+
+// Request structure field: "structure-model"
+response, err := client.Chat().Complete(
+    &ChatRequest{
+        Model: ptr("structure-model"),
+        Messages: msgs,
+    },
+    WithModel("request-model"),
+)
+// Result: Uses "structure-model" (highest precedence)
+```
+
 
 ### Core Options
 - `WithBaseURL(url string)`: Base URL for API requests (no query params/fragments)
@@ -225,20 +293,48 @@ Created via `client.Chat()`. Methods:
 #### Complete(req *ChatRequest, opts ...Option) (ChatResponse, error)
 Non-streaming chat completion.
 
+**Model and Provider Precedence**:
+The Model field is resolved with the following precedence (highest to lowest):
+1. ChatRequest.Model field (if non-nil and non-empty)
+2. Per-request options Model override
+3. Client-level Model option
+
+The Provider field is applied as a fallback only if the resolved Model does not already contain a provider (indicated by ":" in the model string). If the Model is in the format "model:provider", the Provider option is ignored.
+
+Examples:
+- Model="mistral-7b", Provider="huggingface" → "mistral-7b:huggingface"
+- Model="mistral-7b:huggingface", Provider="mistral" → "mistral-7b:huggingface" (Provider ignored)
+- Model="mistral-7b:huggingface", Provider="" → "mistral-7b:huggingface"
+
+**Behavior**:
 - Validates request is not nil
 - Applies per-request options to override client defaults
 - Rejects requests with Stream=true (use CompleteStream instead)
-- Fills in model from request or client option
+- Normalizes model and provider fields
 - Returns `ChatResponse` with all choices and usage stats
 - Returns `SDKError` (kind: Configuration) for invalid requests
 
 #### CompleteStream(req *ChatRequest, opts ...Option) (*ChatStream, error)
 Streaming chat completion using SSE.
 
+**Model and Provider Precedence**:
+The Model field is resolved with the following precedence (highest to lowest):
+1. ChatRequest.Model field (if non-nil and non-empty)
+2. Per-request options Model override
+3. Client-level Model option
+
+The Provider field is applied as a fallback only if the resolved Model does not already contain a provider (indicated by ":" in the model string). If the Model is in the format "model:provider", the Provider option is ignored.
+
+Examples:
+- Model="mistral-7b", Provider="huggingface" → "mistral-7b:huggingface"
+- Model="mistral-7b:huggingface", Provider="mistral" → "mistral-7b:huggingface" (Provider ignored)
+- Model="mistral-7b:huggingface", Provider="" → "mistral-7b:huggingface"
+
+**Behavior**:
 - Validates request is not nil
 - Applies per-request options
 - Automatically sets Stream=true in request
-- Fills in model from request or client option
+- Normalizes model and provider fields
 - Returns `*ChatStream` for consuming chunks
 - Caller must call `Close()` on returned stream
 - Returns `SDKError` (kind: Configuration) for invalid requests
@@ -262,7 +358,6 @@ for {
     // Process chunk
 }
 ```
-
 ### RawService
 
 Created via `client.Raw()`. For raw HTTP requests without type-safe JSON handling.
