@@ -32,11 +32,13 @@ type TextClassificationParameters struct {
 }
 
 const (
-	// TextClassificationFuncSigmoid is useful for binary classification tasks.
+	// TextClassificationFuncSigmoid applies a sigmoid to each score independently.
+	// Useful for multi-label classification tasks, where multiple classes may apply simultaneously.
 	TextClassificationFuncSigmoid = "sigmoid"
-	// TextClassificationFuncSoftmax is useful for multi-class classification tasks.
+	// TextClassificationFuncSoftmax normalizes scores into a probability distribution summing to 1.
+	// Useful for single-label multi-class classification tasks, where exactly one class applies.
 	TextClassificationFuncSoftmax = "softmax"
-	// TextClassificationFuncNone is useful for returning raw scores without transformation.
+	// TextClassificationFuncNone returns raw scores without any transformation applied.
 	TextClassificationFuncNone = "none"
 )
 
