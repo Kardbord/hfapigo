@@ -24,6 +24,7 @@ The SDK follows a strict immutability pattern for concurrency safety:
 
 2. **Services**: Lightweight wrappers that snapshot client options
    - `ChatService`: Chat completion endpoints (Complete, CompleteStream)
+   - `TextClassificationService`: Text classification endpoints (Classify, ClassifyBatch)
    - `RawService`: Raw HTTP request handling (Do, DoRaw, Stream, StreamReader)
 
 3. **Per-Request Options**: Can override client defaults for single calls
@@ -366,6 +367,84 @@ for {
     // Process chunk
 }
 ```
+### TextClassificationService
+
+Created via `client.ClassifyText()`. For text classification tasks like sentiment analysis.
+
+#### Classify(req TextClassificationRequest, opts ...Option) ([]TextClassification, error)
+Single text classification.
+
+**Behavior**:
+- Validates request contains exactly one input
+- Returns error if multiple inputs provided (use ClassifyBatch instead)
+- Applies per-request options
+- Returns flat array of classifications for the single input
+- Automatically unwraps batch response to get single input result
+
+**Example**:
+```go
+resp, err := client.ClassifyText().Classify(
+    TextClassificationRequest{
+        Inputs: TextClassificationInput{"I love this product!"},
+    },
+)
+if err != nil {
+    // Handle error
+}
+// resp is []TextClassification
+for _, classification := range resp {
+    fmt.Printf("Label: %s, Score: %.4f\n", classification.Label, classification.Score)
+}
+```
+
+#### ClassifyBatch(req TextClassificationRequest, opts ...Option) ([][]TextClassification, error)
+Batch text classification for multiple inputs.
+
+**Behavior**:
+- Accepts one or more inputs
+- Returns error if model is not configured
+- Applies per-request options
+- **API Response Handling**: When the `TopK` parameter is unset, the HuggingFace API returns classifications in a flat format 
+  `[[class1, class2, class3]]` instead of the expected per-input format 
+  `[[class1], [class2], [class3]]`. The service automatically detects and reshapes responses 
+  to maintain consistent per-input array structure regardless of the `TopK` parameter.
+- Returns list of classification arrays, one per input
+
+**Example**:
+```go
+resp, err := client.ClassifyText().ClassifyBatch(
+    TextClassificationRequest{
+        Inputs: NewTextClassificationInput(
+            "I love this!",
+            "I hate this!",
+            "It\'s okay.",
+        ),
+    },
+)
+if err != nil {
+    // Handle error
+}
+// resp is [][]TextClassification with 3 outer elements
+for i, classifications := range resp {
+    fmt.Printf("Input %d:\n", i)
+    for _, classification := range classifications {
+        fmt.Printf("  Label: %s, Score: %.4f\n", classification.Label, classification.Score)
+    }
+}
+```
+
+**API Response Format Normalization**:
+The service handles a quirk in the HuggingFace API where the response format differs based on whether the `TopK` parameter is explicitly set:
+- **When TopK is explicitly set** (e.g., to 1, 2, or any value): Returns `[[classifications for input1], [classifications for input2], ...]` (per-input format)
+- **When TopK is unset (nil)**: Returns `[[all classifications together]]` (flat format)
+
+This inconsistency is handled transparently by the `normalizeTextClassificationResponse()` helper function, which:
+1. Detects the flat format case using a heuristic: single outer array with N classifications for N inputs
+2. Reshapes `[[class1, class2, class3]]` into `[[class1], [class2], [class3]]`
+3. Maintains consistent per-input structure regardless of the underlying API behavior
+
+This normalization is internal to the service and ensures callers always receive a predictable response format.
+
 ### RawService
 
 Created via `client.Raw()`. For raw HTTP requests without type-safe JSON handling.
@@ -465,6 +544,37 @@ Test utilities (excluded from linting/coverage requirements).
    - Require `HUGGING_FACE_TOKEN` secret
    - Retry logic (3 attempts with 10s delays) in CI
    - Automatic issue creation on failures in CI, closure on success
+
+### Test Quality and Signal-to-Noise Ratio
+
+Unit and integration tests should maintain a **high signal-to-noise ratio** to preserve maintainability:
+
+**Signal (Good Tests)**:
+- Test meaningful behavior and invariants
+- Cover happy paths and error cases
+- Use realistic data and scenarios
+- Verify public API contracts
+- Are fast and deterministic
+- Have clear, descriptive names
+- Test one logical concern per test
+
+**Noise (Tests to Avoid)**:
+- Testing internal implementation details
+- Over-testing trivial getters/setters
+- Duplicate assertions that test the same thing
+- Tests that are slower than necessary
+- Tests with unclear purpose or naming
+- Testing framework behavior rather than application behavior
+- Brittle tests that break on refactoring
+
+**Guidelines**:
+- Prefer integration tests for API quirks and external dependencies (e.g., `normalizeTextClassificationResponse()`)
+- Use unit tests for pure logic and type validation
+- Mock external services only when necessary for test speed/reliability
+- Delete or consolidate tests that don't provide actionable information
+- Refactor tests alongside production code to maintain clarity
+
+A well-maintained test suite is more valuable than a large one.
 
 ### Linting & Code Quality
 

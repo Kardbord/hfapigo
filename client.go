@@ -32,6 +32,15 @@ func (c Client) Chat() ChatService {
 	return newChatService(c.opts)
 }
 
+// ClassifyText returns a ClassificationService instance configured with this client's options.
+// The classification service provides methods for interacting with text classification endpoints.
+// Service configurations are captured at creation time and do not change if the client options change later.
+// Clients are immutable to keep concurrency simple and request behavior predictable.
+// Services are lightweight; prefer to call ClassifyText() per use instead of retaining the value.
+func (c Client) ClassifyText() TextClassificationService {
+	return newTextClassificationService(c.opts)
+}
+
 // Raw returns a RawService instance configured with this client's options.
 // The raw service provides methods for sending raw HTTP requests to any desired endpoint.
 // Service configurations are captured at creation time and do not change if the client options change later.
