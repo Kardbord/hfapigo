@@ -28,21 +28,31 @@ func (s TextClassificationService) Classify(
 	req TextClassificationRequest,
 	opts ...Option,
 ) ([]TextClassification, error) {
-	if len(req.Inputs) > 1 {
+	optsOverride := s.opts.With(opts...)
+
+	if optsOverride.Model == "" {
 		return nil, &SDKError{
 			Kind:    SDKErrorKindConfiguration,
-			Message: "batch output is not supported by TextClassificationService.Classify; use TextClassificationService.ClassifyBatch instead",
+			Message: "the model option must be set for text classification to succeed",
 			Err:     nil,
 		}
 	}
 
-	resp, err := s.ClassifyBatch(req, opts...)
+	// NOTE: The API documentation indicates that this should return an JSON array of
+	// TextClassification objects, but in reality it returns an array of arrays, where
+	// the outer array contains only a single entry (the inner array), and the inner array
+	// contains a list of TextClassification objects.
+	resp, err := request.DoJSON[TextClassificationRequest, [][]TextClassification](
+		optsOverride,
+		http.MethodPost,
+		"hf-inference/models/"+optsOverride.Model,
+		req,
+	)
 	if err != nil {
 		return nil, err
 	}
 
-	// Unexpected, but technically valid response according to the
-	// API contract.
+	// Unexpected, but technically legal API response.
 	if len(resp) < 1 {
 		return nil, nil
 	}
@@ -54,11 +64,14 @@ func (s TextClassificationService) Classify(
 // and returns a list of text classification responses for each input in
 // the batch.
 //
-// Callers should check the length of the TextClassificationResponse before indexing.
+// NOTE: Batched inference is supported by the upstream API, but is not
+// officially documented; behavior may change without notice.
+//
+// Callers should check the length of the response list before indexing.
 //
 // The Provider option is ignored for now, as hf-inference is currently the only supported provider.
 func (s TextClassificationService) ClassifyBatch(
-	req TextClassificationRequest,
+	req TextClassificationBatchRequest,
 	opts ...Option,
 ) ([][]TextClassification, error) {
 	optsOverride := s.opts.With(opts...)
@@ -71,7 +84,7 @@ func (s TextClassificationService) ClassifyBatch(
 		}
 	}
 
-	resp, err := request.DoJSON[TextClassificationRequest, [][]TextClassification](
+	resp, err := request.DoJSON[TextClassificationBatchRequest, [][]TextClassification](
 		optsOverride,
 		http.MethodPost,
 		"hf-inference/models/"+optsOverride.Model,

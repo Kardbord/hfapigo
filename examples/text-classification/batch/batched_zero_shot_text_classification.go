@@ -21,19 +21,19 @@ func main() {
 		hfgo.WithModel("ProsusAI/finbert"),
 	)
 
-	inputs := hfgo.NewTextClassificationInput(
+	input := []string{
 		"This was a masterpiece. Not completely faithful to the books, but enthralling from beginning to end. Might be my favorite of the three.",
-		"This could have been better. The director was completely unfaithful to the books, and it moved at a snail's pace.",
-	)
+		"This was completely unfaithful to the source material, and several hours longer than it needed to be.",
+	}
 
-	fmt.Println("Classifying inputs:")
-	PrintJSON(inputs)
+	fmt.Println("Classifying input:")
+	PrintJSON(input)
 	fmt.Println("...")
 
 	// Make the classification request
 	classifications, err := client.ClassifyText().ClassifyBatch(
-		hfgo.TextClassificationRequest{
-			Inputs: inputs,
+		hfgo.TextClassificationBatchRequest{
+			Inputs: input,
 			Parameters: &hfgo.TextClassificationParameters{
 				TopK: Ptr(2),
 			},

@@ -1,21 +1,25 @@
 package hfgo
 
-// TextClassificationInput represents either a single string to run text
-// classification on, or a batch of strings to run classification on.
-type TextClassificationInput []string
-
-// NewTextClassificationInput is a helper function for creating single or
-// batched TextClassificationInput types.
-func NewTextClassificationInput(inputs ...string) TextClassificationInput {
-	return inputs
-}
-
 // TextClassificationRequest represents a text classification
-// inference request to the API.
+// inference request to the API for a single input.
 type TextClassificationRequest struct {
 	// The text to classify.
 	// Required.
-	Inputs TextClassificationInput `json:"inputs"`
+	Input string `json:"inputs"`
+
+	// Additional inference parameters for text classification
+	Parameters *TextClassificationParameters `json:"parameters,omitempty"`
+}
+
+// TextClassificationBatchRequest represents a batched text classification
+// inference request to the API for multiple inputs.
+//
+// NOTE: Batched inference is supported by the upstream API, but is not
+// officially documented; behavior may change without notice.
+type TextClassificationBatchRequest struct {
+	// The texts to classify.
+	// Required.
+	Inputs []string `json:"inputs"`
 
 	// Additional inference parameters for text classification
 	Parameters *TextClassificationParameters `json:"parameters,omitempty"`

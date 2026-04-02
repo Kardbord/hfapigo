@@ -14,19 +14,21 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const textClassificationResponseBody = `[[{"label":"positive","score":0.95}]]`
-
 func TestTextClassificationService_Classify_SingleInput(t *testing.T) {
 	t.Parallel()
 
-	mt := testutils.NewJSONMockTransport(http.StatusOK, textClassificationResponseBody, nil)
+	mt := testutils.NewJSONMockTransport(
+		http.StatusOK,
+		`[[{"label":"positive","score":0.95}]]`,
+		nil,
+	)
 	opts := request.NewOptions().
 		WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }).
 		WithModel("test-model")
 	svc := newTextClassificationService(opts)
 
 	req := TextClassificationRequest{
-		Inputs: TextClassificationInput{"test text"},
+		Input: "test text",
 	}
 
 	result, err := svc.Classify(req)
@@ -40,7 +42,11 @@ func TestTextClassificationService_Classify_SingleInput(t *testing.T) {
 func TestTextClassificationService_Classify_WithParameters(t *testing.T) {
 	t.Parallel()
 
-	mt := testutils.NewJSONMockTransport(http.StatusOK, textClassificationResponseBody, nil)
+	mt := testutils.NewJSONMockTransport(
+		http.StatusOK,
+		`[[{"label":"positive","score":0.95}]]`,
+		nil,
+	)
 	opts := request.NewOptions().
 		WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }).
 		WithModel("test-model")
@@ -48,7 +54,7 @@ func TestTextClassificationService_Classify_WithParameters(t *testing.T) {
 
 	topK := 2
 	req := TextClassificationRequest{
-		Inputs: TextClassificationInput{"test text"},
+		Input: "test text",
 		Parameters: &TextClassificationParameters{
 			TopK: &topK,
 		},
@@ -73,89 +79,177 @@ func TestTextClassificationService_Classify_WithParameters(t *testing.T) {
 	require.InEpsilon(t, float64(2), params["top_k"], 0.001)
 }
 
-func TestTextClassificationService_Classify_MultipleInputsError(t *testing.T) {
+func TestTextClassificationService_Classify_Errors(t *testing.T) {
 	t.Parallel()
 
-	mt := testutils.NewJSONMockTransport(http.StatusOK, textClassificationResponseBody, nil)
-	opts := request.NewOptions().
-		WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }).
-		WithModel("test-model")
-	svc := newTextClassificationService(opts)
-
-	req := TextClassificationRequest{
-		Inputs: TextClassificationInput{"text1", "text2"},
+	cases := []struct {
+		name            string
+		withModel       bool
+		httpStatusCode  int
+		responseBody    string
+		expectedErrKind *hferrors.SDKErrorKind
+		description     string
+	}{
+		{
+			name:            "no model configured",
+			withModel:       false,
+			httpStatusCode:  http.StatusOK,
+			responseBody:    `[[{"label":"positive","score":0.95}]]`,
+			expectedErrKind: testutils.Ptr(hferrors.SDKErrorKindConfiguration),
+			description:     "SDK error when model is missing",
+		},
+		{
+			name:            "API error on 404",
+			withModel:       true,
+			httpStatusCode:  http.StatusNotFound,
+			responseBody:    `{"error":"Model not found"}`,
+			expectedErrKind: nil, // API error, not SDK error
+			description:     "API error for nonexistent model",
+		},
 	}
 
-	result, err := svc.Classify(req)
-	require.Error(t, err)
-	require.Nil(t, result)
-	testutils.AssertSDKErrorKind(t, err, hferrors.SDKErrorKindConfiguration)
+	for i := range cases {
+		tc := cases[i]
+		t.Run(tc.name, func(t *testing.T) {
+			mt := testutils.NewJSONMockTransport(tc.httpStatusCode, tc.responseBody, nil)
+			opts := request.NewOptions().
+				WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) })
+			if tc.withModel {
+				opts = opts.WithModel("nonexistent-model")
+			}
+			svc := newTextClassificationService(opts)
 
-	// Verify no request was made
-	require.Nil(t, mt.LastRequest)
+			req := TextClassificationRequest{
+				Input: "test text",
+			}
+
+			result, err := svc.Classify(req)
+			require.Error(t, err, tc.description)
+			require.Nil(t, result)
+
+			if tc.expectedErrKind != nil {
+				// SDK error expected
+				testutils.AssertSDKErrorKind(t, err, *tc.expectedErrKind)
+				// Verify no request was made for SDK errors
+				require.Nil(t, mt.LastRequest)
+			} else {
+				// API error expected
+				var apiErr *hferrors.APIError
+				require.ErrorAs(t, err, &apiErr, tc.description)
+				require.Equal(t, tc.httpStatusCode, apiErr.StatusCode)
+			}
+		})
+	}
 }
 
-func TestTextClassificationService_ClassifyBatch_SingleInput(t *testing.T) {
+func TestTextClassificationService_ClassifyBatch_ResponseVariations(t *testing.T) {
 	t.Parallel()
 
-	mt := testutils.NewJSONMockTransport(http.StatusOK, textClassificationResponseBody, nil)
-	opts := request.NewOptions().
-		WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }).
-		WithModel("test-model")
-	svc := newTextClassificationService(opts)
-
-	req := TextClassificationRequest{
-		Inputs: TextClassificationInput{"test text"},
+	cases := []struct {
+		name                string
+		responseBody        string
+		inputs              []string
+		expectedOuterLength int
+		expectedInnerLength int
+		expectedFirstLabel  string
+		expectedFirstScore  float64
+		expectedSecondLabel string
+		expectedSecondScore float64
+		description         string
+	}{
+		{
+			name:                "single input",
+			responseBody:        `[[{"label":"positive","score":0.95}]]`,
+			inputs:              []string{"test text"},
+			expectedOuterLength: 1,
+			expectedInnerLength: 1,
+			expectedFirstLabel:  "positive",
+			expectedFirstScore:  0.95,
+			description:         "single text classification",
+		},
+		{
+			name:                "multiple inputs",
+			responseBody:        `[[{"label":"positive","score":0.95}],[{"label":"negative","score":0.87}],[{"label":"neutral","score":0.75}]]`,
+			inputs:              []string{"text1", "text2", "text3"},
+			expectedOuterLength: 3,
+			expectedInnerLength: 1,
+			expectedFirstLabel:  "positive",
+			expectedFirstScore:  0.95,
+			expectedSecondLabel: "negative",
+			expectedSecondScore: 0.87,
+			description:         "multiple text classifications",
+		},
+		{
+			name:                "empty response",
+			responseBody:        `[[]]`,
+			inputs:              []string{"test text"},
+			expectedOuterLength: 1,
+			expectedInnerLength: 0,
+			description:         "empty classification results",
+		},
+		{
+			name:                "multiple classifications per input",
+			responseBody:        `[[{"label":"positive","score":0.95},{"label":"negative","score":0.05}],[{"label":"negative","score":0.87},{"label":"positive","score":0.13}]]`,
+			inputs:              []string{"text1", "text2"},
+			expectedOuterLength: 2,
+			expectedInnerLength: 2,
+			expectedFirstLabel:  "positive",
+			expectedFirstScore:  0.95,
+			expectedSecondLabel: "negative",
+			expectedSecondScore: 0.87,
+			description:         "multiple classifications with TopK parameter",
+		},
 	}
 
-	result, err := svc.ClassifyBatch(req)
-	require.NoError(t, err)
-	require.NotNil(t, result)
-	require.Len(t, result, 1)
-	require.Len(t, result[0], 1)
-	require.Equal(t, "positive", result[0][0].Label)
-	require.InEpsilon(t, 0.95, result[0][0].Score, 0.001)
-}
+	for i := range cases {
+		tc := cases[i]
+		t.Run(tc.name, func(t *testing.T) {
+			mt := testutils.NewJSONMockTransport(http.StatusOK, tc.responseBody, nil)
+			opts := request.NewOptions().
+				WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }).
+				WithModel("test-model")
+			svc := newTextClassificationService(opts)
 
-func TestTextClassificationService_ClassifyBatch_MultipleInputs(t *testing.T) {
-	t.Parallel()
+			req := TextClassificationBatchRequest{
+				Inputs: tc.inputs,
+			}
 
-	batchResponseBody := `[[{"label":"positive","score":0.95}],[{"label":"negative","score":0.87}],[{"label":"neutral","score":0.75}]]`
-	mt := testutils.NewJSONMockTransport(http.StatusOK, batchResponseBody, nil)
-	opts := request.NewOptions().
-		WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }).
-		WithModel("test-model")
-	svc := newTextClassificationService(opts)
+			result, err := svc.ClassifyBatch(req)
+			require.NoError(t, err, tc.description)
+			require.NotNil(t, result)
+			require.Len(t, result, tc.expectedOuterLength, tc.description)
 
-	req := TextClassificationRequest{
-		Inputs: TextClassificationInput{"text1", "text2", "text3"},
+			if tc.expectedInnerLength > 0 {
+				require.Len(t, result[0], tc.expectedInnerLength)
+				require.Equal(t, tc.expectedFirstLabel, result[0][0].Label)
+				require.InEpsilon(t, tc.expectedFirstScore, result[0][0].Score, 0.001)
+			}
+
+			if tc.expectedOuterLength > 1 && tc.expectedInnerLength > 0 {
+				require.Len(t, result[1], tc.expectedInnerLength)
+				require.Equal(t, tc.expectedSecondLabel, result[1][0].Label)
+				require.InEpsilon(t, tc.expectedSecondScore, result[1][0].Score, 0.001)
+			}
+		})
 	}
-
-	result, err := svc.ClassifyBatch(req)
-	require.NoError(t, err)
-	require.NotNil(t, result)
-	require.Len(t, result, 3)
-
-	require.Equal(t, "positive", result[0][0].Label)
-	require.InEpsilon(t, 0.95, result[0][0].Score, 0.001)
-
-	require.Equal(t, "negative", result[1][0].Label)
-	require.InEpsilon(t, 0.87, result[1][0].Score, 0.001)
-
-	require.Equal(t, "neutral", result[2][0].Label)
-	require.InEpsilon(t, 0.75, result[2][0].Score, 0.001)
 }
 
 func TestTextClassificationService_ClassifyBatch_NoModel(t *testing.T) {
 	t.Parallel()
 
-	mt := testutils.NewJSONMockTransport(http.StatusOK, textClassificationResponseBody, nil)
+	// NOTE: The API documentation indicates that this should return an JSON array of
+	// TextClassification objects, but in reality it returns an array of arrays, where
+	// the outer array contains only a single entry (the inner array), and the inner array
+	// contains a list of TextClassification objects.
+	const batchTextClassificationResponseBody = `[[{"label":"positive","score":0.95}]]`
+
+	mt := testutils.NewJSONMockTransport(http.StatusOK, batchTextClassificationResponseBody, nil)
 	opts := request.NewOptions().
 		WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) })
 	svc := newTextClassificationService(opts)
 
-	req := TextClassificationRequest{
-		Inputs: TextClassificationInput{"test text"},
+	req := TextClassificationBatchRequest{
+		Inputs: []string{"test text"},
 	}
 
 	result, err := svc.ClassifyBatch(req)
@@ -170,13 +264,19 @@ func TestTextClassificationService_ClassifyBatch_NoModel(t *testing.T) {
 func TestTextClassificationService_ClassifyBatch_ModelFromOptions(t *testing.T) {
 	t.Parallel()
 
-	mt := testutils.NewJSONMockTransport(http.StatusOK, textClassificationResponseBody, nil)
+	// NOTE: The API documentation indicates that this should return an JSON array of
+	// TextClassification objects, but in reality it returns an array of arrays, where
+	// the outer array contains only a single entry (the inner array), and the inner array
+	// contains a list of TextClassification objects.
+	const batchTextClassificationResponseBody = `[[{"label":"positive","score":0.95}]]`
+
+	mt := testutils.NewJSONMockTransport(http.StatusOK, batchTextClassificationResponseBody, nil)
 	opts := request.NewOptions().
 		WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) })
 	svc := newTextClassificationService(opts)
 
-	req := TextClassificationRequest{
-		Inputs: TextClassificationInput{"test text"},
+	req := TextClassificationBatchRequest{
+		Inputs: []string{"test text"},
 	}
 
 	result, err := svc.ClassifyBatch(req, WithModel("override-model"))
@@ -186,84 +286,4 @@ func TestTextClassificationService_ClassifyBatch_ModelFromOptions(t *testing.T) 
 	// Verify the correct model was used in the request
 	require.NotNil(t, mt.LastRequest)
 	require.Contains(t, mt.LastRequest.URL.Path, "override-model")
-}
-
-func TestTextClassificationService_ClassifyBatch_APIError(t *testing.T) {
-	t.Parallel()
-
-	errorResponse := `{"error":"Model not found"}`
-	mt := testutils.NewJSONMockTransport(http.StatusNotFound, errorResponse, nil)
-	opts := request.NewOptions().
-		WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }).
-		WithModel("nonexistent-model")
-	svc := newTextClassificationService(opts)
-
-	req := TextClassificationRequest{
-		Inputs: TextClassificationInput{"test text"},
-	}
-
-	result, err := svc.ClassifyBatch(req)
-	require.Error(t, err)
-	require.Nil(t, result)
-
-	// Should be an API error, not SDK error
-	var apiErr *hferrors.APIError
-	require.ErrorAs(t, err, &apiErr)
-	require.Equal(t, http.StatusNotFound, apiErr.StatusCode)
-}
-
-func TestTextClassificationService_ClassifyBatch_EmptyResponse(t *testing.T) {
-	t.Parallel()
-
-	emptyResponseBody := `[[]]`
-	mt := testutils.NewJSONMockTransport(http.StatusOK, emptyResponseBody, nil)
-	opts := request.NewOptions().
-		WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }).
-		WithModel("test-model")
-	svc := newTextClassificationService(opts)
-
-	req := TextClassificationRequest{
-		Inputs: TextClassificationInput{"test text"},
-	}
-
-	result, err := svc.Classify(req)
-	require.NoError(t, err)
-	require.Empty(t, result)
-}
-
-func TestTextClassificationService_ClassifyBatch_MultipleClassificationsPerInput(t *testing.T) {
-	t.Parallel()
-
-	multiResponseBody := `[[{"label":"positive","score":0.95},{"label":"negative","score":0.05}],[{"label":"negative","score":0.87},{"label":"positive","score":0.13}]]`
-	mt := testutils.NewJSONMockTransport(http.StatusOK, multiResponseBody, nil)
-	opts := request.NewOptions().
-		WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }).
-		WithModel("test-model")
-	svc := newTextClassificationService(opts)
-
-	topK := 2
-	req := TextClassificationRequest{
-		Inputs: TextClassificationInput{"text1", "text2"},
-		Parameters: &TextClassificationParameters{
-			TopK: &topK,
-		},
-	}
-
-	result, err := svc.ClassifyBatch(req)
-	require.NoError(t, err)
-	require.Len(t, result, 2)
-
-	// First input classifications
-	require.Len(t, result[0], 2)
-	require.Equal(t, "positive", result[0][0].Label)
-	require.InEpsilon(t, 0.95, result[0][0].Score, 0.001)
-	require.Equal(t, "negative", result[0][1].Label)
-	require.InEpsilon(t, 0.05, result[0][1].Score, 0.001)
-
-	// Second input classifications
-	require.Len(t, result[1], 2)
-	require.Equal(t, "negative", result[1][0].Label)
-	require.InEpsilon(t, 0.87, result[1][0].Score, 0.001)
-	require.Equal(t, "positive", result[1][1].Label)
-	require.InEpsilon(t, 0.13, result[1][1].Score, 0.001)
 }

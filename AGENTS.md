@@ -25,6 +25,7 @@ The SDK follows a strict immutability pattern for concurrency safety:
 2. **Services**: Lightweight wrappers that snapshot client options
    - `ChatService`: Chat completion endpoints (Complete, CompleteStream)
    - `TextClassificationService`: Text classification endpoints (Classify, ClassifyBatch)
+   - `ZeroShotTextClassificationService`: Zero-shot text classification endpoints (Classify, ClassifyBatch)
    - `RawService`: Raw HTTP request handling (Do, DoRaw, Stream, StreamReader)
 
 3. **Per-Request Options**: Can override client defaults for single calls
@@ -445,6 +446,81 @@ This inconsistency is handled transparently by the `normalizeTextClassificationR
 
 This normalization is internal to the service and ensures callers always receive a predictable response format.
 
+
+
+### ZeroShotTextClassificationService
+
+Created via `client.ZeroShotClassifyText()`. For zero-shot text classification tasks that don't require training data.
+
+#### Classify(req ZeroShotTextClassificationRequest, opts ...Option) ([]ZeroShotTextClassification, error)
+Single input zero-shot text classification.
+
+**Behavior**:
+- Validates that candidate labels are provided in parameters
+- Returns error if candidate labels are missing or empty
+- Applies per-request options
+- Returns flat array of classifications for the single input, ordered by score (descending)
+
+**Example**:
+```go
+resp, err := client.ZeroShotClassifyText().Classify(
+    ZeroShotTextClassificationRequest{
+        Input: "This product is excellent!",
+        Parameters: &ZeroShotTextClassificationParameters{
+            CandidateLabels: []string{"positive", "negative", "neutral"},
+        },
+    },
+)
+if err != nil {
+    // Handle error
+}
+// resp is []ZeroShotTextClassification
+for _, classification := range resp {
+    fmt.Printf("Label: %s, Score: %.4f\n", classification.Label, classification.Score)
+}
+```
+
+#### ClassifyBatch(req ZeroShotTextClassificationBatchRequest, opts ...Option) ([][]ZeroShotTextClassification, error)
+Batch zero-shot text classification for multiple inputs.
+
+**Behavior**:
+- Validates that candidate labels are provided in parameters
+- Returns error if candidate labels are missing or empty
+- Applies per-request options
+- **API Response Normalization**: The HuggingFace API returns batched zero-shot results in a different format than single inputs. 
+  The service transparently normalizes responses via `normalizeZeroShotTextClassificationResponse()`, which:
+  1. Validates response item count matches input count
+  2. Validates response sequence matches input (in order)
+  3. Validates labels and scores have matching lengths
+  4. Converts the API format `{sequence, labels: [], scores: []}` to the expected format `[]ZeroShotTextClassification`
+- Returns list of classification arrays, one per input, each ordered by score (descending)
+
+**Example**:
+```go
+resp, err := client.ZeroShotClassifyText().ClassifyBatch(
+    ZeroShotTextClassificationBatchRequest{
+        Inputs: []string{"Great product!", "Terrible product!", "It's okay."},
+        Parameters: &ZeroShotTextClassificationParameters{
+            CandidateLabels: []string{"positive", "negative", "neutral"},
+        },
+    },
+)
+if err != nil {
+    // Handle error
+}
+// resp is [][]ZeroShotTextClassification with 3 outer elements
+for i, classifications := range resp {
+    fmt.Printf("Input %d:\n", i)
+    for _, classification := range classifications {
+        fmt.Printf("  Label: %s, Score: %.4f\n", classification.Label, classification.Score)
+    }
+}
+```
+
+**Optional Parameters**:
+- `HypothesisTemplate`: Custom template for classification (default: "This example is {}.")
+- `MultiLabel`: Whether multiple labels can be true simultaneously (default: false)
+
 ### RawService
 
 Created via `client.Raw()`. For raw HTTP requests without type-safe JSON handling.
@@ -577,6 +653,76 @@ Unit and integration tests should maintain a **high signal-to-noise ratio** to p
 A well-maintained test suite is more valuable than a large one.
 
 ### Linting & Code Quality
+### Table-Driven Tests
+
+The project uses **table-driven tests** extensively to maintain a high signal-to-noise ratio while providing comprehensive test coverage. This pattern consolidates multiple similar test cases into a single test function with a test case struct.
+
+**Pattern Structure**:
+```go
+func TestSomething(t *testing.T) {
+    t.Parallel()
+
+    cases := []struct {
+        name        string
+        // Input fields
+        input       string
+        setupMock   func() *testutils.JSONMockTransport
+        // Expected/want fields
+        wantResult  string
+        expectedErr bool
+        description string
+    }{
+        {
+            name:        "case 1 description",
+            input:       "input value",
+            setupMock:   func() { /* ... */ },
+            wantResult:  "expected",
+            expectedErr: false,
+            description: "additional context",
+        },
+        {
+            name:        "case 2 description",
+            input:       "different input",
+            setupMock:   func() { /* ... */ },
+            wantResult:  "different result",
+            expectedErr: true,
+            description: "error scenario",
+        },
+        // ... more cases
+    }
+
+    for _, tc := range cases {
+        t.Run(tc.name, func(t *testing.T) {
+            // Test logic using tc.name, tc.input, tc.wantResult, etc.
+        })
+    }
+}
+```
+
+**Key Benefits**:
+1. **Reduced Duplication**: Eliminates repetitive setup code and assertions across similar tests
+2. **Easier to Extend**: Adding new test cases requires only adding a struct entry, not a new test function
+3. **Better Maintainability**: Changes to mock setup or assertions are made in one place
+4. **Improved Clarity**: All test variations are visible in one place, making it easy to understand coverage
+5. **Consistency**: Follows Go idioms and the project's established patterns
+
+**When to Use Table-Driven Tests**:
+- Multiple test cases with the same structure but different inputs/outputs
+- Error cases that follow a common pattern (e.g., missing configuration, API errors)
+- Response variations with different data but similar assertions
+- Parameter validation with multiple valid/invalid combinations
+
+**When to Keep Tests Separate**:
+- Tests that verify different concerns or behaviors
+- Tests that require significantly different setup logic
+- Tests that are testing special option overrides or request-level configurations
+- Happy-path baseline tests that deserve visibility as standalone tests
+
+**Examples in the Project**:
+- `chat_service_test.go`: Model selection and provider normalization tests use table-driven patterns
+- `text_classification_service_test.go`: Error cases and response variations consolidated into tables
+- `zero_shot_text_classification_service_test.go`: Input variations and error cases use table-driven patterns
+
 
 **Tools**:
 - `golangci-lint`: Comprehensive linting (custom config in .golangci.yml)
