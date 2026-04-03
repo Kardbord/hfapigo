@@ -149,6 +149,7 @@ func TestTextClassificationService_ClassifyBatch_ResponseVariations(t *testing.T
 		name                string
 		responseBody        string
 		inputs              []string
+		topK                *int
 		expectedOuterLength int
 		expectedInnerLength int
 		expectedFirstLabel  string
@@ -161,6 +162,7 @@ func TestTextClassificationService_ClassifyBatch_ResponseVariations(t *testing.T
 			name:                "single input",
 			responseBody:        `[[{"label":"positive","score":0.95}]]`,
 			inputs:              []string{"test text"},
+			topK:                nil,
 			expectedOuterLength: 1,
 			expectedInnerLength: 1,
 			expectedFirstLabel:  "positive",
@@ -168,36 +170,39 @@ func TestTextClassificationService_ClassifyBatch_ResponseVariations(t *testing.T
 			description:         "single text classification",
 		},
 		{
-			name:                "multiple inputs",
-			responseBody:        `[[{"label":"positive","score":0.95}],[{"label":"negative","score":0.87}],[{"label":"neutral","score":0.75}]]`,
+			name:                "multiple inputs with TopK unset",
+			responseBody:        `[[{"label":"positive","score":0.95},{"label":"negative","score":0.87},{"label":"neutral","score":0.75}]]`,
 			inputs:              []string{"text1", "text2", "text3"},
+			topK:                nil,
 			expectedOuterLength: 3,
 			expectedInnerLength: 1,
 			expectedFirstLabel:  "positive",
 			expectedFirstScore:  0.95,
 			expectedSecondLabel: "negative",
 			expectedSecondScore: 0.87,
-			description:         "multiple text classifications",
+			description:         "multiple text classifications with TopK unset (triggers normalization)",
 		},
 		{
 			name:                "empty response",
 			responseBody:        `[[]]`,
 			inputs:              []string{"test text"},
+			topK:                nil,
 			expectedOuterLength: 1,
 			expectedInnerLength: 0,
 			description:         "empty classification results",
 		},
 		{
-			name:                "multiple classifications per input",
+			name:                "multiple classifications per input with TopK set",
 			responseBody:        `[[{"label":"positive","score":0.95},{"label":"negative","score":0.05}],[{"label":"negative","score":0.87},{"label":"positive","score":0.13}]]`,
 			inputs:              []string{"text1", "text2"},
+			topK:                testutils.Ptr(2),
 			expectedOuterLength: 2,
 			expectedInnerLength: 2,
 			expectedFirstLabel:  "positive",
 			expectedFirstScore:  0.95,
 			expectedSecondLabel: "negative",
 			expectedSecondScore: 0.87,
-			description:         "multiple classifications with TopK parameter",
+			description:         "multiple classifications with TopK parameter (no normalization)",
 		},
 	}
 
@@ -212,6 +217,11 @@ func TestTextClassificationService_ClassifyBatch_ResponseVariations(t *testing.T
 
 			req := TextClassificationBatchRequest{
 				Inputs: tc.inputs,
+			}
+			if tc.topK != nil {
+				req.Parameters = &TextClassificationParameters{
+					TopK: tc.topK,
+				}
 			}
 
 			result, err := svc.ClassifyBatch(req)

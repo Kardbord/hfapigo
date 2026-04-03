@@ -94,15 +94,18 @@ func (s TextClassificationService) ClassifyBatch(
 		return nil, err
 	}
 
+	if req.Parameters != nil && req.Parameters.TopK != nil {
+		return resp, nil
+	}
+
 	return normalizeTextClassificationResponse(resp, len(req.Inputs)), nil
 }
 
 // normalizeTextClassificationResponse handles a quirk in the HuggingFace API where
 // the response format differs based on whether the TopK parameter is explicitly set:
 //
-//   - When TopK is explicitly set (e.g., to 1, 2, or any value): Returns
-//     [[classifications for input1], [classifications for input2], ...] (per-input format)
 //   - When TopK is unset (nil): Returns [[all classifications together]] (flat format)
+//     and needs to be reshaped to [[classifications for input1], [classifications for input2], ...]
 //
 // This function detects the flat format case and reshapes it to the expected per-input
 // format for API consistency. The detection heuristic is:
@@ -112,6 +115,9 @@ func (s TextClassificationService) ClassifyBatch(
 //
 // When all conditions are met, we reshape [[class1, class2, class3]] into
 // [[class1], [class2], [class3]] to maintain consistent per-input structure.
+//
+// NOTE: This function should only be called when TopK was not explicitly set.
+// Calling it with TopK-set responses may cause data corruption.
 func normalizeTextClassificationResponse(
 	resp [][]TextClassification,
 	numInputs int,

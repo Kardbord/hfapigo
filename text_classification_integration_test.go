@@ -215,13 +215,14 @@ func TestTextClassification_VeryLargeBatch(t *testing.T) {
 // TestTextClassification_TopKResponseFormatQuirk documents the HuggingFace API quirk where
 // the response format differs based on whether the TopK parameter is explicitly set.
 //
-// This is an important quirk to document because:
+// This test documents an important API quirk:
 //   - When TopK is explicitly set (e.g., to 1, 2, or any value), the API returns
 //     the expected per-input format: [[input1_classifications], [input2_classifications], ...]
 //   - When TopK is unset (nil), the API returns a flat format: [[all_classifications_together]]
 //
-// The SDK handles this transparently via normalizeTextClassificationResponse(), but this test
-// documents the behavior to ensure the normalization logic continues to work correctly.
+// The SDK handles this transparently: normalizeTextClassificationResponse() is only called
+// when TopK is unset (nil), ensuring the flat format is reshaped to per-input format.
+// This conditional normalization prevents data corruption when TopK is explicitly set.
 //
 // This test requires the HUGGING_FACE_TOKEN environment variable to be set.
 func TestTextClassification_TopKResponseFormatQuirk(t *testing.T) {
@@ -245,8 +246,8 @@ func TestTextClassification_TopKResponseFormatQuirk(t *testing.T) {
 		"This product is okay.",
 	}
 
-	// Test 1: Without TopK (unset) - API returns flat format which should be normalized
-	t.Run("without_topk_flat_format_normalized", func(t *testing.T) {
+	// Test 1: Without TopK (unset) - API returns flat format which the SDK normalizes to per-input format
+	t.Run("without_topk_triggers_normalization", func(t *testing.T) {
 		resp, err := client.ClassifyText().ClassifyBatch(
 			TextClassificationBatchRequest{
 				Inputs: inputs,
@@ -273,8 +274,8 @@ func TestTextClassification_TopKResponseFormatQuirk(t *testing.T) {
 		}
 	})
 
-	// Test 2: With TopK=1 - API returns per-input format (no normalization needed)
-	t.Run("with_topk_1_per_input_format", func(t *testing.T) {
+	// Test 2: With TopK=1 - API returns per-input format; SDK skips normalization
+	t.Run("with_topk_1_skips_normalization", func(t *testing.T) {
 		topK := 1
 		resp, err := client.ClassifyText().ClassifyBatch(
 			TextClassificationBatchRequest{
@@ -300,8 +301,8 @@ func TestTextClassification_TopKResponseFormatQuirk(t *testing.T) {
 		}
 	})
 
-	// Test 3: With TopK=2 - API returns per-input format with multiple classifications
-	t.Run("with_topk_2_multiple_classifications", func(t *testing.T) {
+	// Test 3: With TopK=2 - API returns per-input format with multiple classifications; SDK skips normalization
+	t.Run("with_topk_2_skips_normalization", func(t *testing.T) {
 		topK := 2
 		resp, err := client.ClassifyText().ClassifyBatch(
 			TextClassificationBatchRequest{
