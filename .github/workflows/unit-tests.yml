@@ -50,6 +50,9 @@ jobs:
         run: go test -timeout 600s -v -coverprofile=coverage.out -covermode=atomic ./...
 
       - name: Upload coverage to Codecov
+        # Skip this job for PRs from forked repositories without access to secrets
+        # but allow it for PRs from branches within the main repository
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
         uses: codecov/codecov-action@v5
         with:
           files: coverage.out
