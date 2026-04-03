@@ -2,9 +2,14 @@
 name: Integration Tests
 
 on:
+  push:
+    branches: [main]
+  pull_request:
+    branches:
+      - main
+      - v4-draft
   schedule:
-    # Run every day at 2 AM UTC
-    - cron: "0 2 * * *"
+    - cron: "35 21 * * 3"
   workflow_dispatch:
 
 permissions:
@@ -17,6 +22,9 @@ concurrency:
 
 jobs:
   integration-tests:
+    # Skip this job for PRs from forked repositories without access to secrets
+    # but allow it for PRs from branches within the main repository
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
 
     steps:

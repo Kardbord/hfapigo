@@ -16,7 +16,6 @@ import (
 
 // TestChatCompletion_LiveAPI tests a basic chat completion against the live HF API.
 // This test requires the HUGGING_FACE_TOKEN environment variable to be set.
-// It skips gracefully if the token is not available.
 func TestChatCompletion_LiveAPI(t *testing.T) {
 	apiToken := os.Getenv("HUGGING_FACE_TOKEN")
 	require.NotEmpty(t, apiToken, "HUGGING_FACE_TOKEN must be set")
@@ -73,7 +72,6 @@ func TestChatCompletion_LiveAPI(t *testing.T) {
 
 // TestChatCompletion_StreamingLiveAPI tests streaming chat completion against the live HF API.
 // This test requires the HUGGING_FACE_TOKEN environment variable to be set.
-// It skips gracefully if the token is not available.
 func TestChatCompletion_StreamingLiveAPI(t *testing.T) {
 	apiToken := os.Getenv("HUGGING_FACE_TOKEN")
 	require.NotEmpty(t, apiToken, "HUGGING_FACE_TOKEN must be set")
@@ -135,7 +133,6 @@ func TestChatCompletion_StreamingLiveAPI(t *testing.T) {
 
 // TestChatCompletion_MultiMessageLiveAPI tests a multi-turn conversation against the live HF API.
 // This test requires the HUGGING_FACE_TOKEN environment variable to be set.
-// It skips gracefully if the token is not available.
 func TestChatCompletion_MultiMessageLiveAPI(t *testing.T) {
 	apiToken := os.Getenv("HUGGING_FACE_TOKEN")
 	require.NotEmpty(t, apiToken, "HUGGING_FACE_TOKEN must be set")
