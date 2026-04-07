@@ -22,6 +22,7 @@ jobs:
           go-version-file: "go.mod"
           cache: true
       - run: go version
+      # TODO: Pin this down to the patch prior to release to mitigate vulnerability to supply-chain attacks
       - uses: goreleaser/goreleaser-action@v6
         with:
           distribution: goreleaser

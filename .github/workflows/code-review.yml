@@ -19,6 +19,7 @@ jobs:
         with:
           fetch-depth: 1
 
+      # TODO: Pin this down to the patch prior to release to mitigate vulnerability to supply-chain attacks
       - uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}

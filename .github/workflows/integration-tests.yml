@@ -71,6 +71,7 @@ jobs:
           echo "All $max_attempts attempts failed"
           exit 1
 
+      # FIXME: only create issues for scheduled runs, not for PRs
       - name: Create or update issue on failure
         if: failure()
         uses: actions/github-script@v7
@@ -111,6 +112,7 @@ jobs:
               });
             }
 
+      # FIXME: only close issues for scheduled runs, not for PRs
       - name: Close issue on success
         if: success()
         uses: actions/github-script@v7
