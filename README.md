@@ -1,5 +1,15 @@
 # hfapigo
 
+## ⚠️ Notice
+
+**v3** and earlier are significantly out of date from the upstream API.
+This project is currently undergoing a major overhaul, at the end of
+which **v4** will be released, the module will be renamed to `hfgo`,
+and **v3 will be deprecated**. See [#72](https://github.com/Kardbord/hfapigo/issues/72)
+for more information.
+
+---
+
 [![Unit Tests](https://github.com/Kardbord/hfapigo/actions/workflows/unit-tests.yml/badge.svg)](https://github.com/Kardbord/hfapigo/actions/workflows/unit-tests.yml)
 [![CodeQL](https://github.com/Kardbord/hfapigo/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/Kardbord/hfapigo/actions/workflows/codeql-analysis.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/Kardbord/hfapigo)](https://goreportcard.com/report/github.com/Kardbord/hfapigo)
@@ -9,14 +19,6 @@
 Directly call any model available in the [Model Hub](https://huggingface.co/models).
 
 An API key is required for authorized access. To get one, create a [Hugging Face](https://huggingface.co/) profile.
-
-## Notice
-
-I have been unable to keep up with the latest changes to the API as of yet,
-but I will continue to work on bringing these bindings up to date to the best
-of my ability. In the meantime, contributions are always welcome! Please submit
-pull requests with your contributions to the
-[v4-draft](https://github.com/Kardbord/hfapigo/tree/v4-draft) branch.
 
 ## Usage
 
