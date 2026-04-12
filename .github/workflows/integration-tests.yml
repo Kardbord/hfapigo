@@ -71,9 +71,8 @@ jobs:
           echo "All $max_attempts attempts failed"
           exit 1
 
-      # FIXME: only create issues for scheduled runs, not for PRs
       - name: Create or update issue on failure
-        if: failure()
+        if: failure() && (github.event_name == 'push' || github.event_name == 'schedule')
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -112,9 +111,8 @@ jobs:
               });
             }
 
-      # FIXME: only close issues for scheduled runs, not for PRs
       - name: Close issue on success
-        if: success()
+        if: success() && (github.event_name == 'push' || github.event_name == 'schedule')
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
