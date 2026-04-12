@@ -10,6 +10,14 @@ Directly call any model available in the [Model Hub](https://huggingface.co/mode
 
 An API key is required for authorized access. To get one, create a [Hugging Face](https://huggingface.co/) profile.
 
+## ⚠️ Notice
+
+**v3** and earlier are significantly out of date from the upstream API.
+This project is currently undergoing a major overhaul, at the end of
+which **v4** will be released, the module will be renamed to `hfgo`,
+and **v3 will be deprecated**. See [#72](https://github.com/Kardbord/hfapigo/issues/72)
+for more information.
+
 ## Usage
 
 See the [examples](./examples) directory.
@@ -38,3 +46,4 @@ See the [examples](./examples) directory.
 - [HF on GitHub](https://github.com/huggingface)
   - Official [Python bindings](https://github.com/huggingface/huggingface_hub)
   - Official [JavaScript bindings](https://github.com/huggingface/huggingface.js)
+
