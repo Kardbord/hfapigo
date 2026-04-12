@@ -1,31 +1,49 @@
 ---
 name: Integration Tests
 
+# ============================================================================
+# TRIGGERS
+# ============================================================================
+# This workflow runs integration tests against the live HuggingFace API
 on:
+  # Automatic: Run on push to main branches
   push:
     branches:
       - main
       - v4-draft
+
+  # Scheduled: Run weekly on Wednesdays at 9:35 PM UTC
   schedule:
     - cron: "35 21 * * 3"
+
+  # Manual: Allow triggering via GitHub UI with optional PR number
   workflow_dispatch:
     inputs:
       pr_number:
         description: "Optional: PR number to test"
         required: false
         type: number
+
+  # Comment-triggered: Run when PR comment "/integration-test" is created
   issue_comment:
     types: [created]
 
 permissions:
   contents: read
-  issues: write
-  pull-requests: read
+  issues: write # For creating/closing failure issues
+  pull-requests: read # For reading PR information
 
+# ============================================================================
+# CONCURRENCY
+# ============================================================================
+# Prevents multiple integration test runs from executing simultaneously.
+# This avoids API rate limiting and resource conflicts.
+#
+# Grouping strategy:
+# - PR-triggered runs (comment or dispatch): group by PR number
+# - Branch runs (main/v4-draft): group by branch name
+# - Scheduled runs: use main group
 concurrency:
-  # For PR-specific runs (comment or dispatch with PR number): use per-PR group
-  # For main/v4-draft branch runs: use branch-specific group
-  # For schedule: use main group
   group: |
     ${{
       (github.event_name == 'issue_comment' ||
@@ -39,11 +57,15 @@ concurrency:
     }}
   cancel-in-progress: true
 
+# ============================================================================
+# JOBS
+# ============================================================================
 jobs:
   check-comment:
-    # Run integration tests if:
-    # 1. Triggered by push to main/v4-draft, schedule, or workflow_dispatch, OR
-    # 2. Triggered by /integration-test comment on a PR from a user with write access
+    name: Run Integration Tests
+    # Authorization checks:
+    # - Always run: push, schedule, or manual workflow_dispatch
+    # - PR comment: only run "/integration-test" from OWNER, MEMBER, or COLLABORATOR
     if: |
       github.event_name != 'issue_comment' || (
         github.event.issue.pull_request != null &&
@@ -54,8 +76,13 @@ jobs:
       )
     runs-on: ubuntu-latest
     steps:
+      # ====================================================================
+      # Step 1: Get PR metadata for PR-triggered runs
+      # ====================================================================
       - name: Get PR details
-        if: github.event_name == 'issue_comment' || (github.event_name == 'workflow_dispatch' && github.event.inputs.pr_number != '')
+        if: |
+          github.event_name == 'issue_comment' ||
+          (github.event_name == 'workflow_dispatch' && github.event.inputs.pr_number != '')
         id: pr_info
         uses: actions/github-script@v7
         with:
@@ -72,17 +99,40 @@ jobs:
             });
             core.setOutput('merge_commit_sha', pr.data.merge_commit_sha);
 
+      # ====================================================================
+      # Step 2: Checkout code
+      # ====================================================================
+      # For PR-triggered runs: check out the PR merge commit
+      # For branch runs: check out the pushed ref
       - name: Checkout code
         uses: actions/checkout@v6
         with:
-          ref: ${{ (github.event_name == 'issue_comment' || (github.event_name == 'workflow_dispatch' && github.event.inputs.pr_number != '')) && steps.pr_info.outputs.merge_commit_sha || github.ref }}
+          ref: |
+            ${{
+              (github.event_name == 'issue_comment' ||
+               (github.event_name == 'workflow_dispatch' && github.event.inputs.pr_number != '')) &&
+              steps.pr_info.outputs.merge_commit_sha ||
+              github.ref
+            }}
 
+      # ====================================================================
+      # Step 3: Set up Go environment
+      # ====================================================================
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
           go-version-file: "go.mod"
           cache: true
 
+      # ====================================================================
+      # Step 4: Run integration tests with retry logic
+      # ====================================================================
+      # Tests are retried up to 3 times with 10-second delays between attempts.
+      # This helps mitigate transient API failures and network issues.
+      #
+      # Requirements:
+      # - HUGGING_FACE_TOKEN: GitHub secret with valid HuggingFace API token
+      # - Tests must be tagged with '//go:build integration'
       - name: Run live API integration tests (with retry)
         id: integration_tests
         env:
@@ -110,18 +160,30 @@ jobs:
           echo "All $max_attempts attempts failed"
           exit 1
 
+      # ====================================================================
+      # Step 5: Create/update failure issue (branch/schedule only)
+      # ====================================================================
+      # When tests fail on tracked branches or scheduled runs:
+      # - Creates a new GitHub issue (if none exists for this branch)
+      # - Adds a comment to existing issue with failure details
+      # - Uses branch-specific labels to track which branch is failing
+      # - Skipped for PR-triggered runs
       - name: Create or update issue on failure
-        if: failure() && (github.event_name == 'push' || github.event_name == 'schedule')
+        if: |
+          failure() &&
+          (github.event_name == 'push' || github.event_name == 'schedule')
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const label = "integration-test-failure";
-            const title = "⚠️ Live API Integration Tests Failing";
+            const branchName = "${{ github.ref_name }}";
+            const label = `integration-test-failure:${branchName}`;
+            const title = `⚠️ Live API Integration Tests Failing (${branchName})`;
 
             const runUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
             const timestamp = new Date().toISOString();
 
+            // Search for existing open issues with the branch-specific failure label
             const { data: issues } = await github.rest.issues.listForRepo({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -132,16 +194,17 @@ jobs:
             const bodyUpdate = `### ❌ Failure detected at ${timestamp}\nRun: ${runUrl}`;
 
             if (issues.length === 0) {
+              // No existing issue found, create a new one with branch-specific label
               await github.rest.issues.create({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 title,
                 labels: [label],
-                body: `Integration tests are currently failing.\n\n${bodyUpdate}`
+                body: `Integration tests are currently failing on the **${branchName}** branch.\n\n${bodyUpdate}`
               });
             } else {
+              // Issue exists, add a comment with the new failure details
               const issue = issues[0];
-
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
@@ -150,14 +213,26 @@ jobs:
               });
             }
 
+      # ====================================================================
+      # Step 6: Close failure issue on success (branch/schedule only)
+      # ====================================================================
+      # When tests pass after previous failures:
+      # - Adds a success comment to the issue
+      # - Closes the issue
+      # - Only closes issues for the specific branch that is now passing
+      # - Skipped for PR-triggered runs
       - name: Close issue on success
-        if: success() && (github.event_name == 'push' || github.event_name == 'schedule')
+        if: |
+          success() &&
+          (github.event_name == 'push' || github.event_name == 'schedule')
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const label = "integration-test-failure";
+            const branchName = "${{ github.ref_name }}";
+            const label = `integration-test-failure:${branchName}`;
 
+            // Find all open issues with the branch-specific failure label
             const { data: issues } = await github.rest.issues.listForRepo({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -165,12 +240,13 @@ jobs:
               labels: label
             });
 
+            // Close each issue with a success comment
             for (const issue of issues) {
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: issue.number,
-                body: "### ✅ Integration tests are passing again. Closing issue."
+                body: "### ✅ Integration tests are passing again on the **" + branchName + "** branch. Closing issue."
               });
 
               await github.rest.issues.update({
