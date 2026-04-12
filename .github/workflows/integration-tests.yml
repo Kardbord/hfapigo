@@ -3,46 +3,70 @@ name: Integration Tests
 
 on:
   push:
-    branches: [main]
-  pull_request:
-    branches:
-      - main
-      - v4-draft
+    branches: [main, v4-draft]
   schedule:
     - cron: "35 21 * * 3"
   workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "Optional: PR number to test"
+        required: false
+        type: number
+  issue_comment:
+    types: [created]
 
 permissions:
   contents: read
   issues: write
+  pull-requests: read
 
 concurrency:
   group: integration-tests
   cancel-in-progress: true
 
 jobs:
-  integration-tests:
-    # Skip this job for PRs from forked repositories without access to secrets
-    # but allow it for PRs from branches within the main repository
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+  check-comment:
+    # Run integration tests if:
+    # 1. Triggered by push to main/v4-draft, schedule, or workflow_dispatch, OR
+    # 2. Triggered by /integration-test comment on a PR from a user with write access
+    if: |
+      github.event_name != 'issue_comment' || (
+        github.event.issue.pull_request != null &&
+        github.event.comment.body == '/integration-test' &&
+        (github.event.comment.author_association == 'OWNER' ||
+         github.event.comment.author_association == 'MEMBER' ||
+         github.event.comment.author_association == 'COLLABORATOR')
+      )
     runs-on: ubuntu-latest
-
     steps:
+      - name: Get PR details
+        if: github.event_name == 'issue_comment' || (github.event_name == 'workflow_dispatch' && github.event.inputs.pr_number != '')
+        id: pr_info
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const prNumber = github.event_name == 'issue_comment'
+              ? github.event.issue.number
+              : github.event.inputs.pr_number;
+
+            const pr = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: parseInt(prNumber)
+            });
+            core.setOutput('merge_commit_sha', pr.data.merge_commit_sha);
+
       - name: Checkout code
         uses: actions/checkout@v6
+        with:
+          ref: ${{ (github.event_name == 'issue_comment' || (github.event_name == 'workflow_dispatch' && github.event.inputs.pr_number != '')) && steps.pr_info.outputs.merge_commit_sha || github.ref }}
 
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
           go-version-file: "go.mod"
           cache: true
-
-      - name: Validate required secrets
-        run: |
-          if [ -z "${{ secrets.HUGGING_FACE_TOKEN }}" ]; then
-            echo "::error::HUGGING_FACE_TOKEN secret is not set"
-            exit 1
-          fi
 
       - name: Run live API integration tests (with retry)
         id: integration_tests
