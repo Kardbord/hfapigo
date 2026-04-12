@@ -3,7 +3,9 @@ name: Integration Tests
 
 on:
   push:
-    branches: [main, v4-draft]
+    branches:
+      - main
+      - v4-draft
   schedule:
     - cron: "35 21 * * 3"
   workflow_dispatch:
@@ -21,7 +23,20 @@ permissions:
   pull-requests: read
 
 concurrency:
-  group: integration-tests
+  # For PR-specific runs (comment or dispatch with PR number): use per-PR group
+  # For main/v4-draft branch runs: use branch-specific group
+  # For schedule: use main group
+  group: |
+    ${{
+      (github.event_name == 'issue_comment' ||
+       (github.event_name == 'workflow_dispatch' && github.event.inputs.pr_number != '')) &&
+      format('integration-tests-pr-{0}',
+        github.event_name == 'issue_comment' && github.event.issue.number || github.event.inputs.pr_number
+      ) ||
+      format('integration-tests-{0}',
+        github.ref == 'refs/heads/v4-draft' && 'v4-draft' || 'main'
+      )
+    }}
   cancel-in-progress: true
 
 jobs:
