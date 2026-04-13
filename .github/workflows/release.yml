@@ -26,6 +26,7 @@ jobs:
       - uses: goreleaser/goreleaser-action@v6
         with:
           distribution: goreleaser
+          # TODO: Pin this down to the patch prior to release to mitigate vulnerability to supply-chain attacks
           version: latest
           args: release --clean
         env:
