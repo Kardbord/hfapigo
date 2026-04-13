@@ -36,6 +36,9 @@ jobs:
 
   unit-tests-linux:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # Required for OIDC token to upload coverage
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -50,16 +53,13 @@ jobs:
         run: go test -timeout 600s -v -coverprofile=coverage.out -covermode=atomic ./...
 
       - name: Upload coverage to Codecov
-        # Skip this job for PRs from forked repositories without access to secrets
-        # but allow it for PRs from branches within the main repository
-        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
         # TODO: Pin this down to the patch prior to release to mitigate vulnerability to supply-chain attacks
         uses: codecov/codecov-action@v5
         with:
           files: coverage.out
           flags: unit
           fail_ci_if_error: false
-          token: ${{ secrets.CODECOV_TOKEN }}
+          # Using GitHub OIDC for authentication (no token secret needed)
 
   unit-tests-race:
     runs-on: ubuntu-latest
