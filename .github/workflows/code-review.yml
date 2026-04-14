@@ -105,6 +105,7 @@ jobs:
             - Security implications
             - Performance considerations
             - Consistency with existing patterns and conventions
+            - Preventing code and configuration rot
             Provide detailed feedback using inline comments for specific issues,
             and finish with a top-level PR comment summarizing the overall assessment,
             highlighting the most critical findings and any blocking issues.
