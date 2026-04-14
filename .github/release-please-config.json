@@ -1,0 +1,12 @@
+{
+  "release-type": "go",
+  "version-file": "internal/sdkversion/version.go",
+  "bump-minor-pre-major": true,
+  "bump-patch-for-minor-pre-major": true,
+  "skip-changelog": true,
+  "draft": false,
+  "draft-pull-request": true,
+  "include-v-in-tag": true,
+  "include-v-in-release-name": true,
+  "always-update": true
+}

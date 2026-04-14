@@ -1,0 +1,52 @@
+---
+name: Validate Release PR
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+permissions:
+  pull-requests: read
+  contents: read
+
+jobs:
+  validate-release:
+    # Only run on Release Please PRs (created by the release-please-action bot)
+    if: github.event.pull_request.user.login == 'release-please[bot]' && github.event.pull_request.user.type == 'Bot'
+    name: Validate go.mod for Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Extract version and validate go.mod
+        run: |
+          # Release Please PR title format: "chore(main): release v4.1.0"
+          VERSION=$(echo "${{ github.event.pull_request.title }}" | grep -oP 'v\K[0-9]+\.[0-9]+\.[0-9]+' || echo "")
+          MAJOR=$(echo "$VERSION" | cut -d. -f1)
+
+          if [ -z "$VERSION" ]; then
+            echo "❌ Could not extract version from PR title: ${{ github.event.pull_request.title }}"
+            exit 1
+          fi
+
+          echo "📋 Release version: v$VERSION"
+          echo "📋 Major version: v$MAJOR"
+          echo ""
+
+          # Check if go.mod has the correct major version
+          if grep -q "^module github.com/Kardbord/hfgo/v$MAJOR" go.mod; then
+            echo "✓ go.mod correctly set to v$MAJOR"
+            exit 0
+          else
+            echo "❌ FAILED: go.mod major version doesn't match release version"
+            echo ""
+            echo "Expected go.mod module:"
+            echo "  module github.com/Kardbord/hfgo/v$MAJOR"
+            echo ""
+            echo "Current go.mod module:"
+            grep "^module" go.mod
+            echo ""
+            echo "📝 To fix: Update go.mod to use the correct major version (v$MAJOR)"
+            exit 1
+          fi

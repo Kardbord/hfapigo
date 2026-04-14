@@ -1,33 +1,38 @@
 ---
-name: goreleaser
+name: Release
 
 on:
   push:
-    tags:
-      - "*"
+    branches: [main]
 
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
-  goreleaser:
+  release-please:
+    name: Release Please
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      # ====================================================================
+      # Run Release Please
+      # ====================================================================
+      # Release Please automatically:
+      # 1. Analyzes commits since last tag
+      # 2. Determines version bump (major/minor/patch)
+      # 3. Creates Release PR with version updates:
+      #    - Updates go.mod
+      #    - Updates internal/sdkversion/version.go
+      #    - Generates changelog
+      # 4. On Release PR merge, creates:
+      #    - Git tag
+      #    - GitHub release with changelog
+      # ====================================================================
+      - name: Run Release Please
+        # TODO: Pin this down to the full SHA prior to release to mitigate vulnerability to supply-chain attacks
+        uses: googleapis/release-please-action@v4
         with:
-          fetch-depth: 0
-      - run: git fetch --force --tags
-      - uses: actions/setup-go@v6
-        with:
-          go-version-file: "go.mod"
-          cache: true
-      - run: go version
-      # TODO: Pin this down to the patch prior to release to mitigate vulnerability to supply-chain attacks
-      - uses: goreleaser/goreleaser-action@v6
-        with:
-          distribution: goreleaser
-          # TODO: Pin this down to the patch prior to release to mitigate vulnerability to supply-chain attacks
-          version: latest
-          args: release --clean
+          release-type: go
+          config-file: .github/release-please-config.json
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
