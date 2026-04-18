@@ -86,7 +86,7 @@ jobs:
           github.event_name == 'issue_comment' ||
           (github.event_name == 'workflow_dispatch' && github.event.inputs.pr_number != '')
         id: pr_info
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
@@ -177,7 +177,7 @@ jobs:
       - name: Ensure failure labels exist
         if: |
           github.event_name == 'push' || github.event_name == 'schedule'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
@@ -216,7 +216,7 @@ jobs:
         if: |
           failure() &&
           (github.event_name == 'push' || github.event_name == 'schedule')
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
@@ -269,7 +269,7 @@ jobs:
         if: |
           success() &&
           (github.event_name == 'push' || github.event_name == 'schedule')
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
