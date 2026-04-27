@@ -32,33 +32,34 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
       - name: Check for breaking API changes
         id: apidiff
         # TODO: Pin this down to the full SHA prior to release to mitigate vulnerability to supply-chain attacks
         uses: joelanford/go-apidiff@v0
-        with:
-          base-ref: origin/main
-          head-ref: ${{ github.head_ref }}
 
       - name: Validate breaking change marking
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
-          TITLE="${{ github.event.pull_request.title }}"
-          HAS_BREAKING_MARKER="$([[ "$TITLE" =~ \! ]] && echo 'true' || echo 'false')"
-          API_HAS_BREAKING="${{ steps.apidiff.outputs.breaking }}"
+          TITLE="$PR_TITLE"
+          HAS_BREAKING_MARKER="$([[ "$TITLE" =~ ^[a-z]+(\([^)]+\))?!: ]] && echo 'true' || echo 'false')"
+          SEMVER_TYPE="${{ steps.apidiff.outputs.semver-type }}"
+          API_HAS_BREAKING="$([[ "$SEMVER_TYPE" == "major" ]] && echo 'true' || echo 'false')"
 
           echo "PR Title: $TITLE"
           echo "Has breaking marker (!): $HAS_BREAKING_MARKER"
+          echo "API semver type: $SEMVER_TYPE"
           echo "API has breaking changes: $API_HAS_BREAKING"
           echo ""
 
           if [[ "$API_HAS_BREAKING" == "true" ]] && [[ "$HAS_BREAKING_MARKER" != "true" ]]; then
             echo "❌ Breaking API changes detected but PR title not marked with '!'"
             echo "Example: feat!: remove deprecated method"
-            exit 1
-          fi
-
-          if [[ "$API_HAS_BREAKING" != "true" ]] && [[ "$HAS_BREAKING_MARKER" == "true" ]]; then
-            echo "❌ PR title marked as breaking but no breaking API changes detected"
             exit 1
           fi
 
