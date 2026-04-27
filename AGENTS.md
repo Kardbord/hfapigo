@@ -748,6 +748,7 @@ func TestSomething(t *testing.T) {
 - **Triggers**: Push to main/v4-draft, PRs, weekly schedule, manual
 - **Platforms**: Windows, macOS, Linux
 - **Linux Only**: Coverage upload to codecov
+- **Permissions**: Contents read, ID token write (for OIDC token to upload coverage)
 
 #### lint.yml
 - **Triggers**: Push to main/v4-draft, PRs, weekly schedule, manual
@@ -760,7 +761,39 @@ func TestSomething(t *testing.T) {
 - **Failure Handling**: Auto-creates GitHub issue with label "integration-test-failure"
 - **Success Handling**: Auto-closes related issues
 
-#### codeql-analysis.yml, build.yml, release.yml, report-card.yml
+#### code-review.yml
+- **Triggers**: Issue comment (when @claude mentioned), workflow_dispatch
+- **Purpose**: Automated code review using Claude Code
+- **Features**:
+  - Can be triggered manually via workflow_dispatch with PR number input
+  - Checks out PR merge commit for review
+  - Runs Claude Code action for code review
+
+#### pr-title-check.yml
+- **Triggers**: PR opened, edited, synchronize, reopened (targeting main branch)
+- **Purpose**: Validates PR title format and breaking changes
+- **Features**:
+  - Checks PR title follows Conventional Commits format
+  - Validates breaking changes are marked with '!' in title when API has breaking changes
+  - Uses go-apidiff to detect breaking API changes
+
+#### release.yml
+- **Triggers**: Push to main branch
+- **Purpose**: Automated release process using Release Please
+- **Features**:
+  - Analyzes commits since last tag
+  - Determines version bump (major/minor/patch)
+  - Creates Release PR with version updates (go.mod, internal/sdkversion/version.go, changelog)
+  - On Release PR merge, creates Git tag and GitHub release with changelog
+
+#### validate-release-pr.yml
+- **Triggers**: PR opened, synchronize (only for Release Please bot PRs)
+- **Purpose**: Validates go.mod version for Release Please PRs
+- **Features**:
+  - Checks that go.mod has correct major version matching release version
+  - Only runs on PRs from release-please[bot]
+
+#### codeql-analysis.yml, build.yml, report-card.yml
 - Standard GitHub Actions workflows
 
 ### Development Commands
@@ -930,7 +963,7 @@ req.Messages = append(req.Messages, newMessage)
 - **User Agent**: `hfgo/<version> (Go)`
 - **Semantic Versioning**: Follows semver.org
 - **Module Path**: `github.com/Kardbord/hfgo/v4`
-- **Go Release Process**: Uses GoReleaser (.goreleaser.yml)
+- **Go Release Process**: Uses Release Please (.github/release-please-config.json)
 
 ## Dependencies
 
@@ -968,8 +1001,9 @@ req.Messages = append(req.Messages, newMessage)
 ### Tools & Configuration
 - `tools/build.sh`: Comprehensive build/test/lint script
 - `.golangci.yml`: Linter configuration (comprehensive, all linters enabled by default)
-- `.goreleaser.yml`: Release configuration
-- `.github/workflows/`: CI/CD workflows (unit-tests, lint, integration-tests, codeql-analysis, build, release, report-card)
+- `.github/release-please-config.json`: Release Please configuration
+- `.github/workflows/`: CI/CD workflows (unit-tests, lint, integration-tests, code-review, pr-title-check, release, validate-release-pr, codeql-analysis, build, report-card)
+- `CONTRIBUTING.md`: Contribution guidelines and development setup instructions
 - `examples/`: Example code demonstrating SDK usage
 
 ## Important Notes
