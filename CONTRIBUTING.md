@@ -150,9 +150,9 @@ in the PR title.
 2. **release-please analyzes PR titles** since the last release
 3. **Release PR is created automatically** with:
    - Updated version in `internal/sdkversion/version.go`
-   - Updated `go.mod` (for major version bumps)
    - Auto-generated changelog
 4. **Maintainer reviews and merges Release PR**
+   - Manual maintainer updates to `go.mod` may be needed for major version bumps
 5. **GitHub release is created automatically** with:
    - Git tag (e.g., v4.1.0)
    - Release notes with changelog
