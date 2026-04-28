@@ -45,10 +45,10 @@ jobs:
       - name: Validate breaking change marking
         env:
           PR_TITLE: ${{ github.event.pull_request.title }}
+          SEMVER_TYPE: ${{ steps.apidiff.outputs.semver-type }}
         run: |
           TITLE="$PR_TITLE"
           HAS_BREAKING_MARKER="$([[ "$TITLE" =~ ^[a-z]+(\([^)]+\))?!: ]] && echo 'true' || echo 'false')"
-          SEMVER_TYPE="${{ steps.apidiff.outputs.semver-type }}"
           API_HAS_BREAKING="$([[ "$SEMVER_TYPE" == "major" ]] && echo 'true' || echo 'false')"
 
           echo "PR Title: $TITLE"
