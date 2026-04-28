@@ -17,6 +17,7 @@ We're committed to providing a welcoming environment for all contributors.
 - Hugging Face API key (for running integration tests)
   - Get one at https://huggingface.co/settings/tokens
   - Set as `HUGGING_FACE_TOKEN` environment variable
+- golangci-lint
 
 ### Setting Up Your Development Environment
 
@@ -257,16 +258,13 @@ go test -race -timeout 600s -v ./...
 
 - Update README.md if adding new features
 - Update examples/ if adding new features
-- Keep documentation in sync with code
+- Keep documentation in sync with code, both in comments and in [docs/](./docs/)
 
 ## Code Style
 
 The project uses:
 - **gofmt** for formatting
-- **gofumpt** for additional formatting rules
-- **goimports** for import organization
-- **golines** for line length management
-- **golangci-lint** for linting
+- **golangci-lint** for linting rules
 
 All of these are run by `./tools/build.sh`.
 
@@ -295,8 +293,8 @@ When making changes:
 ## Need Help?
 
 - Check existing issues and discussions
-- Read the README.md and AGENTS.md
-- Review examples in the examples/ directory
+- Read the [README.md](./README.md) and [docs](./docs/)
+- Review examples in the [examples](./examples/) directory
 - Don't be afraid to open a new issue
 
 ## Recognition
