@@ -1,22 +1,15 @@
 ---
 name: Integration Tests
 
-# ============================================================================
-# TRIGGERS
-# ============================================================================
-# This workflow runs integration tests against the live HuggingFace API
 on:
-  # Automatic: Run on push to main branches
   push:
     branches:
       - main
       - v4-draft
 
-  # Scheduled: Run weekly on Wednesdays at 9:35 PM UTC
   schedule:
     - cron: "35 21 * * 3"
 
-  # Manual: Allow triggering via GitHub UI with optional PR number
   workflow_dispatch:
     inputs:
       pr_number:
@@ -33,9 +26,6 @@ permissions:
   issues: write # For creating/closing failure issues
   pull-requests: read # For reading PR information
 
-# ============================================================================
-# CONCURRENCY
-# ============================================================================
 # Prevents multiple integration test runs from executing simultaneously.
 # This avoids API rate limiting and resource conflicts.
 #
@@ -59,9 +49,6 @@ concurrency:
     }}
   cancel-in-progress: true
 
-# ============================================================================
-# JOBS
-# ============================================================================
 jobs:
   integration-tests:
     name: Run Integration Tests
@@ -77,10 +64,12 @@ jobs:
          github.event.comment.author_association == 'COLLABORATOR')
       )
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # Required for OIDC token to upload coverage and test results
+      issues: write # For creating/closing failure issues
+      pull-requests: read # For reading PR information
     steps:
-      # ====================================================================
-      # Step 1: Get PR metadata for PR-triggered runs
-      # ====================================================================
       - name: Get PR details
         if: |
           github.event_name == 'issue_comment' ||
@@ -107,9 +96,6 @@ jobs:
 
             core.setOutput('merge_commit_sha', pr.data.merge_commit_sha);
 
-      # ====================================================================
-      # Step 2: Checkout code
-      # ====================================================================
       # For PR-triggered runs: check out the PR merge commit
       # For branch runs: check out the pushed ref
       - name: Checkout code
@@ -123,18 +109,15 @@ jobs:
               github.ref
             }}
 
-      # ====================================================================
-      # Step 3: Set up Go environment
-      # ====================================================================
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
           go-version-file: "go.mod"
           cache: true
 
-      # ====================================================================
-      # Step 4: Run integration tests with retry logic
-      # ====================================================================
+      - name: Install gotestsum
+        run: go install gotest.tools/gotestsum@v1.13.0
+
       # Tests are retried up to 3 times with 10-second delays between attempts.
       # This helps mitigate transient API failures and network issues.
       #
@@ -146,31 +129,49 @@ jobs:
         env:
           HUGGING_FACE_TOKEN: ${{ secrets.HUGGING_FACE_TOKEN }}
         run: |
-          max_attempts=3
-          attempt=1
+          gotestsum \
+            --junitfile junit.xml \
+            --format github-actions \
+            --format-icons hivis \
+            --rerun-fails=3 \
+            --packages "./..." \
+            -- \
+            -tags=integration \
+            -timeout=600s \
+            -coverprofile=coverage.out \
+            -covermode=atomic
 
-          while [ $attempt -le $max_attempts ]; do
-            echo "Attempt $attempt of $max_attempts..."
+      - name: Upload coverage to Codecov
+        if: ${{ !cancelled() }}
+        uses: codecov/codecov-action@v6.0.0
+        with:
+          files: coverage.out
+          flags: integration
+          codecov_yml_path: .github/codecov.yml
+          disable_search: true
+          fail_ci_if_error: false
+          use_oidc: true
 
-            if go test -tags=integration -timeout=600s -v ./...; then
-              echo "Tests passed on attempt $attempt"
-              exit 0
-            fi
+      - name: Upload test results to Codecov
+        if: ${{ !cancelled() }}
+        uses: codecov/test-results-action@v1.2.1
+        with:
+          files: junit.xml
+          flags: integration
+          codecov_yml_path: .github/codecov.yml
+          disable_search: true
+          fail_ci_if_error: false
+          use_oidc: true
 
-            if [ $attempt -lt $max_attempts ]; then
-              echo "Attempt $attempt failed, retrying in 10 seconds..."
-              sleep 10
-            fi
+      - name: Upload test artifacts
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-test-results
+          path: |
+            junit.xml
+            coverage.out
 
-            attempt=$((attempt + 1))
-          done
-
-          echo "All $max_attempts attempts failed"
-          exit 1
-
-      # ====================================================================
-      # Step 5: Ensure failure labels exist (branch/schedule only)
-      # ====================================================================
       # Creates branch-specific labels if they don't already exist.
       # This ensures that the subsequent issue creation/update steps can use these labels.
       # Uses try/catch since the API errors if label already exists.
@@ -204,9 +205,6 @@ jobs:
               }
             }
 
-      # ====================================================================
-      # Step 6: Create/update failure issue (branch/schedule only)
-      # ====================================================================
       # When tests fail on tracked branches or scheduled runs:
       # - Creates a new GitHub issue (if none exists for this branch)
       # - Adds a comment to existing issue with failure details
@@ -257,9 +255,6 @@ jobs:
               });
             }
 
-      # ====================================================================
-      # Step 7: Close failure issue on success (branch/schedule only)
-      # ====================================================================
       # When tests pass after previous failures:
       # - Adds a success comment to the issue
       # - Closes the issue
