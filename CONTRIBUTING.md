@@ -59,9 +59,15 @@ Run the build script to format, lint, and test:
 ./tools/build.sh
 ```
 
-**Note**: The build script runs integration tests, which will make API calls to
-Hugging Face and may incur costs on your account. If you want to skip integration
-tests during development, run the individual commands below instead.
+Run the build script with `-i` to also include integration tests.
+**Note**: Integration tests which will make API calls to Hugging Face
+and will incur costs on your account.
+
+```bash
+./tools/build.sh -i
+
+```
+
 
 Or run individual commands:
 
@@ -103,7 +109,7 @@ go test -tags=integration -timeout 600s -v ./...
 
 2. Run all checks locally:
    ```bash
-   ./tools/build.sh
+   ./tools/build.sh -i
    ```
 
 3. Write or update tests for your changes
