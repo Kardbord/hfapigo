@@ -20,27 +20,20 @@ permissions:
 jobs:
   unit-tests:
     runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [windows-latest, macos-latest]
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-
-      - name: Set up Go
-        uses: actions/setup-go@v6
-        with:
-          cache: true
-          go-version-file: "go.mod"
-
-      - name: Test
-        run: go test -timeout 600s -v ./...
-
-  unit-tests-linux:
-    runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write # Required for OIDC token to upload coverage
+      id-token: write # Required for OIDC token to upload coverage and test results
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          - os: ubuntu-latest
+            os-flag: ubuntu
+          - os: windows-latest
+            os-flag: windows
+          - os: macos-latest
+            os-flag: macos
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -51,29 +44,42 @@ jobs:
           cache: true
           go-version-file: "go.mod"
 
-      - name: Test (with coverage)
-        run: go test -timeout 600s -v -coverprofile=coverage.out -covermode=atomic ./...
+      - name: Install gotestsum
+        run: go install gotest.tools/gotestsum@v1.13.0
 
-      - name: Upload coverage to Codecov
-        # TODO: Pin this down to the patch prior to release to mitigate vulnerability to supply-chain attacks
-        uses: codecov/codecov-action@v5
-        with:
-          files: coverage.out
-          flags: unit
-          fail_ci_if_error: false
-          # Using GitHub OIDC for authentication (no token secret needed)
-
-  unit-tests-race:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-
-      - name: Set up Go
-        uses: actions/setup-go@v6
-        with:
-          cache: true
-          go-version-file: "go.mod"
+      - name: Test
+        run: gotestsum --junitfile junit.xml --format github-actions --format-icons hivis -- -timeout 600s -v -coverprofile=coverage.out -covermode=atomic ./...
 
       - name: Test (race)
-        run: go test -race -timeout 600s -v ./...
+        run: gotestsum --format github-actions --format-icons hivis -- -race -timeout 600s -v ./...
+
+      - name: Upload coverage to Codecov
+        if: ${{ !cancelled() }}
+        uses: codecov/codecov-action@v6.0.0
+        with:
+          files: coverage.out
+          flags: unit,${{ matrix.os-flag }}
+          codecov_yml_path: .github/codecov.yml
+          disable_search: true
+          fail_ci_if_error: false
+          use_oidc: true
+
+      - name: Upload test results to Codecov
+        if: ${{ !cancelled() }}
+        uses: codecov/test-results-action@v1.2.1
+        with:
+          files: junit.xml
+          flags: unit,${{ matrix.os-flag }}
+          codecov_yml_path: .github/codecov.yml
+          disable_search: true
+          fail_ci_if_error: false
+          use_oidc: true
+
+      - name: Upload test artifacts
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.os }}
+          path: |
+            junit.xml
+            coverage.out
