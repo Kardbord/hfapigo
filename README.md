@@ -1,4 +1,4 @@
-# hfgo
+# hfapigo
 
 ## ⚠️ Notice
 
@@ -12,10 +12,12 @@ for more information.
 
 ---
 
-[![Unit Tests](https://github.com/Kardbord/hfgo/actions/workflows/unit-tests.yml/badge.svg)](https://github.com/Kardbord/hfgo/actions/workflows/unit-tests.yml)
-[![CodeQL](https://github.com/Kardbord/hfgo/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/Kardbord/hfgo/actions/workflows/codeql-analysis.yml)
-[![Go Report Card](https://goreportcard.com/badge/github.com/Kardbord/hfgo)](https://goreportcard.com/report/github.com/Kardbord/hfgo)
-[![Go Reference](https://pkg.go.dev/badge/github.com/Kardbord/hfgo.svg)](https://pkg.go.dev/github.com/Kardbord/hfgo)
+[![Unit Tests](https://github.com/Kardbord/hfapigo/actions/workflows/unit-tests.yml/badge.svg)](https://github.com/Kardbord/hfapigo/actions/workflows/unit-tests.yml)
+[![CodeQL](https://github.com/Kardbord/hfapigo/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/Kardbord/hfapigo/actions/workflows/codeql-analysis.yml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/Kardbord/hfapigo)](https://goreportcard.com/report/github.com/Kardbord/hfapigo)
+[![Go Reference](https://pkg.go.dev/badge/github.com/Kardbord/hfapigo.svg)](https://pkg.go.dev/github.com/Kardbord/hfapigo)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/Kardbord/hfapigo/badge)](https://scorecard.dev/viewer/?uri=github.com/Kardbord/hfapigo)
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/12720/badge)](https://www.bestpractices.dev/projects/12720)
 
 (Golang) Go bindings for the [Hugging Face Inference API](https://huggingface.co/docs/inference-providers/tasks/index).
 Directly call any model available in the [Model Hub](https://huggingface.co/models).
