@@ -219,3 +219,4 @@ Be concise and specific by default. No filler, intros, or restated requirements.
 Answer direct questions directly when possible. Example: `go test ./...`, not `The command to run tests is go test ./...`
 
 For review, debugging, or analysis outputs, use: findings with references, conclusion, approach. Mention caveats and unverified risks.
+
