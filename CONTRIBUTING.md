@@ -1,6 +1,14 @@
 # Contributing to hfgo
 
 Thank you for your interest in contributing to hfgo!
+
+We welcome contributions in many forms:
+
+- **Opening or commenting on issues** to clarify requirements or report bugs
+- **Reviewing PRs** to help improve code quality
+- **Documentation improvements** (updating README, docs/, or examples/)
+- **Community engagement** (helping new contributors, answering questions)
+
 This document provides guidelines and instructions for contributing to the project.
 
 ## Code of Conduct
@@ -9,6 +17,12 @@ Be respectful, inclusive, and constructive in all interactions.
 We're committed to providing a welcoming environment for all contributors.
 
 ## Getting Started
+
+If you plan to contribute code, please:
+
+1. Open an issue first to discuss your proposed changes
+2. Coordinate with maintainers to avoid duplicate work
+3. Reference any relevant existing issues or discussions
 
 ### Prerequisites
 

@@ -12,6 +12,19 @@ for more information.
 
 ---
 
+## Contributing
+
+Contributions are welcome in many forms!
+
+- **Opening or commenting on issues** to suggest new features, clarify requirements, and report bugs
+- **Reviewing PRs** to help improve code quality
+- **Documentation improvements** (updating README, docs/, or examples/)
+- **Community engagement** (helping new contributors, answering questions)
+
+If you plan to contribute code, please open an issue first to discuss your proposed changes, coordinate with maintainers, and avoid duplicate work.
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for detailed guidelines.
+
 [![Unit Tests](https://github.com/Kardbord/hfapigo/actions/workflows/unit-tests.yml/badge.svg)](https://github.com/Kardbord/hfapigo/actions/workflows/unit-tests.yml)
 [![CodeQL](https://github.com/Kardbord/hfapigo/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/Kardbord/hfapigo/actions/workflows/codeql-analysis.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/Kardbord/hfapigo)](https://goreportcard.com/report/github.com/Kardbord/hfapigo)
