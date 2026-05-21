@@ -81,8 +81,6 @@ and will incur costs on your account.
 ./tools/build.sh -i
 
 ```
-
-
 Or run individual commands:
 
 ```bash
@@ -134,9 +132,11 @@ go test -tags=integration -timeout 600s -v ./...
 
 1. Push your feature branch to your fork
 2. Create a PR on GitHub with:
-   - **Title**: Follow [Conventional Commits](https://www.conventionalcommits.org/) format (enforced by PR title check workflow)
+   - **Title**: Follow [Conventional Commits](https://www.conventionalcommits.org/)
+     format (enforced by PR title check workflow)
      - Types: `feat`, `fix`, `refactor`, `docs`, `test`, `chore`
-     - Examples: `feat: add support for tool calling`, `fix: handle nil context in streaming`
+     - Examples: `feat: add support for tool calling`,
+       `fix: handle nil context in streaming`
      - Breaking changes: Use `feat!:` or `fix!:` to indicate breaking changes
    - **Description**: Explain what changes and why
    - **References**: Link to related issues (e.g., "Fixes #123")
@@ -161,50 +161,65 @@ test: add integration tests for streaming
 
 ## Release Process
 
-hfgo uses an **automated release workflow** based on
+hfgo uses an **automated release workflow** driven by
+[release-please](https://github.com/googleapis/release-please) and
 [Conventional Commits](https://www.conventionalcommits.org/)
 in the PR title.
 
-### How Releases Work
+See **[docs/release-process.md](./docs/release-process.md)** for the full
+description, including release candidate (RC) workflow.
 
-1. **PR is merged to main** with a conventional commit title
-2. **release-please analyzes PR titles** since the last release
-3. **Release PR is created automatically** with:
+### How Mainline Releases Work
+
+1. **PR is merged to `main`** with a conventional commit title.
+2. **release-please analyzes commits** since the last release.
+3. **Draft release PR is created** with:
    - Updated version in `internal/sdkversion/version.go`
+   - Updated `.github/.release-please-manifest.json`
    - Auto-generated changelog
-4. **Maintainer reviews and merges Release PR**
-   - Manual maintainer updates to `go.mod` may be needed for major version bumps
+4. **Maintainer reviews and merges the release PR**.
+   - The `validate-release-pr.yml` workflow verifies `go.mod` matches the
+     release version.
 5. **GitHub release is created automatically** with:
    - Git tag (e.g., v4.1.0)
    - Release notes with changelog
-   - Download links
 
 ### Version Bumping
 
-Versions are determined automatically based on PR titles:
+| Bump  | Trigger                                      |
+|------ |----------------------------------------------|
+| Major | Breaking change (`feat!:` or `fix!:` title)  |
+| Minor | New feature (`feat:`)                        |
+| Patch | Bug fix (`fix:`) or refactoring              |
+| None  | Documentation, tests, chore                  |
 
-- **Major (v4.0.0 → v5.0.0)**: Breaking API changes (`feat!:` or `fix!:`)
-- **Minor (v4.0.0 → v4.1.0)**: New features (`feat:`)
-- **Patch (v4.0.0 → v4.0.1)**: Bug fixes (`fix:`) or refactoring
-- **No bump**: Documentation, tests, or chore commits
+### Release Candidates
+
+For major releases or significant changes, maintainers may create a
+**release candidate (RC) branch** (e.g., `v5-draft`). See
+[docs/release-process.md](./docs/release-process.md#release-candidate-rc-releases)
+for details.
 
 ### Your Role in Releases
 
 As a contributor, your role is:
+
 - ✅ Write PR titles following Conventional Commits format
 - ✅ Mark breaking changes with `!:` if applicable
 - ✅ Ensure PR title accurately describes your changes
 
 Maintainers handle:
+
 - ✅ Reviewing Release PRs
 - ✅ Merging Release PRs
-- ✅ Managing actual releases
+- ✅ Managing RC branches and formal releases
 
 ## Testing
 
 ### Build Tags
 
-Test files must include appropriate Go build tags to ensure they run in the correct context:
+Test files must include appropriate Go build tags to ensure they
+run in the correct context:
 
 - **Unit Tests**: Add `//go:build !integration` at the top of the file
   - These tests run by default with `go test ./...`
@@ -216,6 +231,7 @@ Test files must include appropriate Go build tags to ensure they run in the corr
   - Should be marked with the `_integration_test.go` filename suffix
 
 **Example unit test**:
+
 ```go
 //go:build !integration
 
@@ -229,6 +245,7 @@ func TestSomething(t *testing.T) {
 ```
 
 **Example integration test**:
+
 ```go
 //go:build integration
 
@@ -283,6 +300,7 @@ go test -race -timeout 600s -v ./...
 ## Code Style
 
 The project uses:
+
 - **gofmt** for formatting
 - **golangci-lint** for linting rules
 
@@ -298,13 +316,15 @@ The SDK prioritizes **concurrency safety**:
 - All public APIs are safe for concurrent use
 
 When making changes:
+
 - Don't introduce mutable state in clients or services
 - Test with `go test -race` to catch race conditions
 - Document concurrency guarantees in comments
 
 ## Common Mistakes to Avoid
 
-1. **Mutating requests**: Don't modify requests passed to methods by pointer after passing them
+1. **Mutating requests**: Don't modify requests passed to methods by
+   pointer after passing them
 2. **Not closing streams**: Always call `Close()` on `ChatStream` or `RawStream`
 3. **Sharing mutable HTTP clients**: If injecting HTTP clients, ensure thread-safety
 4. **Breaking API contracts**: Changing function signatures is a breaking change
@@ -320,6 +340,7 @@ When making changes:
 ## Recognition
 
 Contributors are recognized in:
+
 - GitHub contributor graph
 - Release notes (via commit attribution)
 
