@@ -11,6 +11,7 @@ permissions:
 
 jobs:
   release-please:
+    # TODO: update this process to reflect docs/release-process.md
     name: Release Please
     runs-on: ubuntu-latest
     steps:

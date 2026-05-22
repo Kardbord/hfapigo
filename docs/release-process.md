@@ -22,7 +22,7 @@ need for draft branches to recreate or modify configuration.
 ## Configuration Files
 
 All configuration files live on all branches. The
-[`Release` workflow](.github/workflows/release.yml) reads the current branch
+[`Release` workflow](../.github/workflows/release.yml) reads the current branch
 name from `github.ref_name` and sets the `config-file` and `manifest-file`
 inputs on the `release-please-action` step accordingly. When running on `main`
 it selects the stable pair; when running on a `v*-draft` branch it selects the
@@ -68,7 +68,7 @@ correct stable baseline. During promotion, no manifest reset is needed.
 
 ### Trigger
 
-Pushes to `main` trigger the [`Release` workflow](`../.github/workflows/release.yml`).
+Pushes to `main` trigger the [`Release` workflow](../.github/workflows/release.yml).
 The workflow selects the **stable** config/manifest pair.
 
 ### Mainline Workflow
@@ -82,6 +82,31 @@ The workflow selects the **stable** config/manifest pair.
    - Auto-generated changelog
 5. A maintainer reviews and merges the release PR when ready.
 6. release-please creates a GitHub release with the tag and changelog.
+
+<details>
+
+<summary>Mainline Workflow Sequence Diagram</summary>
+
+```mermaid
+sequenceDiagram
+    actor Maintainer
+    participant Main as main (branch)
+    participant RP as release-please
+    participant ReleasePR as Release PR
+    participant GitHub as GitHub Release
+
+    Maintainer->>Main: Squash merge feature/fix PR<br/>(conventional commit title)
+    Main->>RP: Trigger Release workflow
+    RP->>RP: Analyze commits since last release
+    RP->>ReleasePR: Create/update draft Release PR<br/>• Bump version.go<br/>• Update manifest<br/>• Generate changelog
+    Maintainer->>ReleasePR: Review and squash merge Release PR
+    ReleasePR->>Main: Squash merge commit
+    Main->>RP: Trigger Release workflow
+    RP->>GitHub: Create GitHub Release<br/>with tag and changelog
+    GitHub->>Main: Tag pushed
+```
+
+</details>
 
 ### Version Determination
 
@@ -117,7 +142,7 @@ formal release.
    git checkout -b vX-draft main
    ```
 
-1. Update `go.mod` to the new module path
+1. Update `go.mod` to the new module path if needed.
    (e.g., `github.com/Kardbord/hfgo/vX`).
 1. Update `.github/.prerelease-please-manifest.json` with the starting RC version:
 
@@ -128,6 +153,26 @@ formal release.
    ```
 
 1. Push the branch.
+
+<details>
+
+<summary>Branch Creation Sequence Diagram</summary>
+
+```mermaid
+sequenceDiagram
+    actor Maintainer
+    participant Local as Local clone
+    participant Remote as GitHub (remote)
+
+    Maintainer->>Local: git checkout -b vX-draft main
+    Note over Local: Creates vX-draft branch<br/>based on tip of local main
+    Maintainer->>Local: Update go.mod module path if needed<br/>(e.g., github.com/Kardbord/hfgo/vX)
+    Maintainer->>Local: Update .github/.prerelease-please-manifest.json<br/>to starting RC version (X.Y.Z-rc0)
+    Maintainer->>Remote: git push origin vX-draft
+    Remote-->>Local: Remote tracking ref created
+```
+
+</details>
 
 The stable manifest (`.github/.release-please-manifest.json`) remains at the
 last stable version from `main`. It is unused on the draft branch but
@@ -150,14 +195,58 @@ Pushes to `v*-draft` trigger the same `Release` workflow, which selects the
    `vX.Y.Z-rcN` tag.
 1. `main` continues to receive patches and minor updates independently.
 
+<details>
+
+<summary>RC Workflow Sequence Diagram</summary>
+
+```mermaid
+sequenceDiagram
+    actor Maintainer
+    participant Draft as v*-draft (branch)
+    participant RP as release-please
+    participant RCPR as RC Release PR
+    participant GitHub as GitHub Pre-Release
+    participant Main as main (branch)
+
+    Maintainer->>Draft: Squash merge feature/fix PR<br/>(conventional commit title)
+    Draft->>RP: Trigger Release workflow
+    RP->>RP: Analyze commits since last RC tag
+    RP->>RCPR: Create/update RC Release PR<br/>• Bump version.go (rcN)<br/>• Update prerelease manifest<br/>• Generate changelog
+    Maintainer->>RCPR: Review and squash merge RC Release PR
+    RCPR->>Draft: Squash merge commit
+    Draft->>RP: Trigger Release workflow
+    RP->>GitHub: Create GitHub Pre-Release<br/>with vX.Y.Z-rcN tag
+    GitHub->>Draft: Tag pushed
+
+    Note over Draft,Main: PRs on main accumulate independently
+    Maintainer->>Main: Squash merge feature/fix PR
+```
+
+</details>
+
 ### Keeping the Draft Branch in Sync
 
-Maintainers can:
+GitHub rulesets require that `v*-draft` branches be up to date with `main`
+before any PR can be merged. To sync changes from `main` into the draft
+branch, maintainers must use a PR-based workflow:
 
-- **Cherry-pick** fixes from `main` that the RC should also include.
-- **Merge `main` into the draft branch** periodically (this also pulls in fixes
-  that should appear in the RC changelog, which is slightly redundant but
-  acceptable).
+1. Create a sync branch from the `v*-draft` trunk:
+
+   ```bash
+   git fetch
+   git checkout vX-draft
+   git checkout -b sync/vX-draft-with-main
+   ```
+
+1. Merge `main` into the sync branch and resolve any conflicts in favor of
+   the draft branch's code:
+
+   ```bash
+   git merge origin/main
+   ```
+
+1. Push the sync branch and open a PR targeting `v*-draft`.
+1. Squash merge the sync PR after review.
 
 ### Promoting an RC to a Formal Release
 
@@ -168,6 +257,13 @@ When the RC is stable:
 1. Optional: if this is a major revision, deprecate the previous major version
    in `doc.go` and perform a final patch release so that the deprecation is
    reflected by the go module proxy.
+1. Bring the draft branch up to date with `main` using the
+   [PR-based sync workflow](#keeping-the-draft-branch-in-sync):
+   - Create a sync branch from the `v*-draft` trunk, merge `main` into it,
+     resolve conflicts in favor of the draft branch's code, then open and
+     squash merge a PR back to `v*-draft`.
+   - This ensures the promotion PR contains all fixes and minor features that
+     landed on `main` during the RC phase.
 1. Create a promotion PR from the draft branch to `main`.
    - Resolve any merge conflicts in favor of the draft branch's code changes.
    - The stale `.github/.release-please-manifest.json` (still at the last
@@ -191,6 +287,44 @@ When the RC is stable:
 
 1. A maintainer merges the release PR.
 1. release-please creates the GitHub release with the `v5.0.0` tag.
+
+<details>
+
+<summary>Promotion Workflow Sequence Diagram</summary>
+
+```mermaid
+sequenceDiagram
+    actor Maintainer
+    participant Draft as v*-draft (branch)
+    participant SyncBranch as sync/vX-draft-with-main
+    participant SyncPR as Sync PR
+    participant Main as main (branch)
+    participant PromoPR as Promotion PR
+    participant RP as release-please
+    participant ReleasePR as Release PR
+    participant GitHub as GitHub Release
+
+    Maintainer->>SyncBranch: Create sync branch from v*-draft trunk
+    Maintainer->>SyncBranch: Merge main into sync branch
+    Note over SyncBranch: Resolve conflicts in favor of draft code
+    Maintainer->>SyncPR: Push sync branch and open PR targeting v*-draft
+    Maintainer->>SyncPR: Review and squash merge Sync PR
+    SyncPR->>Draft: Squash merge commit
+
+    Maintainer->>PromoPR: Open promotion PR from v*-draft to main
+    Maintainer->>PromoPR: Review and squash merge promotion PR<br/>with feat!: title
+    PromoPR->>Main: Squash merge commit
+    Main->>RP: Trigger Release workflow
+    RP->>RP: Analyze commits since last stable release
+    RP->>ReleasePR: Create/update draft Release PR<br/>• Bump version.go<br/>• Update manifest<br/>• Generate changelog
+    Maintainer->>ReleasePR: Review and squash merge Release PR
+    ReleasePR->>Main: Squash merge commit
+    Main->>RP: Trigger Release workflow
+    RP->>GitHub: Create GitHub Release<br/>with vX.0.0 tag
+    GitHub->>Main: Tag pushed
+```
+
+</details>
 
 ---
 
@@ -220,6 +354,5 @@ verifies the match, and maintainers resolve it on merge.
 
 ### Changelog Overlap
 
-Fixes cherry-picked or merged from `main` into the draft branch will appear
-in both changelogs. This is acceptable — the same commit fixed the same issue
-in both tracks.
+Fixes merged from `main` into the draft branch will appear in both changelogs.
+This is acceptable — the same commit fixed the same issue in both tracks.
