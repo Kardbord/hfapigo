@@ -9,9 +9,9 @@ in **manifest mode** and
 
 There are two tracks:
 
-- **Mainline releases**: Patch and minor releases from `main` (fully automated)
+- **Mainline releases**: Patch and minor releases from `main`
 - **Release candidate (RC) releases**: Major or significant releases from a
-  dedicated draft branch (parameterized same workflow)
+  dedicated draft branch
 
 The workflow uses **separate configuration files** for stable and prerelease
 runs, selected programmatically based on the branch name. This avoids the
@@ -21,26 +21,36 @@ need for draft branches to recreate or modify configuration.
 
 ## Configuration Files
 
-All configuration files live on all branches. The workflow selects the
-appropriate pair at runtime.
+All configuration files live on all branches. The
+[`Release` workflow](.github/workflows/release.yml) reads the current branch
+name from `github.ref_name` and sets the `config-file` and `manifest-file`
+inputs on the `release-please-action` step accordingly. When running on `main`
+it selects the stable pair; when running on a `v*-draft` branch it selects the
+prerelease pair.
 
 ### Stable Config
 
-| File                                    | Purpose                             |
-|-----------------------------------------|-------------------------------------|
-| `.github/release-please-config.json`    | Stable release-please configuration |
-| `.github/.release-please-manifest.json` | Tracks last stable version          |
+| File | Purpose |
+|------|---------|
+| `.github/release-please-config.json` | Stable release-please config |
+| `.github/.release-please-manifest.json` | Tracks last stable version |
 
 ### Prerelease Config
 
-| File                                    | Purpose                                                                 |
-|-----------------------------------------|-------------------------------------------------------------------------|
-| `.github/prerelease-please-config.json` | Prerelease configuration (`prerelease: true`, `versioning: prerelease`) |
-| `.github/.prerelease-manifest.json`     | Tracks last RC version                                                  |
+| File | Purpose |
+|------|---------|
+| `.github/prerelease-please-config.json` | Prerelease config with `prerelease: true`, |
+| `.github/.prerelease-please-manifest.json` | Tracks last RC version |
 
 Both config files use the `packages` key (manifest mode) and include the
 same base options (`release-type: go`, `version-file`, `changelog-sections`,
 etc.). Only the prerelease-specific flags differ.
+
+The workflow sets both the `config-file` and `manifest-file` action inputs
+on `release-please-action` for every run. The `manifest-file` input is
+required because the action's default manifest path is
+`.release-please-manifest.json` at the repository root, but this project
+stores both config and manifest files under `.github/`.
 
 ### Why Separate Manifests?
 
@@ -58,7 +68,7 @@ correct stable baseline. During promotion, no manifest reset is needed.
 
 ### Trigger
 
-Pushes to `main` trigger the [`Release` workflow](`.github/workflows/release.yml`).
+Pushes to `main` trigger the [`Release` workflow](`../.github/workflows/release.yml`).
 The workflow selects the **stable** config/manifest pair.
 
 ### Mainline Workflow
@@ -107,12 +117,13 @@ formal release.
    git checkout -b vX-draft main
    ```
 
-1. Update `go.mod` to the new module path (e.g., `github.com/Kardbord/hfgo/vX`).
-1. Update `.github/.prerelease-manifest.json` with the starting RC version:
+1. Update `go.mod` to the new module path
+   (e.g., `github.com/Kardbord/hfgo/vX`).
+1. Update `.github/.prerelease-please-manifest.json` with the starting RC version:
 
    ```json
    {
-     ".": "X.Y.Z-rc.0"
+     ".": "X.Y.Z-rc0"
    }
    ```
 
@@ -122,15 +133,21 @@ The stable manifest (`.github/.release-please-manifest.json`) remains at the
 last stable version from `main`. It is unused on the draft branch but
 preserved for promotion.
 
+> **Warning:** Do not manually modify `.github/.release-please-manifest.json`
+> on the draft branch. It must stay at the last stable version for the
+> promotion step to work correctly. If the stable manifest is accidentally
+> bumped (e.g., by running release-please on the draft branch with the wrong
+> config file), reset it from `main` before promoting.
+
 ### RC Workflow
 
 Pushes to `v*-draft` trigger the same `Release` workflow, which selects the
 **prerelease** config/manifest pair.
 
 1. PRs merged to the draft branch accumulate conventionally.
-1. release-please bumps the pre-release version (`rc.1`, `rc.2`, ...).
+1. release-please bumps the pre-release version (`rc1`, `rc2`, ...).
 1. Each merge of the RC release PR creates a GitHub **pre-release** with a
-   `vX.Y.Z-rc.N` tag.
+   `vX.Y.Z-rcN` tag.
 1. `main` continues to receive patches and minor updates independently.
 
 ### Keeping the Draft Branch in Sync
@@ -158,7 +175,7 @@ When the RC is stable:
 1. **Squash merge** the promotion PR to `main` with a conventional commit
    title that signals a breaking change, e.g.:
 
-   ```
+   ```text
    feat!: release v5.0.0
    ```
 
@@ -175,13 +192,6 @@ When the RC is stable:
 1. A maintainer merges the release PR.
 1. release-please creates the GitHub release with the `v5.0.0` tag.
 
-**Why this works:** Because the promotion uses a **squash merge**, the RC
-tags (which point to commits on the draft branch) are not in `main`'s commit
-history. release-please's tag discovery scans only the last 250 commits on
-the target branch, so it never sees the RC tags. The stable manifest
-provides the explicit baseline, and the `feat!:` commit drives the natural
-major version bump.
-
 ---
 
 ## Version Coordination & Gotchas
@@ -197,14 +207,14 @@ need for draft branches to create or modify their own config.
 | Branch | Manifest Used | Typical Contents |
 |--------|---------------|------------------|
 | `main` | `.release-please-manifest.json` | `{ ".": "4.0.0" }` |
-| `v5-draft` | `.prerelease-manifest.json` | `{ ".": "5.0.0-rc.3" }` |
+| `v5-draft` | `.prerelease-please-manifest.json` | `{ ".": "5.0.0-rc3" }` |
 
 Each manifest is branch-specific. The stable manifest on a draft branch is
 stale (carried from when the branch was created) but preserved for promotion.
 
 ### go.mod on Draft Branches
 
-The `go.mod` major version on the draft branch is different from `main`.
+The `go.mod` major version on the draft branch may be different from `main`.
 This is intentional — the validation workflow (`validate-release-pr.yml`)
 verifies the match, and maintainers resolve it on merge.
 
