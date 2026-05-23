@@ -65,4 +65,3 @@ See the [examples](./examples) directory.
 - [HF on GitHub](https://github.com/huggingface)
   - Official [Python bindings](https://github.com/huggingface/huggingface_hub)
   - Official [JavaScript bindings](https://github.com/huggingface/huggingface.js)
-
