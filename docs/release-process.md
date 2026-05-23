@@ -43,8 +43,18 @@ prerelease pair.
 | `.github/.prerelease-please-manifest.json` | Tracks last RC version |
 
 Both config files use the `packages` key (manifest mode) and include the
-same base options (`release-type: go`, `version-file`, `changelog-sections`,
-etc.). Only the prerelease-specific flags differ.
+same base options (`release-type: go`, `version-file`, `versioning`,
+`pull-request-footer`, etc.). The prerelease-specific versioning strategy
+(`versioning: prerelease`) and related flags (`prerelease`, `prerelease-type`)
+differ.
+
+The `pull-request-footer` is set on both tracks to warn maintainers that the
+PR title and body are load-bearing for version calculation and changelog
+generation, and should not be manually edited.
+
+release-please automatically updates the `Version` const in
+`internal/sdkversion/version.go` via the `go` release-type's version-file
+updater.
 
 The workflow sets both the `config-file` and `manifest-file` action inputs
 on `release-please-action` for every run. The `manifest-file` input is

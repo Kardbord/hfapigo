@@ -3,7 +3,9 @@ name: Release
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+      - v*-draft
 
 permissions:
   contents: write
@@ -11,16 +13,32 @@ permissions:
 
 jobs:
   release-please:
-    # TODO: update this process to reflect docs/release-process.md
     name: Release Please
     runs-on: ubuntu-latest
     steps:
+      # ====================================================================
+      # Select release configuration based on branch
+      # ====================================================================
+      # main        -> stable config (default versioning)
+      # v*-draft    -> prerelease config (prerelease versioning)
+      # ====================================================================
+      - name: Select release config
+        id: config
+        run: |
+          if [[ "${{ github.ref_name }}" == main ]]; then
+            echo "config-file=.github/release-please-config.json" >> "$GITHUB_OUTPUT"
+            echo "manifest-file=.github/.release-please-manifest.json" >> "$GITHUB_OUTPUT"
+          else
+            echo "config-file=.github/prerelease-please-config.json" >> "$GITHUB_OUTPUT"
+            echo "manifest-file=.github/.prerelease-please-manifest.json" >> "$GITHUB_OUTPUT"
+          fi
+
       # ====================================================================
       # Run Release Please
       # ====================================================================
       # Release Please automatically:
       # 1. Analyzes commits since last tag
-      # 2. Determines version bump (major/minor/patch)
+      # 2. Determines version bump (major/minor/patch/prerelease)
       # 3. Creates Release PR with version updates:
       #    - Updates go.mod
       #    - Updates internal/sdkversion/version.go
@@ -33,6 +51,7 @@ jobs:
         uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
         with:
           release-type: go
-          config-file: .github/release-please-config.json
+          config-file: ${{ steps.config.outputs.config-file }}
+          manifest-file: ${{ steps.config.outputs.manifest-file }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
