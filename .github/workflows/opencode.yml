@@ -1,0 +1,43 @@
+---
+name: OpenCode
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+
+jobs:
+  opencode:
+    if: |
+      (contains(github.event.comment.body, '/opencode') ||
+       contains(github.event.comment.body, '/oc')) &&
+      (github.event.comment.author_association == 'OWNER' ||
+       github.event.comment.author_association == 'MEMBER')
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    steps:
+      - name: Parse model from comment
+        id: model
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const body = context.payload.comment.body;
+            const match = body.match(/(^|\s)model=(\S+)/);
+            core.setOutput('model', match ? match[2] : '');
+
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - uses: anomalyco/opencode/github@d74d166acf40e51146f8547216913a4e787a4bc1 # v1.15.10
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        with:
+          model: |
+            ${{
+              steps.model.outputs.model ||
+              'openrouter/deepseek/deepseek-v4-flash'
+            }}
+          share: false
+
