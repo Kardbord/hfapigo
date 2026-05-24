@@ -15,14 +15,19 @@ jobs:
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
-            const { data: user } = await github.rest.users.getByUsername({
-              username: context.payload.issue.user.login,
-            });
-            const ageMs = Date.now() - new Date(user.created_at).getTime();
-            const ageDays = ageMs / (1000 * 60 * 60 * 24);
-            const allowed =
-              context.payload.issue.author_association !== 'NONE' ||
-              ageDays >= 60;
+            let allowed = false;
+            try {
+              const { data: user } = await github.rest.users.getByUsername({
+                username: context.payload.issue.user.login,
+              });
+              const ageMs = Date.now() - new Date(user.created_at).getTime();
+              const ageDays = ageMs / (1000 * 60 * 60 * 24);
+              allowed =
+                context.payload.issue.author_association !== 'NONE' ||
+                ageDays >= 60;
+            } catch (err) {
+              core.warning(`Could not check account age: ${err.message}. Skipping triage.`);
+            }
             core.setOutput('allowed', allowed);
 
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
