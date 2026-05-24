@@ -274,6 +274,13 @@ Integration tests require a valid Hugging Face API token:
 HUGGING_FACE_TOKEN=your_token go test -tags=integration -timeout 600s -v ./...
 ```
 
+On pull requests, integration tests require manual approval from a
+repository member before they run. This is enforced via a
+GitHub environment protection rule to control API costs. When a PR is
+opened, the "Run Integration Tests" check will show as
+"Waiting: Environment protection rules" until an authorized reviewer
+approves the run in the GitHub Actions UI.
+
 ### Race Condition Detection
 
 Always run race detection before submitting:

@@ -7,31 +7,28 @@ on:
       - main
       - v4-draft
 
+  pull_request:
+    types: [opened, synchronize, reopened]
+
   schedule:
     - cron: "35 21 * * 3"
-
-  # Comment-triggered: Run when PR comment "/integration-test" is created
-  issue_comment:
-    types: [created]
 
 permissions:
   contents: read
   issues: write # For creating/closing failure issues
-  pull-requests: read # For reading PR information
 
 # Prevents multiple integration test runs from executing simultaneously.
 # This avoids API rate limiting and resource conflicts.
 #
 # Grouping strategy:
-# - PR-triggered runs (comment): group by PR number
+# - PR-triggered runs: group by PR number
 # - Branch runs (main/v4-draft): group by branch name
 # - Scheduled runs: use main group
 concurrency:
   group: |
     ${{
-      github.event_name == 'issue_comment' &&
-      format('integration-tests-pr-{0}', github.event.issue.number) ||
-      (github.event_name == 'push' || github.event_name == 'schedule') &&
+      github.event_name == 'pull_request' &&
+      format('integration-tests-pr-{0}', github.event.pull_request.number) ||
       format('integration-tests-{0}', github.ref_name)
     }}
   cancel-in-progress: true
@@ -39,56 +36,19 @@ concurrency:
 jobs:
   integration-tests:
     name: Run Integration Tests
-    # Authorization checks:
-    # - Always run: push or schedule
-    # - PR comment: only run "/integration-test" from OWNER, MEMBER, or COLLABORATOR
-    if: |
-      github.event_name != 'issue_comment' || (
-        github.event.issue.pull_request != null &&
-        github.event.comment.body == '/integration-test' &&
-        (github.event.comment.author_association == 'OWNER' ||
-         github.event.comment.author_association == 'MEMBER')
-      )
     runs-on: ubuntu-latest
+    # PR-triggered runs require manual approval via environment protection rules.
+    # This controls costs by requiring a member/admin/owner to approve the run.
+    # Push and schedule runs bypass the environment gate since they run on
+    # protected branches that already require review before merge.
+    environment: ${{ github.event_name == 'pull_request' && 'integration-tests' || '' }}
     permissions:
       contents: read
       id-token: write # Required for OIDC token to upload coverage and test results
       issues: write # For creating/closing failure issues
-      pull-requests: read # For reading PR information
     steps:
-      - name: Get PR details
-        if: github.event_name == 'issue_comment'
-        id: pr_info
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const prNumber = context.payload.issue.number;
-
-            const pr = await github.rest.pulls.get({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: parseInt(prNumber)
-            });
-
-            // Guard against null merge_commit_sha (PR not mergeable or merge not computed)
-            if (!pr.data.merge_commit_sha) {
-              throw new Error(`PR #${prNumber} is not mergeable or merge commit SHA is not available. Ensure the PR is mergeable before running tests.`);
-            }
-
-            core.setOutput('merge_commit_sha', pr.data.merge_commit_sha);
-
-      # For PR-triggered runs: check out the PR merge commit
-      # For branch runs: check out the pushed ref
       - name: Checkout code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          ref: |
-            ${{
-              github.event_name == 'issue_comment' &&
-              steps.pr_info.outputs.merge_commit_sha ||
-              github.ref
-            }}
 
       - name: Set up Go
         uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
