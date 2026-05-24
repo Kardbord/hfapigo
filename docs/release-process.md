@@ -162,7 +162,13 @@ formal release.
    }
    ```
 
-1. Push the branch.
+1. Update `internal/sdkversion/version.go` with the starting RC version:
+
+   ```go
+   const Version = "X.Y.Z-rc0"
+   ```
+
+1. Commit the version updates, then push the branch.
 
 <details>
 

@@ -57,41 +57,51 @@ jobs:
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
-            await github.rest.issues.createLabel({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              name: "broken-link",
-              color: "d73a49",
-              description: "Issues about broken links in project documentation and files"
-            });
+            try {
+              await github.rest.issues.createLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                name: "broken-link",
+                color: "d73a49",
+                description: "Issues about broken links in project documentation and files"
+              });
+              console.log("Created label: broken-link");
+            } catch (error) {
+              if (error.status === 422) {
+                console.log("Label already exists: broken-link");
+              } else {
+                throw error;
+              }
+            }
 
       - name: Create, update, or close issue
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          EXIT_CODE: ${{ steps.lychee.outputs.exit_code || '0' }}
         with:
           script: |
             const fs = require("fs");
             const label = "broken-link";
             const title = "Broken Link Report";
             const reportPath = "lychee-report.md";
-            const hasFailures = ${{ steps.lychee.outputs.exit_code }} != 0;
+            const hasFailures = Number(process.env.EXIT_CODE) !== 0;
 
             const GITHUB_ACTIONS_USER = "41898282"; // github-actions[bot] user ID
 
-            const { data: issues } = await github.rest.issues.listForRepo({
+            const issues = (await github.rest.issues.listForRepo({
               owner: context.repo.owner,
               repo: context.repo.repo,
               state: "open",
               labels: label
-            });
-            const botIssues = issues.filter(i => i.user.id.toString() === GITHUB_ACTIONS_USER);
+            })).data.filter(i => i.user.id.toString() === GITHUB_ACTIONS_USER);
 
             if (hasFailures) {
               const body = fs.readFileSync(reportPath, "utf8");
               const primaryLabels = ["documentation", label, "help wanted", "good first issue"];
 
-              if (botIssues.length > 0) {
+              if (issues.length > 0) {
                 // Update the first (oldest) issue with the latest report
-                const primary = botIssues[botIssues.length - 1];
+                const primary = issues[issues.length - 1];
                 await github.rest.issues.update({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
@@ -101,8 +111,8 @@ jobs:
                 });
 
                 // Close any remaining duplicates
-                for (let i = botIssues.length - 2; i >= 0; i--) {
-                  const dup = botIssues[i];
+                for (let i = issues.length - 2; i >= 0; i--) {
+                  const dup = issues[i];
                   await github.rest.issues.createComment({
                     owner: context.repo.owner,
                     repo: context.repo.repo,
@@ -127,7 +137,7 @@ jobs:
               }
             } else {
               // No failures — close all open broken-link issues
-              for (const issue of botIssues) {
+              for (const issue of issues) {
                 await github.rest.issues.createComment({
                   owner: context.repo.owner,
                   repo: context.repo.repo,

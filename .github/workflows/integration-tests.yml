@@ -10,13 +10,6 @@ on:
   schedule:
     - cron: "35 21 * * 3"
 
-  workflow_dispatch:
-    inputs:
-      pr_number:
-        description: "Optional: PR number to test"
-        required: false
-        type: number
-
   # Comment-triggered: Run when PR comment "/integration-test" is created
   issue_comment:
     types: [created]
@@ -30,22 +23,16 @@ permissions:
 # This avoids API rate limiting and resource conflicts.
 #
 # Grouping strategy:
-# - PR-triggered runs (comment or dispatch): group by PR number
+# - PR-triggered runs (comment): group by PR number
 # - Branch runs (main/v4-draft): group by branch name
 # - Scheduled runs: use main group
 concurrency:
   group: |
     ${{
-      (github.event_name == 'issue_comment' ||
-       (github.event_name == 'workflow_dispatch' && github.event.inputs.pr_number != '')) &&
-      format('integration-tests-pr-{0}',
-        github.event_name == 'issue_comment' && github.event.issue.number || github.event.inputs.pr_number
-      ) ||
+      github.event_name == 'issue_comment' &&
+      format('integration-tests-pr-{0}', github.event.issue.number) ||
       (github.event_name == 'push' || github.event_name == 'schedule') &&
-      format('integration-tests-{0}',
-        github.ref == 'refs/heads/v4-draft' && 'v4-draft' || 'main'
-      ) ||
-      'integration-tests-dispatch'
+      format('integration-tests-{0}', github.ref_name)
     }}
   cancel-in-progress: true
 
@@ -53,15 +40,14 @@ jobs:
   integration-tests:
     name: Run Integration Tests
     # Authorization checks:
-    # - Always run: push, schedule, or manual workflow_dispatch
+    # - Always run: push or schedule
     # - PR comment: only run "/integration-test" from OWNER, MEMBER, or COLLABORATOR
     if: |
       github.event_name != 'issue_comment' || (
         github.event.issue.pull_request != null &&
         github.event.comment.body == '/integration-test' &&
         (github.event.comment.author_association == 'OWNER' ||
-         github.event.comment.author_association == 'MEMBER' ||
-         github.event.comment.author_association == 'COLLABORATOR')
+         github.event.comment.author_association == 'MEMBER')
       )
     runs-on: ubuntu-latest
     permissions:
@@ -71,17 +57,13 @@ jobs:
       pull-requests: read # For reading PR information
     steps:
       - name: Get PR details
-        if: |
-          github.event_name == 'issue_comment' ||
-          (github.event_name == 'workflow_dispatch' && github.event.inputs.pr_number != '')
+        if: github.event_name == 'issue_comment'
         id: pr_info
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const prNumber = context.eventName == 'issue_comment'
-              ? context.payload.issue.number
-              : context.payload.inputs.pr_number;
+            const prNumber = context.payload.issue.number;
 
             const pr = await github.rest.pulls.get({
               owner: context.repo.owner,
@@ -103,8 +85,7 @@ jobs:
         with:
           ref: |
             ${{
-              (github.event_name == 'issue_comment' ||
-               (github.event_name == 'workflow_dispatch' && github.event.inputs.pr_number != '')) &&
+              github.event_name == 'issue_comment' &&
               steps.pr_info.outputs.merge_commit_sha ||
               github.ref
             }}
@@ -227,18 +208,17 @@ jobs:
 
             const GITHUB_ACTIONS_USER = "41898282"; // github-actions[bot] user ID
 
-            // Search for existing open issues with the branch-specific failure label
-            const { data: issues } = await github.rest.issues.listForRepo({
+            // Search for existing bot-created issues with the branch-specific failure label
+            const issues = (await github.rest.issues.listForRepo({
               owner: context.repo.owner,
               repo: context.repo.repo,
               state: "open",
               labels: label
-            });
-            const botIssues = issues.filter(i => i.user.id.toString() === GITHUB_ACTIONS_USER);
+            })).data.filter(i => i.user.id.toString() === GITHUB_ACTIONS_USER);
 
             const bodyUpdate = `### ❌ Failure detected at ${timestamp}\nRun: ${runUrl}`;
 
-            if (botIssues.length === 0) {
+            if (issues.length === 0) {
               // No existing issue found, create a new one with branch-specific label
               await github.rest.issues.create({
                 owner: context.repo.owner,
@@ -249,11 +229,10 @@ jobs:
               });
             } else {
               // Issue exists, add a comment with the new failure details
-              const issue = issues[0];
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                issue_number: issue.number,
+                issue_number: issues[0].number,
                 body: bodyUpdate
               });
             }
@@ -276,16 +255,16 @@ jobs:
 
             const GITHUB_ACTIONS_USER = "41898282"; // github-actions[bot] user ID
 
-            // Find all open issues with the branch-specific failure label
-            const { data: issues } = await github.rest.issues.listForRepo({
+            // Find all bot-created issues with the branch-specific failure label
+            const issues = (await github.rest.issues.listForRepo({
               owner: context.repo.owner,
               repo: context.repo.repo,
               state: "open",
               labels: label
-            });
+            })).data.filter(i => i.user.id.toString() === GITHUB_ACTIONS_USER);
 
             // Close each bot-created issue with a success comment
-            for (const issue of issues.filter(i => i.user.id.toString() === GITHUB_ACTIONS_USER)) {
+            for (const issue of issues) {
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,

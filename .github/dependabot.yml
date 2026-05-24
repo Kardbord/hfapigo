@@ -6,12 +6,10 @@ updates:
     schedule:
       interval: weekly
     commit-message:
-      prefix: build
-      include: scope
+      prefix: "fix(deps)"
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
     commit-message:
-      prefix: chore
-      include: scope
+      prefix: "ci(deps)"

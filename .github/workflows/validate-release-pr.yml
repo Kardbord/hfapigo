@@ -27,7 +27,7 @@ jobs:
           VERSION=$(echo "$PR_TITLE" | grep -oP 'v\K[0-9]+\.[0-9]+\.[0-9]+' || echo "")
           MAJOR=$(echo "$VERSION" | cut -d. -f1)
 
-          if [ -z "$VERSION" ]; then
+          if [[ -z "$VERSION" ]]; then
             echo "❌ Could not extract version from PR title: $PR_TITLE"
             exit 1
           fi
@@ -37,18 +37,26 @@ jobs:
           echo ""
 
           # Check if go.mod has the correct major version
-          if grep -q "^module github.com/Kardbord/hfgo/v$MAJOR" go.mod; then
-            echo "✓ go.mod correctly set to v$MAJOR"
+          # Go modules omit the /vN suffix for v0 and v1
+          MODULE_BASE="github.com/${{ github.repository }}"
+          if [[ "$MAJOR" -ge 2 ]]; then
+            expected_module="$MODULE_BASE/v$MAJOR"
+          else
+            expected_module="$MODULE_BASE"
+          fi
+
+          if grep -q "^module ${expected_module}$" go.mod; then
+            echo "✓ go.mod correctly set to $expected_module"
             exit 0
           else
-            echo "❌ FAILED: go.mod major version doesn't match release version"
+            echo "❌ FAILED: go.mod module path doesn't match release version"
             echo ""
             echo "Expected go.mod module:"
-            echo "  module github.com/Kardbord/hfgo/v$MAJOR"
+            echo "  module $expected_module"
             echo ""
             echo "Current go.mod module:"
             grep "^module" go.mod
             echo ""
-            echo "📝 To fix: Update go.mod to use the correct major version (v$MAJOR)"
+            echo "📝 To fix: Update go.mod module path to $expected_module"
             exit 1
           fi
