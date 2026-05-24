@@ -34,7 +34,10 @@ jobs:
       - name: Check go.mod and go.sum are tidy
         run: |
           go mod tidy
-          git diff --exit-code go.mod go.sum
+          if ! git diff --exit-code go.mod go.sum; then
+            echo "::error::go.mod or go.sum needs tidying. Run 'go mod tidy' locally and commit the result."
+            exit 1
+          fi
 
       - name: golangci-lint
         uses: golangci/golangci-lint-action@1e7e51e771db61008b38414a730f564565cf7c20 # v9.2.0
