@@ -29,7 +29,6 @@ jobs:
               'openrouter/openrouter/auto',
               'openrouter/deepseek/deepseek-v4-pro',
               'openrouter/deepseek/deepseek-v4-flash',
-              'openrouter/anthropic/claude-haiku-4.5',
               'openrouter/moonshotai/kimi-k2.6',
               'openrouter/qwen/qwen3.6-flash',
               'openrouter/mistralai/devstral-2512',
@@ -41,7 +40,7 @@ jobs:
               'openrouter/ibm-granite/granite-4.1-8b',
               'openrouter/kwaipilot/kat-coder-pro-v2',
               'openrouter/inclusionai/ring-2.6-1t',
-              'openrouter/inception/mercury-2'
+              'openrouter/inception/mercury-2',
               'openrouter/anthropic/claude-haiku-4.5',
               'openrouter/anthropic/claude-sonnet-4.6'
             ];
