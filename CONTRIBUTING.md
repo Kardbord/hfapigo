@@ -134,7 +134,7 @@ go test -tags=integration -timeout 600s -v ./...
 2. Create a PR on GitHub with:
    - **Title**: Follow [Conventional Commits](https://www.conventionalcommits.org/)
      format (enforced by PR title check workflow)
-     - Types: `feat`, `fix`, `refactor`, `docs`, `test`, `chore`
+     - Types: `feat`, `fix`, `refactor`, `docs`, `test`, `chore`, etc.
      - Examples: `feat: add support for tool calling`,
        `fix: handle nil context in streaming`
      - Breaking changes: Use `feat!:` or `fix!:` to indicate breaking changes
@@ -191,7 +191,7 @@ description, including release candidate (RC) workflow.
 | Major | Breaking change (`feat!:` or `fix!:` title)  |
 | Minor | New feature (`feat:`)                        |
 | Patch | Bug fix (`fix:`) or refactoring              |
-| None  | Documentation, tests, chore                  |
+| None  | Documentation, tests, chore, etc.            |
 
 ### Release Candidates
 
