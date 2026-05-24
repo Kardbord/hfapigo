@@ -47,7 +47,8 @@ jobs:
           SEMVER_TYPE: ${{ steps.apidiff.outputs.semver-type }}
         run: |
           TITLE="$PR_TITLE"
-          if [[ "$TITLE" =~ ^[a-z]+(\([^)]+\))?!: ]]; then
+          BREAKING_REGEX='^[a-z]+(\([^)]+\))?!:'
+          if [[ "$TITLE" =~ $BREAKING_REGEX ]]; then
             HAS_BREAKING_MARKER="true"
           else
             HAS_BREAKING_MARKER="false"
