@@ -225,6 +225,8 @@ jobs:
             const runUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
             const timestamp = new Date().toISOString();
 
+            const GITHUB_ACTIONS_USER = "41898282"; // github-actions[bot] user ID
+
             // Search for existing open issues with the branch-specific failure label
             const { data: issues } = await github.rest.issues.listForRepo({
               owner: context.repo.owner,
@@ -232,10 +234,11 @@ jobs:
               state: "open",
               labels: label
             });
+            const botIssues = issues.filter(i => i.user.id.toString() === GITHUB_ACTIONS_USER);
 
             const bodyUpdate = `### ❌ Failure detected at ${timestamp}\nRun: ${runUrl}`;
 
-            if (issues.length === 0) {
+            if (botIssues.length === 0) {
               // No existing issue found, create a new one with branch-specific label
               await github.rest.issues.create({
                 owner: context.repo.owner,
@@ -271,6 +274,8 @@ jobs:
             const branchName = "${{ github.ref_name }}";
             const label = `integration-test-failure:${branchName}`;
 
+            const GITHUB_ACTIONS_USER = "41898282"; // github-actions[bot] user ID
+
             // Find all open issues with the branch-specific failure label
             const { data: issues } = await github.rest.issues.listForRepo({
               owner: context.repo.owner,
@@ -279,8 +284,8 @@ jobs:
               labels: label
             });
 
-            // Close each issue with a success comment
-            for (const issue of issues) {
+            // Close each bot-created issue with a success comment
+            for (const issue of issues.filter(i => i.user.id.toString() === GITHUB_ACTIONS_USER)) {
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
