@@ -32,7 +32,8 @@ func (s TextClassificationService) Classify(
 
 	if optsOverride.Model == "" {
 		return nil, &SDKError{
-			Kind:    SDKErrorKindConfiguration,
+			Kind: SDKErrorKindConfiguration,
+			//nolint:goconst // repeated string is incidental
 			Message: "the model option must be set for text classification to succeed",
 			Err:     nil,
 		}

@@ -62,7 +62,6 @@ func StreamRaw(ctx context.Context, body io.ReadCloser) (*RawStream, error) {
 		}
 	}
 
-	//nolint:gosec // cancel func is captured in RawStream to be called later
 	ctx, cancel := context.WithCancel(NormalizeContext(ctx))
 
 	// Buffered with size 1 so the decoder goroutine can enqueue a single event or

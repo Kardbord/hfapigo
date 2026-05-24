@@ -100,7 +100,6 @@ func buildHTTPRequest(opts Options, method, path string, body io.Reader) (*http.
 }
 
 func executeRequest(client *http.Client, req *http.Request) (*http.Response, error) {
-	//nolint:gosec // Callers control the endpoint; client.Do respects provided options.
 	resp, err := client.Do(req)
 	if err != nil {
 		if resp != nil && resp.Body != nil {
