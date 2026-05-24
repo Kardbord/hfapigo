@@ -1,0 +1,154 @@
+---
+name: Link Check
+
+on:
+  schedule:
+    - cron: "0 9 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  link-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Restore lychee cache
+        id: restore-cache
+        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: .lycheecache
+          key: cache-lychee-${{ github.sha }}
+          restore-keys: cache-lychee-
+
+      - name: Link Checker
+        id: lychee
+        uses: lycheeverse/lychee-action@8646ba30535128ac92d33dfc9133794bfdd9b411 # v2.8.0
+        with:
+          fail: false
+          format: markdown
+          output: lychee-report.md
+          args: >
+            --root-dir "$(pwd)"
+            --cache
+            --max-cache-age 1d
+            --verbose
+            --no-progress
+            './**/*.md'
+            './**/*.html'
+            './**/*.go'
+            './**/*.yml'
+            './**/*.yaml'
+            './**/*.sh'
+            './**/*.py'
+            './**/*.json'
+
+      - name: Save lychee cache
+        uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        if: always()
+        with:
+          path: .lycheecache
+          key: ${{ steps.restore-cache.outputs.cache-primary-key }}
+
+      - name: Ensure broken-link label exists
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            try {
+              await github.rest.issues.createLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                name: "broken-link",
+                color: "d73a49",
+                description: "Issues about broken links in project documentation and files"
+              });
+              console.log("Created label: broken-link");
+            } catch (error) {
+              if (error.status === 422) {
+                console.log("Label already exists: broken-link");
+              } else {
+                throw error;
+              }
+            }
+
+      - name: Create, update, or close issue
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          EXIT_CODE: ${{ steps.lychee.outputs.exit_code || '0' }}
+        with:
+          script: |
+            const fs = require("fs");
+            const label = "broken-link";
+            const title = "Broken Link Report";
+            const reportPath = "lychee-report.md";
+            const hasFailures = Number(process.env.EXIT_CODE) !== 0;
+
+            const GITHUB_ACTIONS_USER = "41898282"; // github-actions[bot] user ID
+
+            const issues = (await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: "open",
+              labels: label
+            })).data.filter(i => i.user.id.toString() === GITHUB_ACTIONS_USER);
+
+            if (hasFailures) {
+              const body = fs.readFileSync(reportPath, "utf8");
+              const primaryLabels = ["documentation", label, "help wanted", "good first issue"];
+
+              if (issues.length > 0) {
+                // Keep the newest issue as canonical; close older duplicates
+                const primary = issues[0];
+                await github.rest.issues.update({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: primary.number,
+                  body: body,
+                  labels: primaryLabels
+                });
+
+                // Close older duplicates
+                for (let i = 1; i < issues.length; i++) {
+                  const dup = issues[i];
+                  await github.rest.issues.createComment({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: dup.number,
+                    body: `Closing as duplicate. See #${primary.number} for the active report.`
+                  });
+                  await github.rest.issues.update({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: dup.number,
+                    state: "closed"
+                  });
+                }
+              } else {
+                await github.rest.issues.create({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  title: title,
+                  body: body,
+                  labels: primaryLabels
+                });
+              }
+            } else {
+              // No failures — close all open broken-link issues
+              for (const issue of issues) {
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issue.number,
+                  body: "### ✅ All links are now valid. Closing this issue."
+                });
+                await github.rest.issues.update({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issue.number,
+                  state: "closed"
+                });
+              }
+            }

@@ -1,4 +1,4 @@
-# hfgo
+# hfapigo
 
 ## ⚠️ Notice
 
@@ -12,10 +12,25 @@ for more information.
 
 ---
 
-[![Unit Tests](https://github.com/Kardbord/hfgo/actions/workflows/unit-tests.yml/badge.svg)](https://github.com/Kardbord/hfgo/actions/workflows/unit-tests.yml)
-[![CodeQL](https://github.com/Kardbord/hfgo/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/Kardbord/hfgo/actions/workflows/codeql-analysis.yml)
-[![Go Report Card](https://goreportcard.com/badge/github.com/Kardbord/hfgo)](https://goreportcard.com/report/github.com/Kardbord/hfgo)
-[![Go Reference](https://pkg.go.dev/badge/github.com/Kardbord/hfgo.svg)](https://pkg.go.dev/github.com/Kardbord/hfgo)
+## Contributing
+
+Contributions are welcome in many forms!
+
+- **Opening or commenting on issues** to suggest new features, clarify requirements, and report bugs
+- **Reviewing PRs** to help improve code quality
+- **Documentation improvements** (updating README, docs/, or examples/)
+- **Community engagement** (helping new contributors, answering questions)
+
+If you plan to contribute code, please open an issue first to discuss your proposed changes, coordinate with maintainers, and avoid duplicate work.
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for detailed guidelines.
+
+[![Unit Tests](https://github.com/Kardbord/hfapigo/actions/workflows/unit-tests.yml/badge.svg)](https://github.com/Kardbord/hfapigo/actions/workflows/unit-tests.yml)
+[![CodeQL](https://github.com/Kardbord/hfapigo/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/Kardbord/hfapigo/actions/workflows/codeql-analysis.yml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/Kardbord/hfapigo)](https://goreportcard.com/report/github.com/Kardbord/hfapigo)
+[![Go Reference](https://pkg.go.dev/badge/github.com/Kardbord/hfapigo.svg)](https://pkg.go.dev/github.com/Kardbord/hfapigo)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/Kardbord/hfapigo/badge)](https://scorecard.dev/viewer/?uri=github.com/Kardbord/hfapigo)
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/12720/badge)](https://www.bestpractices.dev/projects/12720)
 
 (Golang) Go bindings for the [Hugging Face Inference API](https://huggingface.co/docs/inference-providers/tasks/index).
 Directly call any model available in the [Model Hub](https://huggingface.co/models).

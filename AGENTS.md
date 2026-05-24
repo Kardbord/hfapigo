@@ -1,1064 +1,222 @@
-# AGENTS.md - hfgo Project Guide
+# hfgo SDK - Agent Instructions
 
 ## Project Overview
 
-**hfgo** is a production-quality Go SDK for the [Hugging Face Inference API](https://huggingface.co/docs/inference-providers/tasks/index). It provides Go bindings to perform inference tasks for any supported model available in the Hugging Face Model Hub.
+A production-ready Go SDK for Hugging Face Inference API with
+client-centric design pattern.
 
-- **Module**: `github.com/Kardbord/hfgo/v4`
-- **Go Version**: 1.25+
-- **License**: MIT (Copyright 2021 Tanner Kvarfordt)
-- **Goal**: Production-ready, follows best practices and idioms, maintains feature parity with upstream API
-- **Repository**: https://github.com/Kardbord/hfgo
+## Quick Start for Agents
 
-## Core Architecture
-
-### Client-Centric Design Pattern
-
-The SDK follows a strict immutability pattern for concurrency safety:
-
-1. **Client**: Immutable value type that captures configuration at creation time
-   - Options are fixed and never mutated
-   - Safe for concurrent use across goroutines
-   - Services capture a snapshot of client options when created
-   - Lightweight; prefer calling `Chat()` or `Raw()` per use rather than caching service instances
-
-2. **Services**: Lightweight wrappers that snapshot client options
-   - `ChatService`: Chat completion endpoints (Complete, CompleteStream)
-   - `TextClassificationService`: Text classification endpoints (Classify, ClassifyBatch)
-   - `ZeroShotTextClassificationService`: Zero-shot text classification endpoints (Classify, ClassifyBatch)
-   - `RawService`: Raw HTTP request handling (Do, DoRaw, Stream, StreamReader)
-
-3. **Per-Request Options**: Can override client defaults for single calls
-   - Applied by value with defensive header copies
-   - Contexts and HTTP clients are shared references
-
-### Key Design Principles
-
-From `doc.go` and README:
-
-- **Immutability**: Clients are immutable; to change options, create a new Client
-- **Concurrency**: Clients and services are safe for concurrent use by default
-- **Feature Parity**: SDK favors upstream API feature parity; breaking changes possible as API evolves
-- **DTOs**: Request/response types closely aligned to the HuggingFace API
-- **Streaming**: Server-Sent Events (SSE) based streaming for chat completions
-- **Error Handling**: Distinct APIError vs SDKError types with categorization
-- **HTTP Client Injection**: Factory functions return fresh client values; avoid sharing mutable transports unless synchronized
-
-### Concurrency Safety
-
-This SDK is **safe for concurrent use out of the box**. No explicit synchronization is required when using clients and services from multiple goroutines.
-
-**Concurrency Guarantees**:
-- **Clients**: Fully concurrent-safe as immutable value types
-- **Services**: Concurrent-safe as lightweight snapshots of client options
-- **Per-request calls**: Each call is independent and concurrent-safe
-- **Shared HTTP clients**: If you inject an HTTP client via `WithHTTPClientFactory()`, ensure it's either thread-safe by design or properly synchronized externally
-
-**How It Works**:
-The SDK achieves concurrency safety through immutability and snapshots:
-1. Clients never mutate their options after creation
-2. Services capture a snapshot of client options when created
-3. Per-request options are applied by value (defensive copies)
-4. No shared mutable state between goroutines
-
-**Example**:
-```go
-// Safe: Single client used by multiple goroutines
-client := NewClient(WithToken(token), WithModel("mistral-7b"))
-
-// Each goroutine can safely call methods
-go func() {
-    resp, err := client.Chat().Complete(req)
-    // ...
-}()
-
-go func() {
-    stream, err := client.Chat().CompleteStream(req)
-    // ...
-}()
-```
-
-- **Validation**: Enforced during JSON marshal/unmarshal time
-- **Context Support**: Full context support for cancellation, timeouts, and request-scoped values
-- **Defensive Copies**: Request options applied by value with defensive header copies; contexts and HTTP clients are shared
-
-## Error Handling
-
-### APIError
-Represents errors returned by the HuggingFace API. Available at `github.com/Kardbord/hfgo/v4.APIError`.
-
-**Fields**:
-- `StatusCode`: HTTP status code
-- `Message`: Human-readable error message
-- `Body`: Response body as io.ReadCloser (caller responsible for closing)
-- `RequestID`: X-Request-ID header value if available
-- `Method`: HTTP method used
-- `URL`: URL that was requested
-
-**Helper Methods**:
-- `IsClientError()`: Returns true for 4xx status codes
-- `IsServerError()`: Returns true for 5xx status codes
-- `IsAuthenticationError()`: Returns true for 401 Unauthorized
-- `IsRateLimitError()`: Returns true for 429 Too Many Requests
-
-**Type Assertion Pattern**:
-```go
-if apiErr, ok := err.(*hfgo.APIError); ok {
-    if apiErr.IsAuthenticationError() {
-        // Handle auth error
-    }
-}
-```
-
-### SDKError
-Represents client-side SDK errors that occur before API response or during response unmarshaling.
-Available at `github.com/Kardbord/hfgo/v4.SDKError`.
-
-**Fields**:
-- `Kind`: Error category (SDKErrorKind)
-- `Message`: Human-readable error message
-- `Err`: Underlying error (if any)
-
-**Error Kinds**:
-- `SDKErrorKindValidation`: Validation error in API responses
-- `SDKErrorKindConfiguration`: Invalid or missing configuration
-- `SDKErrorKindSerialization`: Serialization/deserialization error
-- `SDKErrorKindTransport`: Transport-layer failure
-- `SDKErrorKindInternal`: Internal SDK error
-
-**Type Assertion Pattern**:
-```go
-if sdkErr, ok := err.(*hfgo.SDKError); ok {
-    fmt.Printf("Kind %s: %s\n", sdkErr.Kind, sdkErr.Message)
-}
-```
-
-## Configuration Options
-
-All options are functions that return `hfgo.Option`. Applied to clients and per-request.
-### Option Precedence
-
-When an option can be specified at multiple levels (client-level, request-level, or in request structures), the following precedence applies (highest to lowest):
-
-1. **Request Structure Fields** (if applicable): Values set directly in request structures (e.g., `ChatRequest.Model`)
-2. **Request-Level Options**: Options passed to individual method calls (e.g., `Complete(req, WithModel("..."))`)
-3. **Client-Level Options**: Options set when creating the Client (e.g., `NewClient(WithModel("..."))`)
-
-This precedence ensures that more specific (request-level) configurations always override more general (client-level) configurations.
-
-**Example**:
-```go
-// Client-level Model: "default-model"
-client := NewClient(WithModel("default-model"))
-
-// Request-level override: "request-model"
-response, err := client.Chat().Complete(
-    &ChatRequest{Messages: msgs},
-    WithModel("request-model"),
-)
-// Result: Uses "request-model"
-
-// Request structure field: "structure-model"
-response, err := client.Chat().Complete(
-    &ChatRequest{
-        Model: ptr("structure-model"),
-        Messages: msgs,
-    },
-    WithModel("request-model"),
-)
-// Result: Uses "structure-model" (highest precedence)
-```
-
-
-### Core Options
-- `WithBaseURL(url string)`: Base URL for API requests (no query params/fragments)
-- `WithToken(token string)`: Bearer authentication token
-- `WithModel(model string)`: Model identifier for requests
-- `WithProvider(provider string)`: Inference provider
-
-### HTTP & Transport
-- `WithHTTPClientFactory(factory func() http.Client)`: Factory for HTTP clients
-  - Invoked when options are applied
-  - Should return fresh client value
-  - Avoid sharing mutable internals like Transport unless synchronized
-  - Nil factory results in nil HTTP client
-- `WithDefaultHTTPClient()`: Restores default HTTP client
-- `WithUserAgentSuffix(suffix string)`: Appends suffix to SDK user agent
-
-### Context & Timeouts
-- `WithContext(ctx context.Context)`: Context for cancellation and timeouts
-  - Nil context falls back to context.Background()
-
-### Response Handling
-- `WithMaxResponseBodyBytes(n int64)`: Max bytes read from response body
-  - Values <= 0 fall back to default
-
-### Headers
-- `WithHeaders(h http.Header)`: Custom headers applied to all requests
-  - Overrides existing values for matching keys
-  - Per-request headers can still override
-- `WithHeader(key, value string)`: Single header applied to all requests
-- `WithDefaultHeader(key, value string)`: Header only if missing or empty
-
-## Core Types
-
-### ChatRequest
-Represents a chat completion request. Key fields:
-
-- `Model *string`: Model identifier (required)
-- `Messages []ChatMessage`: Conversation history (required)
-- `MaxTokens *int`: Max tokens in response (default: 1024, min: 0)
-- `Temperature *float64`: Sampling temperature (0-2)
-- `TopP *float64`: Nucleus sampling probability mass
-- `TopLogProbs *int`: Number of most likely tokens (0-5, requires LogProbs=true)
-- `FrequencyPenalty *float64`: Penalty for repeated tokens (-2.0 to 2.0)
-- `PresencePenalty *float64`: Penalty for new topics (-2.0 to 2.0)
-- `Stop []string`: Stop sequences (up to 4)
-- `Seed *int64`: Deterministic sampling seed
-- `Stream *bool`: Enable streaming (use CompleteStream, not Complete)
-- `StreamOptions *ChatStreamOptions`: SSE stream configuration
-- `Tools []ChatTool`: Available tools/functions
-- `ToolChoice *ChatToolChoice`: Tool selection behavior (auto, none, required, or function spec)
-- `ToolPrompt *string`: Prompt appended before tools
-- `LogProbs *bool`: Return log probabilities
-- `ResponseFormat *ChatResponseFormat`: Response format (text, json_schema, json_object, or provider-specific)
-
-**Validation**:
-- Enforced in `MarshalJSON()` method
-- Invalid payloads surface as configuration errors
-- Model can be set via request field or client option (request field takes precedence)
-
-### ChatResponse
-Response from non-streaming chat completion. Fields:
-
-- `ID string`: Response identifier
-- `Model string`: Model used
-- `Choices []ChatChoice`: Generated choices
-- `Usage`: Token usage statistics
-
-Validation:
-- Enforced in `UnmarshalJSON()` method
-- Invalid response payloads surface as SDK validation errors
-
-### ChatStream
-Wraps streaming chat completion response from `CompleteStream()`.
-
-**Methods**:
-- `Recv(ctx context.Context) (ChatStreamResponse, error)`: Blocks until next chunk arrives
-  - Returns `io.EOF` when stream ends
-  - Merges tool call metadata across deltas
-- `Close() error`: Releases underlying HTTP connection and decoder goroutine
-  - Must be called to promptly release resources
-  - Safe to call on nil stream
-
-**Tool Call Metadata Merging**:
-- Automatically caches and merges tool call ID, type, and function name across streaming deltas
-- Ensures each delta includes complete tool call metadata
-
-### ChatMessage
-Represents a message in conversation history.
-
-- `Role string`: Message role (system, user, assistant)
-- `Content ChatMessageContent`: Message content
-- `ToolCalls []ChatToolCall`: Tool calls made by assistant (if any)
-
-### ChatTool
-Represents a function tool available to the model.
-
-- `Type string`: Tool type (currently "function")
-- `Function ChatFunctionDefinition`: Function definition
-
-### ChatToolChoice
-Controls tool selection behavior. Supports:
-- String values: "auto", "none", "required"
-- Object: `{"function":{"name":"..."}}`
-- Provider-specific values
-
-### ChatResponseFormat
-Response format specification. Known types:
-- "text": Plain text response
-- "json_schema": JSON with schema validation
-- "json_object": JSON object response
-- Provider-specific values accepted
-
-### ChatStreamOptions
-Configuration for streaming responses.
-
-- `IncludeUsage *bool`: Include token usage in stream
-
-
-### RawEvent
-Represents a raw SSE event from RawService streaming methods.
-
-- `Data []byte`: Event data payload
-- `Event string`: Event type identifier
-- `ID string`: Event ID
-- `Retry *time.Duration`: Retry duration hint (if provided)
-## Services
-
-### ChatService
-
-Created via `client.Chat()`. Methods:
-
-#### Complete(req *ChatRequest, opts ...Option) (ChatResponse, error)
-Non-streaming chat completion.
-
-**Model and Provider Precedence**:
-The Model field is resolved with the following precedence (highest to lowest):
-1. ChatRequest.Model field (if non-nil and non-empty)
-2. Per-request options Model override
-3. Client-level Model option
-
-The Provider field is applied as a fallback only if the resolved Model does not already contain a provider (indicated by ":" in the model string). If the Model is in the format "model:provider", the Provider option is ignored.
-
-Examples:
-- Model="mistral-7b", Provider="huggingface" → "mistral-7b:huggingface"
-- Model="mistral-7b:huggingface", Provider="mistral" → "mistral-7b:huggingface" (Provider ignored)
-- Model="mistral-7b:huggingface", Provider="" → "mistral-7b:huggingface"
-
-**Behavior**:
-- Validates request is not nil
-- Applies per-request options to override client defaults
-- Rejects requests with Stream=true (use CompleteStream instead)
-- Normalizes model and provider fields
-- Returns `ChatResponse` with all choices and usage stats
-- Returns `SDKError` (kind: Configuration) for invalid requests
-
-#### CompleteStream(req *ChatRequest, opts ...Option) (*ChatStream, error)
-Streaming chat completion using SSE.
-
-**Model and Provider Precedence**:
-The Model field is resolved with the following precedence (highest to lowest):
-1. ChatRequest.Model field (if non-nil and non-empty)
-2. Per-request options Model override
-3. Client-level Model option
-
-The Provider field is applied as a fallback only if the resolved Model does not already contain a provider (indicated by ":" in the model string). If the Model is in the format "model:provider", the Provider option is ignored.
-
-Examples:
-- Model="mistral-7b", Provider="huggingface" → "mistral-7b:huggingface"
-- Model="mistral-7b:huggingface", Provider="mistral" → "mistral-7b:huggingface" (Provider ignored)
-- Model="mistral-7b:huggingface", Provider="" → "mistral-7b:huggingface"
-
-**Behavior**:
-- Validates request is not nil
-- Applies per-request options
-- Automatically sets Stream=true in request
-- Normalizes model and provider fields
-- Returns `*ChatStream` for consuming chunks
-- Caller must call `Close()` on returned stream
-- Returns `SDKError` (kind: Configuration) for invalid requests
-
-**Streaming Pattern**:
-```go
-stream, err := client.Chat().CompleteStream(req)
-if err != nil {
-    // Handle error
-}
-defer stream.Close()
-
-for {
-    chunk, err := stream.Recv(ctx)
-    if err != nil {
-        if errors.Is(err, io.EOF) {
-            break
-        }
-        // Handle error
-    }
-    // Process chunk
-}
-```
-### TextClassificationService
-
-Created via `client.ClassifyText()`. For text classification tasks like sentiment analysis.
-
-#### Classify(req TextClassificationRequest, opts ...Option) ([]TextClassification, error)
-Single text classification.
-
-**Behavior**:
-- Validates request contains exactly one input
-- Returns error if multiple inputs provided (use ClassifyBatch instead)
-- Applies per-request options
-- Returns flat array of classifications for the single input
-- Automatically unwraps batch response to get single input result
-
-**Example**:
-```go
-resp, err := client.ClassifyText().Classify(
-    TextClassificationRequest{
-        Inputs: TextClassificationInput{"I love this product!"},
-    },
-)
-if err != nil {
-    // Handle error
-}
-// resp is []TextClassification
-for _, classification := range resp {
-    fmt.Printf("Label: %s, Score: %.4f\n", classification.Label, classification.Score)
-}
-```
-
-#### ClassifyBatch(req TextClassificationRequest, opts ...Option) ([][]TextClassification, error)
-Batch text classification for multiple inputs.
-
-**Behavior**:
-- Accepts one or more inputs
-- Returns error if model is not configured
-- Applies per-request options
-- **API Response Handling**: When the `TopK` parameter is unset, the HuggingFace API returns classifications in a flat format 
-  `[[class1, class2, class3]]` instead of the expected per-input format 
-  `[[class1], [class2], [class3]]`. The service automatically detects and reshapes responses 
-  to maintain consistent per-input array structure regardless of the `TopK` parameter.
-- Returns list of classification arrays, one per input
-
-**Example**:
-```go
-resp, err := client.ClassifyText().ClassifyBatch(
-    TextClassificationRequest{
-        Inputs: NewTextClassificationInput(
-            "I love this!",
-            "I hate this!",
-            "It\'s okay.",
-        ),
-    },
-)
-if err != nil {
-    // Handle error
-}
-// resp is [][]TextClassification with 3 outer elements
-for i, classifications := range resp {
-    fmt.Printf("Input %d:\n", i)
-    for _, classification := range classifications {
-        fmt.Printf("  Label: %s, Score: %.4f\n", classification.Label, classification.Score)
-    }
-}
-```
-
-**API Response Format Normalization**:
-The service handles a quirk in the HuggingFace API where the response format differs based on whether the `TopK` parameter is explicitly set:
-- **When TopK is explicitly set** (e.g., to 1, 2, or any value): Returns `[[classifications for input1], [classifications for input2], ...]` (per-input format)
-- **When TopK is unset (nil)**: Returns `[[all classifications together]]` (flat format)
-
-This inconsistency is handled transparently by the `normalizeTextClassificationResponse()` helper function, which:
-1. Detects the flat format case using a heuristic: single outer array with N classifications for N inputs
-2. Reshapes `[[class1, class2, class3]]` into `[[class1], [class2], [class3]]`
-3. Maintains consistent per-input structure regardless of the underlying API behavior
-
-This normalization is internal to the service and ensures callers always receive a predictable response format.
-
-
-
-### ZeroShotTextClassificationService
-
-Created via `client.ZeroShotClassifyText()`. For zero-shot text classification tasks that don't require training data.
-
-#### Classify(req ZeroShotTextClassificationRequest, opts ...Option) ([]ZeroShotTextClassification, error)
-Single input zero-shot text classification.
-
-**Behavior**:
-- Validates that candidate labels are provided in parameters
-- Returns error if candidate labels are missing or empty
-- Applies per-request options
-- Returns flat array of classifications for the single input, ordered by score (descending)
-
-**Example**:
-```go
-resp, err := client.ZeroShotClassifyText().Classify(
-    ZeroShotTextClassificationRequest{
-        Input: "This product is excellent!",
-        Parameters: &ZeroShotTextClassificationParameters{
-            CandidateLabels: []string{"positive", "negative", "neutral"},
-        },
-    },
-)
-if err != nil {
-    // Handle error
-}
-// resp is []ZeroShotTextClassification
-for _, classification := range resp {
-    fmt.Printf("Label: %s, Score: %.4f\n", classification.Label, classification.Score)
-}
-```
-
-#### ClassifyBatch(req ZeroShotTextClassificationBatchRequest, opts ...Option) ([][]ZeroShotTextClassification, error)
-Batch zero-shot text classification for multiple inputs.
-
-**Behavior**:
-- Validates that candidate labels are provided in parameters
-- Returns error if candidate labels are missing or empty
-- Applies per-request options
-- **API Response Normalization**: The HuggingFace API returns batched zero-shot results in a different format than single inputs. 
-  The service transparently normalizes responses via `normalizeZeroShotTextClassificationResponse()`, which:
-  1. Validates response item count matches input count
-  2. Validates response sequence matches input (in order)
-  3. Validates labels and scores have matching lengths
-  4. Converts the API format `{sequence, labels: [], scores: []}` to the expected format `[]ZeroShotTextClassification`
-- Returns list of classification arrays, one per input, each ordered by score (descending)
-
-**Example**:
-```go
-resp, err := client.ZeroShotClassifyText().ClassifyBatch(
-    ZeroShotTextClassificationBatchRequest{
-        Inputs: []string{"Great product!", "Terrible product!", "It's okay."},
-        Parameters: &ZeroShotTextClassificationParameters{
-            CandidateLabels: []string{"positive", "negative", "neutral"},
-        },
-    },
-)
-if err != nil {
-    // Handle error
-}
-// resp is [][]ZeroShotTextClassification with 3 outer elements
-for i, classifications := range resp {
-    fmt.Printf("Input %d:\n", i)
-    for _, classification := range classifications {
-        fmt.Printf("  Label: %s, Score: %.4f\n", classification.Label, classification.Score)
-    }
-}
-```
-
-**Optional Parameters**:
-- `HypothesisTemplate`: Custom template for classification (default: "This example is {}.")
-- `MultiLabel`: Whether multiple labels can be true simultaneously (default: false)
-
-### RawService
-
-Created via `client.Raw()`. For raw HTTP requests without type-safe JSON handling.
-
-#### Do(body []byte, method, path string, opts ...Option) (*http.Response, error)
-Raw request with error interpretation on non-2xx responses.
-
-#### DoRaw(body []byte, method, path string, opts ...Option) (*http.Response, error)
-Raw request without error interpretation (allows non-2xx responses).
-
-#### DoReader(body io.Reader, method, path string, opts ...Option) (*http.Response, error)
-Streaming body with error interpretation.
-
-#### DoRawReader(body io.Reader, method, path string, opts ...Option) (*http.Response, error)
-Streaming body without error interpretation.
-
-#### Stream(body []byte, method, path string, opts ...Option) (*RawStream, error)
-SSE stream with error interpretation.
-
-#### StreamReader(body io.Reader, method, path string, opts ...Option) (*RawStream, error)
-SSE stream from reader with error interpretation.
-
-
-#### StreamRaw(body []byte, method, path string, opts ...Option) (*RawStream, error)
-SSE stream without error interpretation (allows non-2xx responses).
-
-#### StreamRawReader(body io.Reader, method, path string, opts ...Option) (*RawStream, error)
-SSE stream from reader without error interpretation (allows non-2xx responses).
-**Note**: Caller responsible for closing `resp.Body` or `RawStream`.
-
-## Internal Architecture
-
-### Packages
-
-#### internal/request
-Lower-level HTTP, SSE, and JSON utilities.
-
-**Key Functions**:
-- `DoJSON[TReq, TResp]`: Type-safe JSON request/response
-- `DoJSONStream[TReq, TResp]`: Streaming JSON via SSE
-- `Do`: Raw HTTP request with error interpretation
-- `DoRaw`: Raw HTTP request without error interpretation
-- `StreamRaw`: SSE stream handling
-- `Options`: Configuration snapshot applied to requests
-
-**Key Types**:
-- `JSONStream[T]`: Consumes JSON SSE events
-- `RawStream`: Consumes raw SSE events
-- `Options`: Request configuration (immutable snapshot)
-
-#### internal/hferrors
-Error types and helper functions.
-
-- `APIError`: API response errors with helper methods
-- `SDKError`: Client-side errors with categorization
-- `SDKErrorKind`: Error categories
-
-#### internal/chatstream
-Tool call metadata handling for streaming responses.
-
-- `ToolCallAccumulator`: Caches and merges tool call metadata across stream deltas
-
-#### internal/sdkversion
-Version management.
-
-- `Version`: Current SDK version (semver)
-- `UserAgent()`: Returns "hfgo/<version> (Go)"
-
-#### internal/testutils
-Test utilities (excluded from linting/coverage requirements).
-
-## Endpoints
-
-### Chat Completions
-- **Constant**: `EndpointChatCompletion = "/v1/chat/completions"`
-- **Method**: POST
-- **Service**: `ChatService.Complete()` or `ChatService.CompleteStream()`
-
-## Quality Assurance
-
-### Testing Strategy
-
-1. **Unit Tests**
-   - Run with: `go test ./...`
-   - Run with coverage: `go test -cover ./...`
-   - Coverage tracked with codecov
-   - All non-integration test files excluded from specific linters
-
-2. **Race Condition Detection**
-   - Run with: `go test -race ./...`
-   - Part of CI/CD pipeline
-   - Ensures concurrency safety
-
-3. **Integration Tests**
-   - Marked with `//go:build integration` or run with `-tags=integration`
-   - Run against live HuggingFace API
-   - Require `HUGGING_FACE_TOKEN` secret
-   - Retry logic (3 attempts with 10s delays) in CI
-   - Automatic issue creation on failures in CI, closure on success
-
-### Test Quality and Signal-to-Noise Ratio
-
-Unit and integration tests should maintain a **high signal-to-noise ratio** to preserve maintainability:
-
-**Signal (Good Tests)**:
-- Test meaningful behavior and invariants
-- Cover happy paths and error cases
-- Use realistic data and scenarios
-- Verify public API contracts
-- Are fast and deterministic
-- Have clear, descriptive names
-- Test one logical concern per test
-
-**Noise (Tests to Avoid)**:
-- Testing internal implementation details
-- Over-testing trivial getters/setters
-- Duplicate assertions that test the same thing
-- Tests that are slower than necessary
-- Tests with unclear purpose or naming
-- Testing framework behavior rather than application behavior
-- Brittle tests that break on refactoring
-
-**Guidelines**:
-- Prefer integration tests for API quirks and external dependencies (e.g., `normalizeTextClassificationResponse()`)
-- Use unit tests for pure logic and type validation
-- Mock external services only when necessary for test speed/reliability
-- Delete or consolidate tests that don't provide actionable information
-- Refactor tests alongside production code to maintain clarity
-
-A well-maintained test suite is more valuable than a large one.
-
-### Linting & Code Quality
-### Table-Driven Tests
-
-The project uses **table-driven tests** extensively to maintain a high signal-to-noise ratio while providing comprehensive test coverage. This pattern consolidates multiple similar test cases into a single test function with a test case struct.
-
-**Pattern Structure**:
-```go
-func TestSomething(t *testing.T) {
-    t.Parallel()
-
-    cases := []struct {
-        name        string
-        // Input fields
-        input       string
-        setupMock   func() *testutils.JSONMockTransport
-        // Expected/want fields
-        wantResult  string
-        expectedErr bool
-        description string
-    }{
-        {
-            name:        "case 1 description",
-            input:       "input value",
-            setupMock:   func() { /* ... */ },
-            wantResult:  "expected",
-            expectedErr: false,
-            description: "additional context",
-        },
-        {
-            name:        "case 2 description",
-            input:       "different input",
-            setupMock:   func() { /* ... */ },
-            wantResult:  "different result",
-            expectedErr: true,
-            description: "error scenario",
-        },
-        // ... more cases
-    }
-
-    for _, tc := range cases {
-        t.Run(tc.name, func(t *testing.T) {
-            // Test logic using tc.name, tc.input, tc.wantResult, etc.
-        })
-    }
-}
-```
-
-**Key Benefits**:
-1. **Reduced Duplication**: Eliminates repetitive setup code and assertions across similar tests
-2. **Easier to Extend**: Adding new test cases requires only adding a struct entry, not a new test function
-3. **Better Maintainability**: Changes to mock setup or assertions are made in one place
-4. **Improved Clarity**: All test variations are visible in one place, making it easy to understand coverage
-5. **Consistency**: Follows Go idioms and the project's established patterns
-
-**When to Use Table-Driven Tests**:
-- Multiple test cases with the same structure but different inputs/outputs
-- Error cases that follow a common pattern (e.g., missing configuration, API errors)
-- Response variations with different data but similar assertions
-- Parameter validation with multiple valid/invalid combinations
-
-**When to Keep Tests Separate**:
-- Tests that verify different concerns or behaviors
-- Tests that require significantly different setup logic
-- Tests that are testing special option overrides or request-level configurations
-- Happy-path baseline tests that deserve visibility as standalone tests
-
-**Examples in the Project**:
-- `chat_service_test.go`: Model selection and provider normalization tests use table-driven patterns
-- `text_classification_service_test.go`: Error cases and response variations consolidated into tables
-- `zero_shot_text_classification_service_test.go`: Input variations and error cases use table-driven patterns
-
-
-**Tools**:
-- `golangci-lint`: Comprehensive linting (custom config in .golangci.yml)
-- `go vet`: Standard Go vetting
-- `gofmt`, `gofumpt`, `goimports`, `golines`: Code formatters
-- `CodeQL`: GitHub security analysis
-
-**Key Linter Exclusions**:
-- Test files: bodyclose, cyclop, errcheck, exhaustruct, gocognit, goconst, gocyclo, maintidx, varnamelen
-- Examples: revive, mnd, exhaustruct, errcheck, godoclint
-- Specific checks disabled: arangolint, depguard, err113, ginkgolinter, gocyclo, goheader, gomodguard, lll, noinlineerr, nonamedreturns, paralleltest, promlinter, recvcheck, testpackage, tparallel, whitespace, wrapcheck, wsl, zerologlint
-
-**Linter Configuration Highlights**:
-- All linters enabled by default except disabled list
-- `exhaustruct` enforced for exported functions
-- `funlen`: max 40 statements per function
-- JSON tags: snake_case
-- Generated files excluded strictly
-
-### CI/CD Workflows
-
-#### unit-tests.yml
-- **Triggers**: Push to main/v4-draft, PRs, weekly schedule, manual
-- **Platforms**: Windows, macOS, Linux
-- **Linux Only**: Coverage upload to codecov
-
-#### lint.yml
-- **Triggers**: Push to main/v4-draft, PRs, weekly schedule, manual
-- **Steps**: `go vet`, `golangci-lint`
-
-#### integration-tests.yml
-- **Triggers**: Push to main/v4-draft, PRs, weekly schedule, manual
-- **Concurrency**: Serialized (prevent simultaneous runs)
-- **Retry Logic**: 3 attempts with 10s delays
-- **Failure Handling**: Auto-creates GitHub issue with label "integration-test-failure"
-- **Success Handling**: Auto-closes related issues
-
-#### codeql-analysis.yml, build.yml, release.yml, report-card.yml
-- Standard GitHub Actions workflows
-
-### Development Commands
-
-**Build Script** (`tools/build.sh`):
 ```bash
-./tools/build.sh
-```
-
-Runs in sequence:
-1. `gofmt -s -w .`: Format code
-2. `go mod tidy`: Tidy dependencies
-3. `go vet ./...`: Vet code
-4. `golangci-lint config verify && golangci-lint run --fix --disable godox ./...`: Lint with fixes
-5. `go build ./...`: Build
-6. `go test ./...`: Unit tests
-7. `go test -race ./...`: Race detection
-8. `go test -tags=integration ./...`: Integration tests
-9. `go test -cover ./...`: Coverage report
-
-**Manual Commands**:
-```bash
-# Format
-gofmt -s -w .
-
-# Tidy
+# Install dependencies
 go mod tidy
 
-# Vet
+# Format code
+gofmt -s -w .
+
+# Vet code
 go vet ./...
 
-# Lint
-golangci-lint run --fix ./...
+# Run tests
+go test ./...
+
+# Run linters
+golangci-lint run ./...
 
 # Build
 go build ./...
-
-# Unit tests
-go test -timeout 600s -v ./...
-
-# Race tests
-go test -race -timeout 600s -v ./...
-
-# Integration tests (requires HUGGING_FACE_TOKEN)
-go test -tags=integration -timeout 600s -v ./...
-
-# Coverage
-go test -coverprofile=coverage.out -covermode=atomic ./...
 ```
 
-## Examples
+## Configuration Requirements
 
-Located in `examples/` directory:
+- Requires Go 1.25+
+- Requires `HUGGING_FACE_TOKEN` for integration tests
+- Requires `golangci-lint` for linting
 
-### examples/chat/basic/chat_basic.go
-Demonstrates basic non-streaming chat completion.
+## Testing Instructions
 
-**Key Points**:
-- Create client with token and model
-- Build ChatRequest with messages
-- Call `client.Chat().Complete(request)`
-- Access response fields (ID, Model, Choices, Usage)
+```bash
+# Run unit tests
+go test -v ./...
 
-### examples/chat/streaming/chat_streaming.go
-Demonstrates streaming chat completion.
+# Run integration tests (requires HUGGING_FACE_TOKEN).
+# These make calls to the upstream API and may incur costs
+# so only run them when explicitly asked. You may suggest
+# that they be run without actually running them.
+go test -tags=integration -v ./...
 
-**Key Points**:
-- Create client with token and model
-- Build ChatRequest with messages
-- Call `client.Chat().CompleteStream(request, WithContext(ctx))`
-- Loop with `stream.Recv(ctx)` until `io.EOF`
-- Call `stream.Close()` when done (or defer)
+# Run with race detection
+go test -race ./...
 
-### examples/chat/convo/convo.go
-Multi-message conversation example.
-
-## Best Practices for Development
-
-### 1. Concurrency & Immutability
-- Create new Client for different configurations, don't mutate
-- Services are lightweight; create per use rather than caching
-- When injecting HTTP clients, return fresh values from factory
-- Assume externally supplied objects (transports, etc.) aren't mutated unless you synchronize
-
-### 2. Error Handling
-- Always type-assert errors to APIError or SDKError
-- Use helper methods on APIError (IsAuthenticationError, IsRateLimitError, etc.)
-- Check SDKError.Kind for error categorization
-- Always close Body on APIError to release resources
-
-### 3. Request Mutation Safety
-- Do not mutate ChatRequest after passing it to Complete or CompleteStream
-- For concurrent requests, create a new ChatRequest for each call
-- This follows Go's standard library conventions (similar to json.Unmarshal)
-- The SDK uses shallow copying for performance; mutating the original request can cause unexpected behavior
-
-Example - Safe concurrent usage:
-```go
-// Each goroutine creates its own request
-for i := 0; i < 10; i++ {
-    go func(id int) {
-        req := &ChatRequest{
-            Model: &model,
-            Messages: []ChatMessage{
-                {Role: "user", Content: fmt.Sprintf("Request %d", id)},
-            },
-        }
-        resp, err := client.Chat().Complete(req)
-        // ...
-    }(i)
-}
+# Run with coverage
+go test -cover ./...
 ```
 
-Example - Unsafe (don't do this):
-```go
-// DON'T: Sharing and mutating the same request
-req := &ChatRequest{Messages: []ChatMessage{}}
-go func() {
-    resp, _ := client.Chat().Complete(req)
-}()
-// DON'T: Mutating req while request is in progress
-req.Messages = append(req.Messages, newMessage)
+## Commit Guidelines
+
+NEVER commit unless explicitly requested.
+
+Prior to committing:
+
+- Ensure code is formatted (`gofmt -s -w .`)
+- Ensure all linters pass (`golangci-lint run ./...`)
+- Document all public functions with godoc comments
+- Ensure test coverage is maintained
+- Ensure all code documentation is up to date
+- Ensure `docs/architecture.md` is up to date
+
+Follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/)
+specification for commit messages.
+
+NEVER push code to a remote. Users must do this manually.
+
+## Build Commands
+
+```bash
+# Individual commands:
+gofmt -s -w .            # Format code
+go mod tidy              # Tidy dependencies
+go vet ./...             # Vet code
+golangci-lint run ./...  # Lint
+go build ./...           # Build
 ```
-
-### 4. Request Handling
-- Always validate requests before sending
-- Use per-request options to override defaults for single calls
-- Close streams (ChatStream, RawStream) to release resources
-- Use context for cancellation and timeouts
-
-### 5. Configuration
-- Use immutable patterns; create new Client for different configs
-- Options are applied by value (defensive copies)
-- Per-request options override client defaults
-
-### 6. Streaming
-- Always call Close() on ChatStream or RawStream
-- Prefer `defer stream.Close()` to ensure cleanup
-- Handle `io.EOF` as normal stream completion
-- Tool call metadata is automatically merged in ChatStream
-
-### 7. Testing
-- Use `go test -race ./...` to catch concurrency issues
-- Mark integration tests with `//go:build integration` or run with `-tags=integration`
-- Mark non-integration tests with //go:build !integration
-- Ensure tests clean up resources (close bodies, streams, etc.)
-- Integration tests require `HUGGING_FACE_TOKEN` environment variable
-
-### 8. Code Quality
-- Run `./tools/build.sh` before committing
-- Ensure all linters pass (golangci-lint)
-- Keep functions under 40 statements
-- Document all functions, types, and fields with godoc comments
-
-### 9. Value Receivers vs Pointer Receivers
-- Use value receivers for immutable types (Client, ChatRequest, etc.)
-- Use pointer receivers for mutable types (ChatStream, RawStream, etc.)
-- Defend against mutations in value receivers (copy mutable state like headers)
-
-### 10. Generics
-- Leverage Go generics for type-safe request/response handling
-- Use consistent naming: `TReq`, `TResp`, `T` for generic types
-
-## Version Management
-
-- **Current Version**: Defined in `internal/sdkversion.Version`
-- **User Agent**: `hfgo/<version> (Go)`
-- **Semantic Versioning**: Follows semver.org
-- **Module Path**: `github.com/Kardbord/hfgo/v4`
-- **Go Release Process**: Uses GoReleaser (.goreleaser.yml)
-
-## Dependencies
-
-**Required**:
-- Go 1.25+
-
-**Testing Only**:
-- `github.com/stretchr/testify v1.9.0`: Assertion library
-
-## Key Files & Structure
-
-### Root Level Files
-- `client.go`: Client type and creation
-- `options.go`: Option functions
-- `option.go`: Option type definition
-- `chat_service.go`: ChatService implementation
-- `chat_streaming.go`: ChatStream and streaming support
-- `chat_request.go`, `chat_response.go`, `chat_common.go`: Chat types and validation
-- `raw_service.go`: RawService implementation
-- `errors.go`: Error type exports and re-exports
-- `version.go`: Version management
-- `doc.go`: Package-level documentation
-
-### Test Files
-- `*_test.go`: Unit tests (run with `go test ./...`)
-- `*_integration_test.go`: Integration tests (run with `-tags=integration`)
-
-### Internal Packages
-- `internal/request/`: HTTP, SSE, and JSON utilities
-- `internal/hferrors/`: Error types and definitions
-- `internal/chatstream/`: Tool call accumulator for streaming
-- `internal/sdkversion/`: Version management
-- `internal/testutils/`: Test utilities
-
-### Tools & Configuration
-- `tools/build.sh`: Comprehensive build/test/lint script
-- `.golangci.yml`: Linter configuration (comprehensive, all linters enabled by default)
-- `.goreleaser.yml`: Release configuration
-- `.github/workflows/`: CI/CD workflows (unit-tests, lint, integration-tests, codeql-analysis, build, release, report-card)
-- `examples/`: Example code demonstrating SDK usage
 
 ## Important Notes
 
-1. **Breaking Changes**: SDK follows upstream API; breaking changes possible as API evolves
-2. **Streaming**: Always close streams to release HTTP connections and decoder goroutines
+1. **Concurrency**: Clients are immutable and safe for concurrent use
+2. **Request Safety**: Do not mutate requests after dispatching them or while they may be in flight.
 3. **Context Handling**: Nil contexts fall back to context.Background()
-4. **HTTP Client Factory**: Must return fresh clients; avoid sharing mutable internals
-5. **DTO Alignment**: Request/response types closely mirror HuggingFace API schema
-6. **Validation Timing**: Enforced during JSON marshal/unmarshal, not during type construction
-7. **Error Interpretation**: RawService has both error-interpreting (Do) and raw (DoRaw) paths
-8. **Content Type Validation**: Invalid response content type surfaces as validation error; malformed JSON surfaces as serialization error
-9. **Response Body Limits**: Enforced via `WithMaxResponseBodyBytes` option with default fallback
+4. **Breaking Changes**: SDK follows upstream API; breaking changes possible as API evolves
 
-## Common Patterns
+## For Detailed Architecture
 
-### Creating a Client
-```go
-client := hfgo.NewClient(
-    hfgo.WithToken(token),
-    hfgo.WithModel("model-name"),
-)
-```
+See `docs/architecture.md` for comprehensive technical documentation including:
 
-### Non-Streaming Chat Completion
-```go
-response, err := client.Chat().Complete(&hfgo.ChatRequest{
-    Messages: []hfgo.ChatMessage{
-        {Role: "user", Content: hfgo.ChatMessageContent{Text: &prompt}},
-    },
-})
-```
+- Client-centric design patterns
+- Concurrency safety model
+- Detailed error handling
+- Complete API reference
+- Service implementations
+- CI/CD workflows
 
-### Streaming Chat Completion
-```go
-stream, err := client.Chat().CompleteStream(req, hfgo.WithContext(ctx))
-if err != nil {
-    return err
-}
-defer stream.Close()
+## Global Instructions
 
-for {
-    chunk, err := stream.Recv(ctx)
-    if err != nil {
-        if errors.Is(err, io.EOF) {
-            break
-        }
-        return err
-    }
-    // Process chunk
-}
-```
+Applies across projects. More local instruction files override these defaults when they conflict. Before acting, check local instructions, verification commands, and path-scoped rules.
 
-### Error Handling
-```go
-response, err := client.Chat().Complete(req)
-if err != nil {
-    if apiErr, ok := err.(*hfgo.APIError); ok {
-        if apiErr.IsRateLimitError() {
-            // Handle rate limit
-        }
-    } else if sdkErr, ok := err.(*hfgo.SDKError); ok {
-        // Handle SDK error
-    }
-}
-```
+### Role
 
-### Per-Request Options
-```go
-response, err := client.Chat().Complete(
-    req,
-    hfgo.WithToken(overrideToken),
-    hfgo.WithContext(ctx),
-)
-```
+You are a senior software engineering assistant: precise, evidence-driven, direct, and safe. Adapt to local conventions while maintaining these defaults.
 
-## Production Readiness Checklist
+### Priorities
 
-When working on this library, ensure:
-- [ ] All tests pass (`go test ./...` and `go test -race ./...`)
-- [ ] Linting passes (`golangci-lint run ./...`)
-- [ ] Code is formatted (`gofmt -s -w .`)
-- [ ] Dependencies are tidy (`go mod tidy`)
-- [ ] Documentation is updated (godoc comments)
-- [ ] Examples work correctly
-- [ ] Integration tests pass (with valid HF token)
-- [ ] No new linter exclusions unless justified
-- [ ] Backwards compatibility maintained (or clearly documented breaking changes)
-- [ ] Error handling is comprehensive
-- [ ] Streaming resources are properly released
-- [ ] AGENTS.md is updated
-- [ ] Code comments are accurate
+If rules conflict, lower-numbered priority wins:
+
+1. Correctness
+2. Evidence
+3. Safety
+4. Minimal changes
+5. Consistency
+6. Performance
+
+### Boundaries
+
+- NEVER fabricate paths, commits, APIs, config keys, env vars, test results, or capabilities. State gaps explicitly.
+- NEVER game verification by weakening assertions, narrowing scope, reducing coverage, or skipping checks just to get a pass.
+- NEVER expose secrets. Do not log, export, embed, or quote credentials, tokens, or keys. If encountered, note the location and stop.
+- NEVER run or suggest destructive commands without explicit confirmation.
+- Be direct. Avoid flattery, filler, and agreeing with incorrect premises.
+
+### Uncertainty
+
+- Ask before acting when intent is materially ambiguous.
+- Ask before choices that change behavior, API/UX, naming, persistence, auth, dependencies, config, or compatibility.
+- Prefer one targeted question. Bundle only tightly coupled points.
+- Proceed without asking only when ambiguity is low-risk and repo conventions make the choice clear. State the assumption briefly.
+
+Example: User says `Make it faster.` Ask whether they mean startup time, response latency, memory usage, or another target metric.
+
+### Evidence
+
+Gather evidence proportional to risk.
+
+- Trivial low-risk edit: inspect the target file and adjacent context.
+- Behavioral, API, dependency, or infrastructure change: trace execution path, call sites, constraints, and regression surface before editing.
+- Check local code, imports, config, types, tests, and patterns before assuming behavior.
+- If local dependency/generated code is unreadable, check matching upstream docs or source before guessing.
+- State uncertainty when something cannot be confirmed.
+- Prefer external verification over self-review. A fresh test beats re-reading your own code.
+- Proceed once the execution path, constraints, and regression surface are clear enough for a minimal correct change. If not, ask or report the gap.
+
+### Workflow
+
+1. Explore in the main agent first. Read files, trace execution paths, search patterns, and build your own understanding. Do not delegate before you have seen the data.
+2. Scan available skills for direct and adjacent matches before choosing the execution path. When in doubt, load the skill and check.
+3. Choose one execution path after main-agent scoping:
+   - Single-track work, or work where later steps depend on earlier findings: stay in the main agent.
+   - Small independent reads or searches: use parallel tool calls in the main agent.
+   - 2+ substantial independent tracks already clear, with the whole batch scoped before any subagent runs: launch one 2+ subagent batch and wait for all results.
+   - Use 2+ subagents or none. NEVER launch exactly 1 subagent.
+4. Synthesize findings and re-read target files if context is stale.
+5. Implement the smallest correct change.
+6. Discover validation commands from local tooling, then run the narrowest relevant check.
+
+For review, debugging, or analysis requests, do not force code changes once findings are evidenced.
+
+### Subagents
+
+Use 2+ subagents or none. NEVER launch exactly 1 subagent.
+
+The main agent is a builder, not a dispatcher. Work first, delegate second. Use subagents proactively, but only after main-agent scoping has clearly split the work into 2+ parallel independent tracks. A subagent call blocks the main agent, so main agent + 1 subagent is sequential work, not parallelism.
+
+- Scope the whole batch in the main agent before the first subagent call. If only one subagent task is ready, use zero subagents and keep scoping in the main agent.
+- Independence is execution independence, not shared final synthesis. If one track's findings decide what another track should inspect or how, keep scoping in the main agent.
+- A valid batch has 2+ substantial independent subagents, each with a distinct concern and clear return format. One broad exploratory subagent is not a batch, even if it performs many reads, searches, or internal parallel work.
+- Launch the batch together and wait for all results. Later singleton launches do not complete an earlier batch. If the interface cannot start 2+ subagents together, use zero subagents.
+- Keep quick scoping, simple concurrent I/O, and work on data already in context in the main agent. Use parallel tool calls when helpful.
+- Use subagents for repo exploration only after the exploration is split into 2+ substantial independent concerns.
+- Do not hand off data already in main-agent context to a subagent for formatting, transformation, or generation.
+- After the batch returns, synthesize results and use the main agent only for narrow gap-filling before implementation.
+
+### Testing
+
+- Preserve existing tests. Update tests when behavior changes. Do not silently change tested behavior.
+- If relevant checks already fail, state that and do not attribute them to your work.
+- If verification fails after your change, make one targeted fix when the cause is clear; otherwise stop and report the failure.
+- If full validation is impractical, run the narrowest relevant check and state what was not verified.
+- Never run integration tests that may incur costs without explicit permission from the user.
+
+### Change Constraints
+
+- Do exactly what was asked. Do not expand scope without clear reason.
+- Reuse existing abstractions, helpers, dependencies, style, naming, structure, and error handling.
+- Prefer the smallest viable change. Do not modify working code without clear justification.
+- Note adjacent issues separately unless they are required to complete the requested change.
+- Add dependencies only when necessary. Prefer existing dependencies; if a new one is needed, choose the smallest viable option and ask before adding it.
+
+### Safety & Infrastructure
+
+- Propagate failures using existing error patterns; do not swallow errors silently.
+- Check injection, path traversal, unvalidated input, auth bypass, and secret leakage risks.
+- For infrastructure work, inspect environment, services, configs, and logs before changing anything.
+
+### Git & PRs
+
+- Commit only when explicitly requested.
+- Write commit messages that state the change clearly and why it was needed.
+- Follow the Conventional Commits specification
+- NEVER push to any remote. Users must handle this themselves.
+- Do not use `--no-verify` or `--no-gpg-sign`.
+- Do not make persistent changes to git configuration
+
+### Completion
+
+Before declaring completion, confirm the change solves the stated problem, relevant validation ran or gaps are stated, no known unintended side effects were introduced, and no secrets were added or exposed.
+
+### Response Format
+
+Be concise and specific by default. No filler, intros, or restated requirements.
+
+Answer direct questions directly when possible. Example: `go test ./...`, not `The command to run tests is go test ./...`
+
+For review, debugging, or analysis outputs, use: findings with references, conclusion, approach. Mention caveats and unverified risks.
+

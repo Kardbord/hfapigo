@@ -3,7 +3,9 @@ name: Unit Tests
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+      - v4-draft
   pull_request:
     branches:
       - main
@@ -18,60 +20,66 @@ permissions:
 jobs:
   unit-tests:
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+      id-token: write # Required for OIDC token to upload coverage and test results
     strategy:
+      fail-fast: false
       matrix:
-        os: [windows-latest, macos-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          - os: ubuntu-latest
+            os-flag: ubuntu
+          - os: windows-latest
+            os-flag: windows
+          - os: macos-latest
+            os-flag: macos
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Set up Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
         with:
           cache: true
           go-version-file: "go.mod"
+
+      - name: Install gotestsum
+        run: go install gotest.tools/gotestsum@c4a0df2e75a225d979a444342dd3db752b53619f # v1.13.0
 
       - name: Test
-        run: go test -timeout 600s -v ./...
-
-  unit-tests-linux:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-
-      - name: Set up Go
-        uses: actions/setup-go@v6
-        with:
-          cache: true
-          go-version-file: "go.mod"
-
-      - name: Test (with coverage)
-        run: go test -timeout 600s -v -coverprofile=coverage.out -covermode=atomic ./...
-
-      - name: Upload coverage to Codecov
-        # Skip this job for PRs from forked repositories without access to secrets
-        # but allow it for PRs from branches within the main repository
-        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-        # TODO: Pin this down to the patch prior to release to mitigate vulnerability to supply-chain attacks
-        uses: codecov/codecov-action@v5
-        with:
-          files: coverage.out
-          flags: unit
-          fail_ci_if_error: false
-          token: ${{ secrets.CODECOV_TOKEN }}
-
-  unit-tests-race:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-
-      - name: Set up Go
-        uses: actions/setup-go@v6
-        with:
-          cache: true
-          go-version-file: "go.mod"
+        run: gotestsum --junitfile junit.xml --format github-actions --format-icons hivis -- -shuffle on -timeout 600s -v -coverprofile coverage.out -covermode atomic ./...
 
       - name: Test (race)
-        run: go test -race -timeout 600s -v ./...
+        run: gotestsum --format github-actions --format-icons hivis -- -race -shuffle on -timeout 600s -v ./...
+
+      - name: Upload coverage to Codecov
+        if: ${{ !cancelled() }}
+        uses: codecov/codecov-action@e79a6962e0d4c0c17b229090214935d2e33f8354 # v6.0.1
+        with:
+          files: coverage.out
+          flags: unit,${{ matrix.os-flag }}
+          codecov_yml_path: .github/codecov.yml
+          disable_search: true
+          fail_ci_if_error: false
+          use_oidc: true
+
+      - name: Upload test results to Codecov
+        if: ${{ !cancelled() }}
+        uses: codecov/test-results-action@0fa95f0e1eeaafde2c782583b36b28ad0d8c77d3 # v1.2.1
+        with:
+          files: junit.xml
+          flags: unit,${{ matrix.os-flag }}
+          codecov_yml_path: .github/codecov.yml
+          disable_search: true
+          fail_ci_if_error: false
+          use_oidc: true
+
+      - name: Upload test artifacts
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: test-results-${{ matrix.os }}
+          path: |
+            junit.xml
+            coverage.out

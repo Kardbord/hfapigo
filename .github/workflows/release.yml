@@ -1,32 +1,57 @@
 ---
-name: goreleaser
+name: Release
 
 on:
   push:
-    tags:
-      - "*"
+    branches:
+      - main
+      - v*-draft
 
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
-  goreleaser:
+  release-please:
+    name: Release Please
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      # ====================================================================
+      # Select release configuration based on branch
+      # ====================================================================
+      # main        -> stable config (default versioning)
+      # v*-draft    -> prerelease config (prerelease versioning)
+      # ====================================================================
+      - name: Select release config
+        id: config
+        run: |
+          if [[ "${{ github.ref_name }}" == main ]]; then
+            echo "config-file=.github/release-please-config.json" >> "$GITHUB_OUTPUT"
+            echo "manifest-file=.github/.release-please-manifest.json" >> "$GITHUB_OUTPUT"
+          else
+            echo "config-file=.github/prerelease-please-config.json" >> "$GITHUB_OUTPUT"
+            echo "manifest-file=.github/.prerelease-please-manifest.json" >> "$GITHUB_OUTPUT"
+          fi
+
+      # ====================================================================
+      # Run Release Please
+      # ====================================================================
+      # Release Please automatically:
+      # 1. Analyzes commits since last tag
+      # 2. Determines version bump (major/minor/patch/prerelease)
+      # 3. Creates Release PR with version updates:
+      #    - Updates go.mod
+      #    - Updates internal/sdkversion/version.go
+      #    - Generates changelog
+      # 4. On Release PR merge, creates:
+      #    - Git tag
+      #    - GitHub release with changelog
+      # ====================================================================
+      - name: Run Release Please
+        uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
         with:
-          fetch-depth: 0
-      - run: git fetch --force --tags
-      - uses: actions/setup-go@v6
-        with:
-          go-version-file: "go.mod"
-          cache: true
-      - run: go version
-      # TODO: Pin this down to the patch prior to release to mitigate vulnerability to supply-chain attacks
-      - uses: goreleaser/goreleaser-action@v6
-        with:
-          distribution: goreleaser
-          version: latest
-          args: release --clean
+          release-type: go
+          config-file: ${{ steps.config.outputs.config-file }}
+          manifest-file: ${{ steps.config.outputs.manifest-file }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
