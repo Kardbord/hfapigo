@@ -47,8 +47,16 @@ jobs:
           SEMVER_TYPE: ${{ steps.apidiff.outputs.semver-type }}
         run: |
           TITLE="$PR_TITLE"
-          HAS_BREAKING_MARKER="$([[ "$TITLE" =~ ^[a-z]+(\([^)]+\))?!: ]] && echo 'true' || echo 'false')"
-          API_HAS_BREAKING="$([[ "$SEMVER_TYPE" == "major" ]] && echo 'true' || echo 'false')"
+          if [[ "$TITLE" =~ ^[a-z]+(\([^)]+\))?!: ]]; then
+            HAS_BREAKING_MARKER="true"
+          else
+            HAS_BREAKING_MARKER="false"
+          fi
+          if [[ "$SEMVER_TYPE" == "major" ]]; then
+            API_HAS_BREAKING="true"
+          else
+            API_HAS_BREAKING="false"
+          fi
 
           echo "PR Title: $TITLE"
           echo "Has breaking marker (!): $HAS_BREAKING_MARKER"
