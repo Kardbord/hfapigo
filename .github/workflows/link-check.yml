@@ -37,6 +37,7 @@ jobs:
             --max-cache-age 1d
             --verbose
             --no-progress
+            --exclude '^https://router\.huggingface\.co/?$'
             './**/*.md'
             './**/*.html'
             './**/*.go'

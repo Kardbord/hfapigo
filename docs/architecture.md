@@ -8,7 +8,7 @@
 - **Go Version**: 1.25+
 - **License**: MIT (Copyright 2021 Tanner Kvarfordt)
 - **Goal**: Production-ready, follows best practices and idioms, maintains feature parity with upstream API
-- **Repository**: https://github.com/Kardbord/hfgo
+- **Repository**: https://github.com/Kardbord/hfapigo
 
 ## Core Architecture
 
