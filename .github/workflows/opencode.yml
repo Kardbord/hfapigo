@@ -47,7 +47,7 @@ jobs:
             const body = context.payload.comment.body;
             const match = body.match(/^\/(?:opencode|oc)\s+model=(\S+)/);
             const requested = match ? match[1] : '';
-            core.setOutput('model', ALLOWED_MODELS.includes(requested) ? requested : '');
+            core.setOutput('model', ALLOWED_MODELS.includes(requested) ? requested : 'openrouter/deepseek/deepseek-v4-flash');
 
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -57,10 +57,5 @@ jobs:
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
         with:
-          model: |
-            ${{
-              steps.model.outputs.model ||
-              'openrouter/deepseek/deepseek-v4-flash'
-            }}
+          model: ${{ steps.model.outputs.model }}
           share: false
-          agent: plan
