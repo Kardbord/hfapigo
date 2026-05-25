@@ -30,7 +30,7 @@ jobs:
               'openrouter/qwen/qwen3.6-flash',
               'openrouter/mistralai/devstral-2512',
               'openrouter/google/gemini-3.5-flash',
-              'openrouter/google/gemma-4-31b-it:free',
+              'openrouter/google/gemma-4-31b-it',
               'openrouter/z-ai/glm-5.1',
               'openrouter/xiaomi/mimo-v2.5',
               'openrouter/minimax/minimax-m2.7',
