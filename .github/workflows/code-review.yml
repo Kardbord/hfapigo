@@ -26,12 +26,11 @@ jobs:
               'openrouter/openrouter/auto',
               'openrouter/deepseek/deepseek-v4-pro',
               'openrouter/deepseek/deepseek-v4-flash',
-              'openrouter/anthropic/claude-haiku-4.5',
               'openrouter/moonshotai/kimi-k2.6',
               'openrouter/qwen/qwen3.6-flash',
               'openrouter/mistralai/devstral-2512',
               'openrouter/google/gemini-3.5-flash',
-              'openrouter/google/gemma-4-31b-it:free',
+              'openrouter/google/gemma-4-31b-it',
               'openrouter/z-ai/glm-5.1',
               'openrouter/xiaomi/mimo-v2.5',
               'openrouter/minimax/minimax-m2.7',
@@ -39,7 +38,7 @@ jobs:
               'openrouter/kwaipilot/kat-coder-pro-v2',
               'openrouter/inclusionai/ring-2.6-1t',
               'openrouter/inception/mercury-2',
-              'openrouter/anthropic/claude-sonnet-4.6'
+              'openrouter/anthropic/claude-haiku-4.5',
               'openrouter/anthropic/claude-sonnet-4.6'
             ];
             const body = context.payload.comment.body;
