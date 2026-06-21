@@ -50,7 +50,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: anomalyco/opencode/github@23471d674c1a9f5e9a3e90c609e60dd6aaa6af23 # v1.17.6
+      - uses: anomalyco/opencode/github@5c23e88419c4743b9be42cea132f2fb1e6cb63ff # v1.17.9
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
         with:
