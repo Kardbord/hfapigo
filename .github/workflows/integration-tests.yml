@@ -7,7 +7,7 @@ on:
       - main
       - v4-draft
 
-  pull_request:
+  pull_request_target:
     types: [opened, synchronize, reopened]
 
   schedule:
@@ -27,7 +27,7 @@ permissions:
 concurrency:
   group: |
     ${{
-      github.event_name == 'pull_request' &&
+      github.event_name == 'pull_request_target' &&
       format('integration-tests-pr-{0}', github.event.pull_request.number) ||
       format('integration-tests-{0}', github.ref_name)
     }}
@@ -41,7 +41,7 @@ jobs:
     # This controls costs by requiring a member/admin/owner to approve the run.
     # Push and schedule runs bypass the environment gate since they run on
     # protected branches that already require review before merge.
-    environment: ${{ github.event_name == 'pull_request' && 'integration-tests' || '' }}
+    environment: ${{ github.event_name == 'pull_request_target' && 'integration-tests' || '' }}
     permissions:
       contents: read
       id-token: write # Required for OIDC token to upload coverage and test results
@@ -49,6 +49,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: refs/pull/${{ github.event.pull_request.number }}/merge
 
       - name: Set up Go
         uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
