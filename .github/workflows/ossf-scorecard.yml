@@ -5,7 +5,7 @@ on:
   # https://github.com/ossf/scorecard/blob/main/docs/checks.md#branch-protection
   branch_protection_rule:
   schedule:
-    - cron: "41 15 * * 6"
+    - cron: "55 6 * * 1"
   push:
     branches:
       - v4-draft

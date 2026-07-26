@@ -10,7 +10,7 @@ on:
       - main
       - v4-draft
   schedule:
-    - cron: "35 21 * * 3"
+    - cron: "45 6 * * 1"
   workflow_dispatch:
 
 jobs:

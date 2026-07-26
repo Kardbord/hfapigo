@@ -9,7 +9,7 @@ on:
       - main
       - v4-draft
   schedule:
-    - cron: "35 21 * * 3"
+    - cron: "25 6 * * 1"
   workflow_dispatch:
 
 permissions:
