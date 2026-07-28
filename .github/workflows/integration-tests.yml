@@ -34,7 +34,41 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  check-changes:
+    name: Check for Code Changes
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      skip_tests: ${{ steps.check_changes.outputs.skip_tests }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event_name == 'pull_request_target' && format('refs/pull/{0}/merge', github.event.pull_request.number) || '' }}
+
+      - name: Check for code changes
+        id: check_changes
+        run: |
+          if [[ "${{ github.event_name }}" != "pull_request_target" ]]; then
+            echo "skip_tests=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          CHANGED_FILES=$(git diff --name-only HEAD^1 HEAD)
+          echo "Changed files:"
+          echo "$CHANGED_FILES"
+          CODE_CHANGES=$(echo "$CHANGED_FILES" | grep -v '^\.github/' | grep -v '^docs/' | grep -v '\.md$' | grep -v '^LICENSE$' || true)
+          if [ -z "$CODE_CHANGES" ]; then
+            echo "Only non-code files changed. Skipping integration tests."
+            echo "skip_tests=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Code changes detected. Running integration tests."
+            echo "skip_tests=false" >> "$GITHUB_OUTPUT"
+          fi
+
   integration-tests:
+    needs: check-changes
+    if: needs.check-changes.outputs.skip_tests != 'true'
     name: Run Integration Tests
     runs-on: ubuntu-latest
     # PR-triggered runs require manual approval via environment protection rules.
@@ -119,8 +153,7 @@ jobs:
       # This ensures that the subsequent issue creation/update steps can use these labels.
       # Uses try/catch since the API errors if label already exists.
       - name: Ensure failure labels exist
-        if: |
-          github.event_name == 'push' || github.event_name == 'schedule'
+        if: github.event_name == 'push' || github.event_name == 'schedule'
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
