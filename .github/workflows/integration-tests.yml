@@ -71,20 +71,6 @@ jobs:
             echo "run_tests=true" >> "$GITHUB_OUTPUT"
           fi
 
-  integration-tests:
-    needs: check-changes
-    if: always()
-    name: Integration Tests
-    runs-on: ubuntu-latest
-    steps:
-      - name: Pass or skip
-        run: |
-          if [[ "${{ needs.check-changes.outputs.run_tests }}" == "true" ]]; then
-            echo "Tests will run in the run-integration-tests job."
-          else
-            echo "No code changes detected. Skipping integration tests."
-          fi
-
   run-integration-tests:
     needs: check-changes
     if: needs.check-changes.outputs.run_tests == 'true'
@@ -293,3 +279,19 @@ jobs:
                 state: "closed"
               });
             }
+
+  integration-tests:
+    needs: [check-changes, run-integration-tests]
+    if: always()
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - name: Check integration test results
+        run: |
+          result="${{ needs.run-integration-tests.result }}"
+          if [[ "$result" == "failure" || "$result" == "cancelled" ]]; then
+            echo "Integration tests failed (result: $result)."
+            exit 1
+          fi
+          echo "Integration tests passed or were skipped (result: $result)."
