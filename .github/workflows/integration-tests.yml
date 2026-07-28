@@ -40,35 +40,54 @@ jobs:
     permissions:
       contents: read
     outputs:
-      skip_tests: ${{ steps.check_changes.outputs.skip_tests }}
+      run_tests: ${{ steps.check_changes.outputs.run_tests }}
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event_name == 'pull_request_target' && format('refs/pull/{0}/merge', github.event.pull_request.number) || '' }}
+          fetch-depth: 2
 
       - name: Check for code changes
         id: check_changes
         run: |
           if [[ "${{ github.event_name }}" != "pull_request_target" ]]; then
-            echo "skip_tests=false" >> "$GITHUB_OUTPUT"
+            echo "run_tests=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           CHANGED_FILES=$(git diff --name-only HEAD^1 HEAD)
           echo "Changed files:"
           echo "$CHANGED_FILES"
-          CODE_CHANGES=$(echo "$CHANGED_FILES" | grep -v '^\.github/' | grep -v '^docs/' | grep -v '\.md$' | grep -v '^LICENSE$' || true)
+          CODE_CHANGES=$(echo "$CHANGED_FILES" | grep -v '^docs/' | grep -v '\.md$' | grep -v '^LICENSE$' | grep -v '^\.github/' || true)
+          # Re-include this workflow file as a code change
+          if echo "$CHANGED_FILES" | grep -q -x '\.github/workflows/integration-tests\.yml'; then
+            CODE_CHANGES=".github/workflows/integration-tests.yml"$'\n'"$CODE_CHANGES"
+          fi
           if [ -z "$CODE_CHANGES" ]; then
             echo "Only non-code files changed. Skipping integration tests."
-            echo "skip_tests=true" >> "$GITHUB_OUTPUT"
+            echo "run_tests=false" >> "$GITHUB_OUTPUT"
           else
             echo "Code changes detected. Running integration tests."
-            echo "skip_tests=false" >> "$GITHUB_OUTPUT"
+            echo "run_tests=true" >> "$GITHUB_OUTPUT"
           fi
 
   integration-tests:
     needs: check-changes
-    if: needs.check-changes.outputs.skip_tests != 'true'
+    if: always()
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pass or skip
+        run: |
+          if [[ "${{ needs.check-changes.outputs.run_tests }}" == "true" ]]; then
+            echo "Tests will run in the run-integration-tests job."
+          else
+            echo "No code changes detected. Skipping integration tests."
+          fi
+
+  run-integration-tests:
+    needs: check-changes
+    if: needs.check-changes.outputs.run_tests == 'true'
     name: Run Integration Tests
     runs-on: ubuntu-latest
     # PR-triggered runs require manual approval via environment protection rules.
