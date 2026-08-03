@@ -35,7 +35,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: anomalyco/opencode/github@02981844b88aed33f06f1527da6c58d137975069 # v1.18.7
+      - uses: anomalyco/opencode/github@7902e04c3a67f7c69726bc955efb46e29214c797 # v1.18.10
         if: steps.account.outputs.allowed == 'true'
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
