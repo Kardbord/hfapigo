@@ -17,3 +17,10 @@ updates:
       time: "05:00"
     commit-message:
       prefix: "ci(deps)"
+    groups:
+      codeql-action:
+        patterns:
+          - "github/codeql-action/*"
+      cache:
+        patterns:
+          - "actions/cache/*"
