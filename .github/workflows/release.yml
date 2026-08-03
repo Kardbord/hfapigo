@@ -50,7 +50,6 @@ jobs:
       - name: Run Release Please
         uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
         with:
-          release-type: go
           config-file: ${{ steps.config.outputs.config-file }}
           manifest-file: ${{ steps.config.outputs.manifest-file }}
         env:

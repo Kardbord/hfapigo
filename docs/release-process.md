@@ -62,6 +62,16 @@ required because the action's default manifest path is
 `.release-please-manifest.json` at the repository root, but this project
 stores both config and manifest files under `.github/`.
 
+> **Important:** The workflow must **not** pass the `release-type` action input.
+> `release-please-action` v5 treats a non-empty `release-type` input as the
+> "build from config" path, which **ignores** both the `config-file` and
+> `manifest-file` inputs and the configuration they contain (including
+> `versioning: prerelease`). It then falls back to default versioning derived
+> from existing git tags, which is what caused a draft branch to emit a stable
+> `v3.1.1` release instead of `v4.0.0-rc`. The `release-type` is instead
+> declared per-package in each config file. Omitting the `release-type` input
+> is what activates the `config-file`/`manifest-file` path.
+
 ### Why Separate Manifests?
 
 Each branch reads its own manifest file. This provides **structural version
