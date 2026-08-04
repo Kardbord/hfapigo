@@ -47,23 +47,26 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      pull-requests: read
     outputs:
       run_tests: ${{ steps.check_changes.outputs.run_tests }}
     steps:
-      - name: Checkout code
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ github.event_name == 'pull_request_target' && format('refs/pull/{0}/merge', github.event.pull_request.number) || '' }}
-          fetch-depth: 2
-
       - name: Check for code changes
         id: check_changes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           if [[ "${{ github.event_name }}" != "pull_request_target" ]]; then
             echo "run_tests=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          CHANGED_FILES=$(git diff --name-only HEAD^1 HEAD)
+          # Fetch changed files from the API rather than checking out and
+          # merging the PR head: this job is ungated (runs before environment
+          # approval), so untrusted fork code must never be materialized here.
+          # A failure surfaces loudly (no || true) and is caught by the
+          # integration-tests aggregator rather than silently skipping.
+          CHANGED_FILES="$(gh api --paginate "repos/{owner}/{repo}/pulls/$PR_NUMBER/files" --jq '.[].filename')"
           echo "Changed files:"
           echo "$CHANGED_FILES"
           CODE_CHANGES=$(echo "$CHANGED_FILES" | grep -v '^docs/' | grep -v '\.md$' | grep -v '^LICENSE$' | grep -v '^\.github/' || true)
@@ -94,19 +97,16 @@ jobs:
       id-token: write # Required for OIDC token to upload coverage and test results
       issues: write # For creating/closing failure issues
     steps:
-      - name: Checkout code
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Checkout and reconstruct PR merge
+        uses: ./.github/actions/checkout-pr-merge
         with:
-          ref: ${{ github.event_name == 'pull_request_target' && format('refs/pull/{0}/merge', github.event.pull_request.number) || '' }}
+          ref: ${{ github.event.pull_request.base.ref || github.ref }}
+          pr-number: ${{ github.event_name == 'pull_request_target' && github.event.pull_request.number || '' }}
 
       - name: Set up Go
-        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        uses: ./.github/actions/setup-go
         with:
-          go-version-file: "go.mod"
-          cache: true
-
-      - name: Install gotestsum
-        run: go install gotest.tools/gotestsum@c4a0df2e75a225d979a444342dd3db752b53619f # v1.13.0
+          install-gotestsum: 'true'
 
       # Tests are retried up to 3 times with 10-second delays between attempts.
       # This helps mitigate transient API failures and network issues.
@@ -133,34 +133,10 @@ jobs:
 
       - name: Upload coverage to Codecov
         if: ${{ !cancelled() }}
-        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        uses: ./.github/actions/upload-codecov
         with:
-          files: coverage.out
           flags: integration
-          codecov_yml_path: .github/codecov.yml
-          disable_search: true
-          fail_ci_if_error: false
-          use_oidc: true
-
-      - name: Upload test results to Codecov
-        if: ${{ !cancelled() }}
-        uses: codecov/test-results-action@0fa95f0e1eeaafde2c782583b36b28ad0d8c77d3 # v1.2.1
-        with:
-          files: junit.xml
-          flags: integration
-          codecov_yml_path: .github/codecov.yml
-          disable_search: true
-          fail_ci_if_error: false
-          use_oidc: true
-
-      - name: Upload test artifacts
-        if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: integration-test-results
-          path: |
-            junit.xml
-            coverage.out
+          artifact-name: integration-test-results
 
       # Creates branch-specific labels if they don't already exist.
       # This ensures that the subsequent issue creation/update steps can use these labels.
@@ -298,8 +274,13 @@ jobs:
       - name: Check integration test results
         run: |
           result="${{ needs.run-integration-tests.result }}"
-          if [[ "$result" == "failure" || "$result" == "cancelled" ]]; then
-            echo "Integration tests failed (result: $result)."
+          check_changes_result="${{ needs.check-changes.result }}"
+          # Fail not only when the test job failed, but also when check-changes
+          # crashed: in that case run_tests is unset, run-integration-tests is
+          # skipped, and this job would otherwise report a silent pass, hiding a
+          # missing integration-test signal.
+          if [[ "$result" == "failure" || "$result" == "cancelled" || "$check_changes_result" == "failure" || "$check_changes_result" == "cancelled" ]]; then
+            echo "Integration test job failed or its check-changes prerequisite failed (result: $result, check-changes: $check_changes_result)."
             exit 1
           fi
-          echo "Integration tests passed or were skipped (result: $result)."
+          echo "Integration tests passed or were skipped (result: $result, check-changes: $check_changes_result)."

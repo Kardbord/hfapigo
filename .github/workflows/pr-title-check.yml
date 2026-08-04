@@ -26,6 +26,7 @@ jobs:
     outputs:
       title-error: ${{ steps.lint-pr-title.outputs.error_message }}
       breaking-reason: ${{ steps.breaking-change.outputs.reason }}
+      breaking-state: ${{ steps.breaking-change.outputs.state }}
     steps:
       - name: Validate PR title format
         id: lint-pr-title
@@ -39,16 +40,14 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Checkout code
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Checkout and reconstruct PR merge
+        uses: ./.github/actions/checkout-pr-merge
         with:
-          ref: ${{ format('refs/pull/{0}/merge', github.event.pull_request.number) }}
-          fetch-depth: 0
+          ref: ${{ github.event.pull_request.base.ref }}
+          pr-number: ${{ github.event.pull_request.number }}
 
       - name: Set up Go
-        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          go-version-file: go.mod
+        uses: ./.github/actions/setup-go
 
       - name: Check for breaking API changes
         id: apidiff
@@ -64,17 +63,9 @@ jobs:
       # and re-checking API diffs against rc bumps would otherwise cause false failures.
       - name: Determine if release PR
         id: is-release
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
-        run: |
-          LABELS="$(gh pr view "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --json labels --jq '[.labels[].name] | join(",")')"
-          if [[ "$LABELS" == *"autorelease: pending"* ]]; then
-            echo "is-release=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "is-release=false" >> "$GITHUB_OUTPUT"
-          fi
+        uses: ./.github/actions/is-release-pr
+        with:
+          pr-number: ${{ github.event.pull_request.number }}
 
       - name: Validate breaking change marking
         id: breaking-change
@@ -82,9 +73,22 @@ jobs:
           PR_TITLE: ${{ github.event.pull_request.title }}
           IS_RELEASE: ${{ steps.is-release.outputs.is-release }}
           SEMVER_TYPE: ${{ steps.apidiff.outputs.semver-type }}
+          APIDIFF_OUTCOME: ${{ steps.apidiff.outcome }}
         run: |
           if [[ "$IS_RELEASE" == "true" ]]; then
             echo "⏭️ Skipping breaking-change validation for release-please PR"
+            exit 0
+          fi
+
+          # go-apidiff uses a non-zero exit to signal a detected breaking change,
+          # which continue-on-error absorbs, so a step failure doesn't distinguish
+          # detection from a crash. If it failed without reporting a semver
+          # verdict, the check is inconclusive: block loudly instead of silently
+          # letting an unmarked breaking change slip through.
+          if [[ "$APIDIFF_OUTCOME" == "failure" && -z "$SEMVER_TYPE" ]]; then
+            echo "state=inconclusive" >> "$GITHUB_OUTPUT"
+            echo "reason=API diff check could not complete (go-apidiff failed without a semver verdict). Re-run the workflow." >> "$GITHUB_OUTPUT"
+            echo "❌ API diff check could not complete (go-apidiff failed without a semver verdict). Re-run the workflow."
             exit 0
           fi
 
@@ -108,10 +112,12 @@ jobs:
           echo ""
 
           if [[ "$API_HAS_BREAKING" == "true" ]] && [[ "$HAS_BREAKING_MARKER" != "true" ]]; then
+            echo "state=breaking" >> "$GITHUB_OUTPUT"
             echo "reason=Breaking API changes detected but PR title not marked with '!'. Example: feat!: remove deprecated method" >> "$GITHUB_OUTPUT"
             echo "❌ Breaking API changes detected but PR title not marked with '!'"
             echo "Example: feat!: remove deprecated method"
           else
+            echo "state=ok" >> "$GITHUB_OUTPUT"
             echo "✅ Breaking change marking is correct"
           fi
 
@@ -172,7 +178,7 @@ jobs:
         run: printf '%s' "$BREAKING_REASON" > "$RUNNER_TEMP/breaking-reason.md"
 
       - name: Comment on PR breaking change marker
-        if: always() && (needs.validate.outputs.breaking-reason != '')
+        if: always() && needs.validate.outputs.breaking-state == 'breaking'
         uses: marocchino/sticky-pull-request-comment@5770ad5eb8f42dd2c4f34da00c94c5381e49af88 # v3.0.5
         with:
           header: pr-breaking-change
@@ -192,7 +198,7 @@ jobs:
             ```
 
       - name: Resolve PR breaking change comment
-        if: always() && (needs.validate.outputs.breaking-reason == '')
+        if: always() && needs.validate.outputs.breaking-state != 'breaking'
         uses: marocchino/sticky-pull-request-comment@5770ad5eb8f42dd2c4f34da00c94c5381e49af88 # v3.0.5
         with:
           header: pr-breaking-change
@@ -203,11 +209,13 @@ jobs:
   # job-level `if: always()` so the check ALWAYS reports a real pass/fail and is
   # never skipped. A conditional job-level `if:` would be unreliable (a skipped
   # job's status under branch protection varies by how the check is named), so
-  # gating lives in the step instead: the step only fails (exit 1) when its gate
-  # fires. Because validate can fail for infrastructure reasons (checkout of the
-  # merge ref, setup-go reading go.mod, gh pr view), always() keeps these jobs
-  # running so the required checks always get a signal rather than leaving the
-  # PR stuck in "Expected - Waiting for status".
+  # gating lives in the step instead: a step fails (exit 1) when its gate fires.
+  # Because validate can fail for infrastructure reasons (checkout or merge
+  # reconstruction, setup-go reading go.mod, gh pr view), these jobs also fail
+  # on `needs.validate.result == 'failure'/'cancelled'` so an infra failure
+  # blocks the PR loudly instead of silently passing the gate. always() keeps
+  # these jobs running so the required checks always get a real signal rather
+  # than leaving the PR stuck in "Expected - Waiting for status".
   block-invalid-title:
     name: Block invalid PR title
     needs: validate
@@ -216,6 +224,15 @@ jobs:
     permissions:
       contents: read
     steps:
+      # If validate crashed (checkout, merge reconstruction, setup-go, gh pr
+      # view), its error outputs are unset and the check below would silently
+      # pass. Fail loudly so an infra problem can't mask an invalid title.
+      - name: Fail on validate job failure
+        uses: ./.github/actions/require-job-passed
+        with:
+          result: ${{ needs.validate.result }}
+          message: "The validate job ${{ needs.validate.result }}: PR title/API checks could not complete (checkout, merge reconstruction, or setup failed). Re-run the workflow."
+
       - name: Fail on invalid PR title
         if: needs.validate.outputs.title-error != ''
         env:
@@ -233,6 +250,15 @@ jobs:
     permissions:
       contents: read
     steps:
+      # If validate crashed, its breaking-reason output is unset and the check
+      # below would silently pass. Fail loudly so an infra problem can't mask an
+      # unmarked breaking change.
+      - name: Fail on validate job failure
+        uses: ./.github/actions/require-job-passed
+        with:
+          result: ${{ needs.validate.result }}
+          message: "The validate job ${{ needs.validate.result }}: PR title/API checks could not complete (checkout, merge reconstruction, or setup failed). Re-run the workflow."
+
       - name: Fail on unmarked breaking change
         if: needs.validate.outputs.breaking-reason != ''
         env:

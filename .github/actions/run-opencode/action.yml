@@ -1,0 +1,39 @@
+---
+name: Run OpenCode
+description: >
+  Check out the repository (without persisting credentials) and run the OpenCode
+  GitHub action. Centralizes the pinned opencode action, the OPENROUTER_API_KEY
+  wiring, and the checkout configuration so they are maintained in one place.
+inputs:
+  model:
+    description: Model to run OpenCode with.
+    required: true
+  prompt:
+    description: Optional prompt to pass to OpenCode.
+    required: false
+    default: ""
+  agent:
+    description: Optional OpenCode agent to use.
+    required: false
+    default: ""
+  share:
+    description: Whether to share the OpenCode session.
+    required: false
+    default: "false"
+runs:
+  using: composite
+  steps:
+    - name: Checkout code
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
+
+    - name: Run OpenCode
+      uses: anomalyco/opencode/github@7902e04c3a67f7c69726bc955efb46e29214c797 # v1.18.10
+      env:
+        OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      with:
+        model: ${{ inputs.model }}
+        share: ${{ inputs.share }}
+        agent: ${{ inputs.agent }}
+        prompt: ${{ inputs.prompt }}
