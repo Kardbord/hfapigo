@@ -11,6 +11,11 @@ jobs:
     permissions:
       id-token: write
     steps:
+      - name: Checkout (bootstrap for local actions)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
       - name: Check account age
         id: account
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0

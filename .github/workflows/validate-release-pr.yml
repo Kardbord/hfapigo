@@ -17,6 +17,11 @@ jobs:
     name: Validate go.mod for Release
     runs-on: ubuntu-latest
     steps:
+      # Bootstrap checkout so the local composite action below (is-release-pr)
+      # can be resolved; its action.yml must already exist in the workspace.
+      - name: Checkout (bootstrap for local actions)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
       # Runtime check of the PR's current labels (authoritative; the event
       # payload's labels array can be empty on synchronize/opened events).
       - name: Determine if release PR

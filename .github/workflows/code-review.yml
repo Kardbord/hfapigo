@@ -17,6 +17,11 @@ jobs:
     permissions:
       id-token: write
     steps:
+      - name: Checkout (bootstrap for local actions)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
       - name: Parse model from comment
         id: model
         uses: ./.github/actions/parse-model
