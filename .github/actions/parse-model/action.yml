@@ -19,6 +19,10 @@ runs:
       id: resolve
       uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
       with:
+        # The body must be passed into the github-script step so core.getInput
+        # below can read it; a composite's input is not visible to nested actions
+        # unless propagated via with:/env.
+        body: ${{ inputs.body }}
         script: |
           const ALLOWED_MODELS = [
             'openrouter/openrouter/free',
