@@ -25,11 +25,14 @@ jobs:
       pull-requests: read
     outputs:
       title-error: ${{ steps.lint-pr-title.outputs.error_message }}
-      breaking-outcome: ${{ steps.breaking-change.outcome }}
       breaking-reason: ${{ steps.breaking-change.outputs.reason }}
     steps:
       - name: Validate PR title format
         id: lint-pr-title
+        # continue-on-error keeps the job from failing so its outputs are
+        # reliably published and the dependent jobs below can react. The
+        # blocking decision is made by the block-* jobs instead.
+        continue-on-error: true
         uses: amannn/action-semantic-pull-request@48f256284bd46cdaab1048c3721360e808335d50 # v6.1.1
         with:
           requireScope: false
@@ -108,10 +111,9 @@ jobs:
             echo "reason=Breaking API changes detected but PR title not marked with '!'. Example: feat!: remove deprecated method" >> "$GITHUB_OUTPUT"
             echo "❌ Breaking API changes detected but PR title not marked with '!'"
             echo "Example: feat!: remove deprecated method"
-            exit 1
+          else
+            echo "✅ Breaking change marking is correct"
           fi
-
-          echo "✅ Breaking change marking is correct"
 
   # This job runs with a write-scoped token so it can post comments on fork PRs,
   # but it never checks out or builds PR-controlled code. The validate job above
@@ -119,6 +121,9 @@ jobs:
   comment:
     name: Manage PR comments
     needs: validate
+    # always() so this job runs even when validate needs to indicate a blocker
+    # via its (always-successful) outputs rather than by failing.
+    if: always()
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
@@ -154,7 +159,7 @@ jobs:
           delete: true
 
       - name: Comment on PR breaking change marker
-        if: always() && (needs.validate.outputs.breaking-outcome == 'failure')
+        if: always() && (needs.validate.outputs.breaking-reason != '')
         uses: marocchino/sticky-pull-request-comment@5770ad5eb8f42dd2c4f34da00c94c5381e49af88 # v3.0.5
         with:
           header: pr-breaking-change
@@ -173,8 +178,39 @@ jobs:
             ```
 
       - name: Resolve PR breaking change comment
-        if: always() && (needs.validate.outputs.breaking-outcome == 'success')
+        if: always() && (needs.validate.outputs.breaking-reason == '')
         uses: marocchino/sticky-pull-request-comment@5770ad5eb8f42dd2c4f34da00c94c5381e49af88 # v3.0.5
         with:
           header: pr-breaking-change
           delete: true
+
+  # The validate job above always succeeds; these jobs are what actually block
+  # merges. Branch protection on the target branch should require these two
+  # status checks. A skipped job here (when the condition is false) counts as a
+  # passed required check, so merging is only blocked when the gate fires.
+  block-invalid-title:
+    name: Block invalid PR title
+    needs: validate
+    if: needs.validate.outputs.title-error != ''
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Fail on invalid PR title
+        run: |
+          echo "PR title does not follow the Conventional Commits specification:"
+          echo "${{ needs.validate.outputs.title-error }}"
+          exit 1
+
+  block-breaking-change:
+    name: Block unmarked breaking change
+    needs: validate
+    if: needs.validate.outputs.breaking-reason != ''
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Fail on unmarked breaking change
+        run: |
+          echo "${{ needs.validate.outputs.breaking-reason }}"
+          exit 1
