@@ -6,6 +6,7 @@ on:
 
 jobs:
   review:
+    name: OpenCode PR Review
     if: |
       github.event.issue.pull_request != null &&
       (startsWith(github.event.comment.body, '/review ') ||
@@ -46,11 +47,13 @@ jobs:
             const requested = match ? match[1] : '';
             core.setOutput('model', ALLOWED_MODELS.includes(requested) ? requested : 'openrouter/~deepseek/deepseek-v4-flash-latest');
 
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
-      - uses: anomalyco/opencode/github@7902e04c3a67f7c69726bc955efb46e29214c797 # v1.18.10
+      - name: Run OpenCode
+        uses: anomalyco/opencode/github@7902e04c3a67f7c69726bc955efb46e29214c797 # v1.18.10
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
         with:

@@ -5,13 +5,15 @@ on:
   push:
     branches:
       - main
-      - v4-draft
+      - v*-draft
 
   pull_request_target:
     types: [opened, synchronize, reopened]
 
   schedule:
     - cron: "5 6 * * 1"
+
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -22,7 +24,7 @@ permissions:
 #
 # Grouping strategy:
 # - PR-triggered runs: group by PR number
-# - Branch runs (main/v4-draft): group by branch name
+# - Branch runs (main/v*-draft): group by branch name
 # - Scheduled runs: use main group
 concurrency:
   group: |
@@ -35,7 +37,7 @@ concurrency:
 
 jobs:
   check-changes:
-    name: Check for Code Changes
+    name: Check for code changes
     runs-on: ubuntu-latest
     permissions:
       contents: read

@@ -7,7 +7,7 @@ on:
   pull_request:
     branches:
       - main
-      - v4-draft
+      - v*-draft
   schedule:
     - cron: "25 6 * * 1"
   workflow_dispatch:
@@ -17,6 +17,7 @@ permissions:
 
 jobs:
   lint:
+    name: Lint
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code

@@ -1,5 +1,5 @@
 ---
-name: "CodeQL"
+name: CodeQL
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
   pull_request:
     branches:
       - main
-      - v4-draft
+      - v*-draft
   schedule:
     - cron: "45 6 * * 1"
   workflow_dispatch:
@@ -28,7 +28,7 @@ jobs:
         language: ["go"]
 
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up Go
