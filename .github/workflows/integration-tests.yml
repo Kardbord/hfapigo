@@ -132,35 +132,10 @@ jobs:
             -covermode=atomic
 
       - name: Upload coverage to Codecov
-        if: ${{ !cancelled() }}
-        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        uses: ./.github/actions/upload-codecov
         with:
-          files: coverage.out
           flags: integration
-          codecov_yml_path: .github/codecov.yml
-          disable_search: true
-          fail_ci_if_error: false
-          use_oidc: true
-
-      - name: Upload test results to Codecov
-        if: ${{ !cancelled() }}
-        uses: codecov/test-results-action@0fa95f0e1eeaafde2c782583b36b28ad0d8c77d3 # v1.2.1
-        with:
-          files: junit.xml
-          flags: integration
-          codecov_yml_path: .github/codecov.yml
-          disable_search: true
-          fail_ci_if_error: false
-          use_oidc: true
-
-      - name: Upload test artifacts
-        if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: integration-test-results
-          path: |
-            junit.xml
-            coverage.out
+          artifact-name: integration-test-results
 
       # Creates branch-specific labels if they don't already exist.
       # This ensures that the subsequent issue creation/update steps can use these labels.
