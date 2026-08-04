@@ -40,12 +40,40 @@ jobs:
       - name: Check for breaking API changes
         id: apidiff
         uses: joelanford/go-apidiff@60c4206be8f84348ebda2a3e0c3ac9cb54b8f685 # v0.8.3
+        # go-apidiff exits non-zero when it detects a breaking (major) change.
+        # Absorb that so the job continues and the next step decides the outcome.
+        continue-on-error: true
+
+      # Determine if this is a Release Please PR. We read labels at runtime
+      # because the event payload's labels array can be empty on opened/synchronize.
+      # Release PRs (autorelease: pending) are exempt from the breaking-change gate:
+      # their version is already derived by release-please from properly-marked commits,
+      # and re-checking API diffs against rc bumps would otherwise cause false failures.
+      - name: Determine if release PR
+        id: is-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          LABELS="$(gh pr view "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --json labels --jq '[.labels[].name] | join(",")')"
+          if [[ "$LABELS" == *"autorelease: pending"* ]]; then
+            echo "is-release=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "is-release=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Validate breaking change marking
         env:
           PR_TITLE: ${{ github.event.pull_request.title }}
+          IS_RELEASE: ${{ steps.is-release.outputs.is-release }}
           SEMVER_TYPE: ${{ steps.apidiff.outputs.semver-type }}
         run: |
+          if [[ "$IS_RELEASE" == "true" ]]; then
+            echo "⏭️ Skipping breaking-change validation for release-please PR"
+            exit 0
+          fi
+
           TITLE="$PR_TITLE"
           BREAKING_REGEX='^[a-z]+(\([^)]+\))?!:'
           if [[ "$TITLE" =~ $BREAKING_REGEX ]]; then
