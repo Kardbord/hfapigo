@@ -200,17 +200,19 @@ jobs:
 
   # The validate job above always succeeds; these jobs are what actually block
   # merges. Branch protection on the target branch should require these two
-  # status checks. A skipped job here (when the condition is false) counts as a
-  # passed required check, so merging is only blocked when the gate fires.
+  # status checks. Each job ALWAYS runs so the required check always reports a
+  # real pass/fail; the step only fails (exit 1) when its gate fires. Job-level
+  # `if:` is avoided here because a skipped job's status under branch protection
+  # varies by how the check is named and is unreliable as a "passed" signal.
   block-invalid-title:
     name: Block invalid PR title
     needs: validate
-    if: needs.validate.outputs.title-error != ''
     runs-on: ubuntu-latest
     permissions:
       contents: read
     steps:
       - name: Fail on invalid PR title
+        if: needs.validate.outputs.title-error != ''
         env:
           TITLE_ERROR: ${{ needs.validate.outputs.title-error }}
         run: |
@@ -221,12 +223,12 @@ jobs:
   block-breaking-change:
     name: Block unmarked breaking change
     needs: validate
-    if: needs.validate.outputs.breaking-reason != ''
     runs-on: ubuntu-latest
     permissions:
       contents: read
     steps:
       - name: Fail on unmarked breaking change
+        if: needs.validate.outputs.breaking-reason != ''
         env:
           BREAKING_REASON: ${{ needs.validate.outputs.breaking-reason }}
         run: |
