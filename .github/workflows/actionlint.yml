@@ -5,10 +5,12 @@ on:
   pull_request:
     branches:
       - main
-      - v4-draft
+      - v*-draft
+  workflow_dispatch:
 
 jobs:
   run-actionlint:
+    name: Run actionlint
     runs-on: ubuntu-latest
     permissions:
       # needed for the checkout action
@@ -16,8 +18,8 @@ jobs:
       # needed to annotate the files in a pull request with comments
       pull-requests: write
     steps:
-      # checkout the source code to analyze
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      # run the actionlinter, will fail on errors
-      - uses: devops-actions/actionlint@9fb9c192862f19e684586ca84b500461bcd8a541 # v0.1.12
+      - name: Run actionlint
+        uses: devops-actions/actionlint@9fb9c192862f19e684586ca84b500461bcd8a541 # v0.1.12

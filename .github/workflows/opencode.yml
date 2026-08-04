@@ -8,6 +8,7 @@ on:
 
 jobs:
   opencode:
+    name: Run OpenCode
     if: |
       (startsWith(github.event.comment.body, '/opencode ') ||
        startsWith(github.event.comment.body, '/oc ') ||
@@ -28,7 +29,7 @@ jobs:
               'openrouter/openrouter/free',
               'openrouter/openrouter/auto',
               'openrouter/deepseek/deepseek-v4-pro',
-              'openrouter/deepseek/deepseek-v4-flash',
+              'openrouter/~deepseek/deepseek-v4-flash-latest',
               'openrouter/moonshotai/kimi-k2.6',
               'openrouter/qwen/qwen3.6-flash',
               'openrouter/mistralai/devstral-2512',
@@ -47,13 +48,15 @@ jobs:
             const body = context.payload.comment.body;
             const match = body.match(/^\/(?:opencode|oc)\s+model=(\S+)/);
             const requested = match ? match[1] : '';
-            core.setOutput('model', ALLOWED_MODELS.includes(requested) ? requested : 'openrouter/deepseek/deepseek-v4-flash');
+            core.setOutput('model', ALLOWED_MODELS.includes(requested) ? requested : 'openrouter/~deepseek/deepseek-v4-flash-latest');
 
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
-      - uses: anomalyco/opencode/github@7902e04c3a67f7c69726bc955efb46e29214c797 # v1.18.10
+      - name: Run OpenCode
+        uses: anomalyco/opencode/github@7902e04c3a67f7c69726bc955efb46e29214c797 # v1.18.10
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
         with:
