@@ -47,23 +47,26 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      pull-requests: read
     outputs:
       run_tests: ${{ steps.check_changes.outputs.run_tests }}
     steps:
-      - name: Checkout and reconstruct PR merge
-        uses: ./.github/actions/checkout-pr-merge
-        with:
-          ref: ${{ github.event.pull_request.base.ref || github.ref }}
-          pr-number: ${{ github.event_name == 'pull_request_target' && github.event.pull_request.number || '' }}
-
       - name: Check for code changes
         id: check_changes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           if [[ "${{ github.event_name }}" != "pull_request_target" ]]; then
             echo "run_tests=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          CHANGED_FILES=$(git diff --name-only HEAD^1 HEAD)
+          # Fetch changed files from the API rather than checking out and
+          # merging the PR head: this job is ungated (runs before environment
+          # approval), so untrusted fork code must never be materialized here.
+          # A failure surfaces loudly (no || true) and is caught by the
+          # integration-tests aggregator rather than silently skipping.
+          CHANGED_FILES="$(gh pr view "$PR_NUMBER" --json files --jq '.files[].filename')"
           echo "Changed files:"
           echo "$CHANGED_FILES"
           CODE_CHANGES=$(echo "$CHANGED_FILES" | grep -v '^docs/' | grep -v '\.md$' | grep -v '^LICENSE$' | grep -v '^\.github/' || true)
