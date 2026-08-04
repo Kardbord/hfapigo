@@ -59,7 +59,12 @@ jobs:
       # The merge ref (refs/pull/N/merge) is lazily published by GitHub and can
       # be missing when a pull_request_target run starts, causing transient
       # "couldn't find remote ref" failures. Reconstruct the merge commit
-      # deterministically from the base branch and the always-available PR head.
+      # reliably from the base branch and the always-available PR head.
+      # Merging head into base reproduces GitHub's merge ref (base = first
+      # parent, head = second) with a byte-identical tree; only the commit hash
+      # differs (GitHub's own committer/timestamp), which is irrelevant for CI.
+      # A conflicting PR fails loudly here, mirroring GitHub, which also cannot
+      # produce a merge ref for a conflicted PR.
       - name: Reconstruct PR merge commit
         if: github.event_name == 'pull_request_target'
         run: |
@@ -112,8 +117,8 @@ jobs:
           ref: ${{ github.event.pull_request.base.ref || github.ref }}
           fetch-depth: 0
 
-      # See check-changes: reconstruct the merge commit deterministically
-      # instead of relying on the lazily-published refs/pull/N/merge ref.
+      # Reconstruct the merge commit reliably instead of relying on the
+      # lazily-published refs/pull/N/merge ref. See check-changes for details.
       - name: Reconstruct PR merge commit
         if: github.event_name == 'pull_request_target'
         run: |
@@ -321,8 +326,13 @@ jobs:
       - name: Check integration test results
         run: |
           result="${{ needs.run-integration-tests.result }}"
-          if [[ "$result" == "failure" || "$result" == "cancelled" ]]; then
-            echo "Integration tests failed (result: $result)."
+          check_changes_result="${{ needs.check-changes.result }}"
+          # Fail not only when the test job failed, but also when check-changes
+          # crashed: in that case run_tests is unset, run-integration-tests is
+          # skipped, and this job would otherwise report a silent pass, hiding a
+          # missing integration-test signal.
+          if [[ "$result" == "failure" || "$result" == "cancelled" || "$check_changes_result" == "failure" || "$check_changes_result" == "cancelled" ]]; then
+            echo "Integration test job failed or its check-changes prerequisite failed (result: $result, check-changes: $check_changes_result)."
             exit 1
           fi
-          echo "Integration tests passed or were skipped (result: $result)."
+          echo "Integration tests passed or were skipped (result: $result, check-changes: $check_changes_result)."

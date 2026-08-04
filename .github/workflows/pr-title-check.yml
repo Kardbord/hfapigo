@@ -48,7 +48,12 @@ jobs:
       # The merge ref (refs/pull/N/merge) is lazily published by GitHub and can
       # be missing when a pull_request_target run starts. If checkout of that
       # ref fails, go-apidiff below never runs and the breaking-change gate
-      # silently passes. Reconstruct the merge commit deterministically instead.
+      # silently passes. Reconstruct the merge commit reliably instead.
+      # Merging head into base reproduces GitHub's merge ref (base = first
+      # parent, head = second) with a byte-identical tree; only the commit hash
+      # differs (GitHub's own committer/timestamp), which is irrelevant for CI.
+      # A conflicting PR fails loudly here, mirroring GitHub, which also cannot
+      # produce a merge ref for a conflicted PR.
       - name: Reconstruct PR merge commit
         run: |
           git config user.name "github-actions[bot]"
@@ -214,11 +219,13 @@ jobs:
   # job-level `if: always()` so the check ALWAYS reports a real pass/fail and is
   # never skipped. A conditional job-level `if:` would be unreliable (a skipped
   # job's status under branch protection varies by how the check is named), so
-  # gating lives in the step instead: the step only fails (exit 1) when its gate
-  # fires. Because validate can fail for infrastructure reasons (checkout of the
-  # merge ref, setup-go reading go.mod, gh pr view), always() keeps these jobs
-  # running so the required checks always get a signal rather than leaving the
-  # PR stuck in "Expected - Waiting for status".
+  # gating lives in the step instead: a step fails (exit 1) when its gate fires.
+  # Because validate can fail for infrastructure reasons (checkout or merge
+  # reconstruction, setup-go reading go.mod, gh pr view), these jobs also fail
+  # on `needs.validate.result == 'failure'/'cancelled'` so an infra failure
+  # blocks the PR loudly instead of silently passing the gate. always() keeps
+  # these jobs running so the required checks always get a real signal rather
+  # than leaving the PR stuck in "Expected - Waiting for status".
   block-invalid-title:
     name: Block invalid PR title
     needs: validate
@@ -227,6 +234,16 @@ jobs:
     permissions:
       contents: read
     steps:
+      # If validate crashed (checkout, merge reconstruction, setup-go, gh pr
+      # view), its error outputs are unset and the check above would silently
+      # pass. Turn any validate failure into an explicit, blocking signal so an
+      # infra problem can't mask an unmarked breaking change.
+      - name: Fail on validate job failure
+        if: needs.validate.result == 'failure' || needs.validate.result == 'cancelled'
+        run: |
+          echo "The validate job ${needs.validate.result}: PR title/API checks could not complete (checkout, merge reconstruction, or setup failed). Re-run the workflow."
+          exit 1
+
       - name: Fail on invalid PR title
         if: needs.validate.outputs.title-error != ''
         env:
@@ -244,6 +261,15 @@ jobs:
     permissions:
       contents: read
     steps:
+      # If validate crashed, its breaking-reason output is unset and the check
+      # above would silently pass. Turn any validate failure into an explicit,
+      # blocking signal so an infra problem can't mask an unmarked break.
+      - name: Fail on validate job failure
+        if: needs.validate.result == 'failure' || needs.validate.result == 'cancelled'
+        run: |
+          echo "The validate job ${needs.validate.result}: PR title/API checks could not complete (checkout, merge reconstruction, or setup failed). Re-run the workflow."
+          exit 1
+
       - name: Fail on unmarked breaking change
         if: needs.validate.outputs.breaking-reason != ''
         env:
