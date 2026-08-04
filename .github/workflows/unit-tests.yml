@@ -40,13 +40,9 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up Go
-        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        uses: ./.github/actions/setup-go
         with:
-          cache: true
-          go-version-file: "go.mod"
-
-      - name: Install gotestsum
-        run: go install gotest.tools/gotestsum@c4a0df2e75a225d979a444342dd3db752b53619f # v1.13.0
+          install-gotestsum: 'true'
 
       - name: Test
         run: gotestsum --junitfile junit.xml --format github-actions --format-icons hivis -- -shuffle on -timeout 600s -v -coverprofile coverage.out -covermode atomic ./...

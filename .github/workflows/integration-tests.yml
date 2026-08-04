@@ -104,13 +104,9 @@ jobs:
           pr-number: ${{ github.event_name == 'pull_request_target' && github.event.pull_request.number || '' }}
 
       - name: Set up Go
-        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        uses: ./.github/actions/setup-go
         with:
-          go-version-file: "go.mod"
-          cache: true
-
-      - name: Install gotestsum
-        run: go install gotest.tools/gotestsum@c4a0df2e75a225d979a444342dd3db752b53619f # v1.13.0
+          install-gotestsum: 'true'
 
       # Tests are retried up to 3 times with 10-second delays between attempts.
       # This helps mitigate transient API failures and network issues.
