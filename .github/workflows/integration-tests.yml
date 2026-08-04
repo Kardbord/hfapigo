@@ -97,6 +97,15 @@ jobs:
       id-token: write # Required for OIDC token to upload coverage and test results
       issues: write # For creating/closing failure issues
     steps:
+      # A local composite action's metadata must already exist in the workspace,
+      # so a normal (marketplace) checkout must run before the first local action
+      # below can be resolved. This bootstrap is not the functional checkout:
+      # checkout-pr-merge re-checks out the base and reconstructs the merge.
+      - name: Checkout (bootstrap for local actions)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.base.ref || github.ref }}
+
       - name: Checkout and reconstruct PR merge
         uses: ./.github/actions/checkout-pr-merge
         with:

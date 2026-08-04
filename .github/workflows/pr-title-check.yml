@@ -40,6 +40,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Checkout (bootstrap for local actions)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.base.ref }}
+
       - name: Checkout and reconstruct PR merge
         uses: ./.github/actions/checkout-pr-merge
         with:
@@ -224,6 +229,9 @@ jobs:
     permissions:
       contents: read
     steps:
+      - name: Checkout (bootstrap for local actions)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
       # If validate crashed (checkout, merge reconstruction, setup-go, gh pr
       # view), its error outputs are unset and the check below would silently
       # pass. Fail loudly so an infra problem can't mask an invalid title.
@@ -250,6 +258,9 @@ jobs:
     permissions:
       contents: read
     steps:
+      - name: Checkout (bootstrap for local actions)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
       # If validate crashed, its breaking-reason output is unset and the check
       # below would silently pass. Fail loudly so an infra problem can't mask an
       # unmarked breaking change.
