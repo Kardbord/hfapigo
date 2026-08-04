@@ -5,6 +5,9 @@ description: >
   GitHub action. Centralizes the pinned opencode action, the OPENROUTER_API_KEY
   wiring, and the checkout configuration so they are maintained in one place.
 inputs:
+  openrouter_api_key:
+    description: OpenRouter API key used to authenticate OpenCode.
+    required: true
   model:
     description: Model to run OpenCode with.
     required: true
@@ -31,7 +34,7 @@ runs:
     - name: Run OpenCode
       uses: anomalyco/opencode/github@7902e04c3a67f7c69726bc955efb46e29214c797 # v1.18.10
       env:
-        OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        OPENROUTER_API_KEY: ${{ inputs.openrouter_api_key }}
       with:
         model: ${{ inputs.model }}
         share: ${{ inputs.share }}
