@@ -231,14 +231,13 @@ jobs:
       contents: read
     steps:
       # If validate crashed (checkout, merge reconstruction, setup-go, gh pr
-      # view), its error outputs are unset and the check above would silently
-      # pass. Turn any validate failure into an explicit, blocking signal so an
-      # infra problem can't mask an unmarked breaking change.
+      # view), its error outputs are unset and the check below would silently
+      # pass. Fail loudly so an infra problem can't mask an invalid title.
       - name: Fail on validate job failure
-        if: needs.validate.result == 'failure' || needs.validate.result == 'cancelled'
-        run: |
-          echo "The validate job ${needs.validate.result}: PR title/API checks could not complete (checkout, merge reconstruction, or setup failed). Re-run the workflow."
-          exit 1
+        uses: ./.github/actions/require-job-passed
+        with:
+          result: ${{ needs.validate.result }}
+          message: "The validate job ${{ needs.validate.result }}: PR title/API checks could not complete (checkout, merge reconstruction, or setup failed). Re-run the workflow."
 
       - name: Fail on invalid PR title
         if: needs.validate.outputs.title-error != ''
@@ -258,13 +257,13 @@ jobs:
       contents: read
     steps:
       # If validate crashed, its breaking-reason output is unset and the check
-      # above would silently pass. Turn any validate failure into an explicit,
-      # blocking signal so an infra problem can't mask an unmarked break.
+      # below would silently pass. Fail loudly so an infra problem can't mask an
+      # unmarked breaking change.
       - name: Fail on validate job failure
-        if: needs.validate.result == 'failure' || needs.validate.result == 'cancelled'
-        run: |
-          echo "The validate job ${needs.validate.result}: PR title/API checks could not complete (checkout, merge reconstruction, or setup failed). Re-run the workflow."
-          exit 1
+        uses: ./.github/actions/require-job-passed
+        with:
+          result: ${{ needs.validate.result }}
+          message: "The validate job ${{ needs.validate.result }}: PR title/API checks could not complete (checkout, merge reconstruction, or setup failed). Re-run the workflow."
 
       - name: Fail on unmarked breaking change
         if: needs.validate.outputs.breaking-reason != ''
