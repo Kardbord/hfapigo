@@ -98,9 +98,21 @@ jobs:
           PR_TITLE: ${{ github.event.pull_request.title }}
           IS_RELEASE: ${{ steps.is-release.outputs.is-release }}
           SEMVER_TYPE: ${{ steps.apidiff.outputs.semver-type }}
+          APIDIFF_OUTCOME: ${{ steps.apidiff.outcome }}
         run: |
           if [[ "$IS_RELEASE" == "true" ]]; then
             echo "⏭️ Skipping breaking-change validation for release-please PR"
+            exit 0
+          fi
+
+          # go-apidiff uses a non-zero exit to signal a detected breaking change,
+          # which continue-on-error absorbs, so a step failure doesn't distinguish
+          # detection from a crash. If it failed without reporting a semver
+          # verdict, the check is inconclusive: block loudly instead of silently
+          # letting an unmarked breaking change slip through.
+          if [[ "$APIDIFF_OUTCOME" == "failure" && -z "$SEMVER_TYPE" ]]; then
+            echo "reason=API diff check could not complete (go-apidiff failed without a semver verdict). Re-run the workflow." >> "$GITHUB_OUTPUT"
+            echo "❌ API diff check could not complete (go-apidiff failed without a semver verdict). Re-run the workflow."
             exit 0
           fi
 
