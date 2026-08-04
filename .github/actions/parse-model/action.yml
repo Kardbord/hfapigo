@@ -18,11 +18,11 @@ runs:
     - name: Resolve model
       id: resolve
       uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+      env:
+        # A composite action's input is not visible to nested actions unless
+        # propagated via with:/env; pass the body through explicitly via env.
+        BODY: ${{ inputs.body }}
       with:
-        # The body must be passed into the github-script step so core.getInput
-        # below can read it; a composite's input is not visible to nested actions
-        # unless propagated via with:/env.
-        body: ${{ inputs.body }}
         script: |
           const ALLOWED_MODELS = [
             'openrouter/openrouter/free',
@@ -45,7 +45,7 @@ runs:
             'openrouter/anthropic/claude-sonnet-4.6'
           ];
           const DEFAULT_MODEL = 'openrouter/~deepseek/deepseek-v4-flash-latest';
-          const body = core.getInput('body');
+          const body = process.env.BODY || '';
           const match = body.match(/model=(\S+)/);
           const requested = match ? match[1] : '';
           core.setOutput('model', ALLOWED_MODELS.includes(requested) ? requested : DEFAULT_MODEL);
