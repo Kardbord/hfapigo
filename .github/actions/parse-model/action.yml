@@ -46,6 +46,6 @@ runs:
           ];
           const DEFAULT_MODEL = 'openrouter/~deepseek/deepseek-v4-flash-latest';
           const body = process.env.BODY || '';
-          const match = body.match(/model=(\S+)/);
+          const match = body.match(/^\/(?:review|opencode|oc)\s+model=(\S+)/);
           const requested = match ? match[1] : '';
           core.setOutput('model', ALLOWED_MODELS.includes(requested) ? requested : DEFAULT_MODEL);
