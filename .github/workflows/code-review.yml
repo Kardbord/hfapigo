@@ -31,6 +31,7 @@ jobs:
       - name: Checkout and run OpenCode
         uses: ./.github/actions/run-opencode
         with:
+          openrouter_api_key: ${{ secrets.OPENROUTER_API_KEY }}
           model: ${{ steps.model.outputs.model }}
           prompt: |
             REVIEWER HINT: ${{ github.event.comment.body }}
