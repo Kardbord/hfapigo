@@ -25,7 +25,7 @@ jobs:
               'openrouter/openrouter/free',
               'openrouter/openrouter/auto',
               'openrouter/deepseek/deepseek-v4-pro',
-              'openrouter/deepseek/deepseek-v4-flash',
+              'openrouter/~deepseek/deepseek-v4-flash-latest',
               'openrouter/moonshotai/kimi-k2.6',
               'openrouter/qwen/qwen3.6-flash',
               'openrouter/mistralai/devstral-2512',
@@ -44,7 +44,7 @@ jobs:
             const body = context.payload.comment.body;
             const match = body.match(/^\/review\s+model=(\S+)/);
             const requested = match ? match[1] : '';
-            core.setOutput('model', ALLOWED_MODELS.includes(requested) ? requested : 'openrouter/deepseek/deepseek-v4-flash');
+            core.setOutput('model', ALLOWED_MODELS.includes(requested) ? requested : 'openrouter/~deepseek/deepseek-v4-flash-latest');
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
