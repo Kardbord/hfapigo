@@ -17,9 +17,16 @@ permissions:
   pull-requests: write
 
 jobs:
-  pr-title-check:
+  validate:
     name: Validate PR title
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      title-error: ${{ steps.lint-pr-title.outputs.error_message }}
+      breaking-outcome: ${{ steps.breaking-change.outcome }}
+      breaking-reason: ${{ steps.breaking-change.outputs.reason }}
     steps:
       - name: Validate PR title format
         id: lint-pr-title
@@ -106,8 +113,18 @@ jobs:
 
           echo "✅ Breaking change marking is correct"
 
+  # This job runs with a write-scoped token so it can post comments on fork PRs,
+  # but it never checks out or builds PR-controlled code. The validate job above
+  # processes the untrusted PR content with a read-only token.
+  comment:
+    name: Manage PR comments
+    needs: validate
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
       - name: Comment on PR title format issue
-        if: always() && (steps.lint-pr-title.outputs.error_message != null)
+        if: always() && (needs.validate.outputs.title-error != '')
         uses: marocchino/sticky-pull-request-comment@5770ad5eb8f42dd2c4f34da00c94c5381e49af88 # v3.0.5
         with:
           header: pr-title-format
@@ -126,18 +143,18 @@ jobs:
 
             **Details:**
             ```
-            ${{ steps.lint-pr-title.outputs.error_message }}
+            ${{ needs.validate.outputs.title-error }}
             ```
 
       - name: Resolve PR title format comment
-        if: always() && (steps.lint-pr-title.outputs.error_message == null)
+        if: always() && (needs.validate.outputs.title-error == '')
         uses: marocchino/sticky-pull-request-comment@5770ad5eb8f42dd2c4f34da00c94c5381e49af88 # v3.0.5
         with:
           header: pr-title-format
           delete: true
 
       - name: Comment on PR breaking change marker
-        if: always() && (steps.breaking-change.outcome == 'failure')
+        if: always() && (needs.validate.outputs.breaking-outcome == 'failure')
         uses: marocchino/sticky-pull-request-comment@5770ad5eb8f42dd2c4f34da00c94c5381e49af88 # v3.0.5
         with:
           header: pr-breaking-change
@@ -152,11 +169,11 @@ jobs:
 
             **Details:**
             ```
-            ${{ steps.breaking-change.outputs.reason }}
+            ${{ needs.validate.outputs.breaking-reason }}
             ```
 
       - name: Resolve PR breaking change comment
-        if: always() && (steps.breaking-change.outcome == 'success')
+        if: always() && (needs.validate.outputs.breaking-outcome == 'success')
         uses: marocchino/sticky-pull-request-comment@5770ad5eb8f42dd2c4f34da00c94c5381e49af88 # v3.0.5
         with:
           header: pr-breaking-change
