@@ -66,7 +66,7 @@ jobs:
           # approval), so untrusted fork code must never be materialized here.
           # A failure surfaces loudly (no || true) and is caught by the
           # integration-tests aggregator rather than silently skipping.
-          CHANGED_FILES="$(gh pr view "$PR_NUMBER" --json files --jq '.files[].filename')"
+          CHANGED_FILES="$(gh api --paginate "repos/{owner}/{repo}/pulls/$PR_NUMBER/files" --jq '.[].filename')"
           echo "Changed files:"
           echo "$CHANGED_FILES"
           CODE_CHANGES=$(echo "$CHANGED_FILES" | grep -v '^docs/' | grep -v '\.md$' | grep -v '^LICENSE$' | grep -v '^\.github/' || true)
@@ -132,6 +132,7 @@ jobs:
             -covermode=atomic
 
       - name: Upload coverage to Codecov
+        if: ${{ !cancelled() }}
         uses: ./.github/actions/upload-codecov
         with:
           flags: integration

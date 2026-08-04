@@ -51,6 +51,7 @@ jobs:
         run: gotestsum --format github-actions --format-icons hivis -- -race -shuffle on -timeout 600s -v ./...
 
       - name: Upload coverage to Codecov
+        if: ${{ !cancelled() }}
         uses: ./.github/actions/upload-codecov
         with:
           flags: unit,${{ matrix.os-flag }}
