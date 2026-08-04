@@ -50,11 +50,23 @@ jobs:
     outputs:
       run_tests: ${{ steps.check_changes.outputs.run_tests }}
     steps:
-      - name: Checkout code
+      - name: Checkout base
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event_name == 'pull_request_target' && format('refs/pull/{0}/merge', github.event.pull_request.number) || '' }}
-          fetch-depth: 2
+          ref: ${{ github.event.pull_request.base.ref || github.ref }}
+          fetch-depth: 0
+
+      # The merge ref (refs/pull/N/merge) is lazily published by GitHub and can
+      # be missing when a pull_request_target run starts, causing transient
+      # "couldn't find remote ref" failures. Reconstruct the merge commit
+      # deterministically from the base branch and the always-available PR head.
+      - name: Reconstruct PR merge commit
+        if: github.event_name == 'pull_request_target'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin "refs/pull/${{ github.event.pull_request.number }}/head"
+          git merge --no-ff --no-edit FETCH_HEAD
 
       - name: Check for code changes
         id: check_changes
@@ -94,10 +106,21 @@ jobs:
       id-token: write # Required for OIDC token to upload coverage and test results
       issues: write # For creating/closing failure issues
     steps:
-      - name: Checkout code
+      - name: Checkout base
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event_name == 'pull_request_target' && format('refs/pull/{0}/merge', github.event.pull_request.number) || '' }}
+          ref: ${{ github.event.pull_request.base.ref || github.ref }}
+          fetch-depth: 0
+
+      # See check-changes: reconstruct the merge commit deterministically
+      # instead of relying on the lazily-published refs/pull/N/merge ref.
+      - name: Reconstruct PR merge commit
+        if: github.event_name == 'pull_request_target'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin "refs/pull/${{ github.event.pull_request.number }}/head"
+          git merge --no-ff --no-edit FETCH_HEAD
 
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0

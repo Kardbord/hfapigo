@@ -39,11 +39,22 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Checkout code
+      - name: Checkout base
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ format('refs/pull/{0}/merge', github.event.pull_request.number) }}
+          ref: ${{ github.event.pull_request.base.ref }}
           fetch-depth: 0
+
+      # The merge ref (refs/pull/N/merge) is lazily published by GitHub and can
+      # be missing when a pull_request_target run starts. If checkout of that
+      # ref fails, go-apidiff below never runs and the breaking-change gate
+      # silently passes. Reconstruct the merge commit deterministically instead.
+      - name: Reconstruct PR merge commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin "refs/pull/${{ github.event.pull_request.number }}/head"
+          git merge --no-ff --no-edit FETCH_HEAD
 
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
