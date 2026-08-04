@@ -31,21 +31,12 @@ jobs:
             }
             core.setOutput('allowed', allowed);
 
-      - name: Checkout code
+      - name: Checkout and run OpenCode
         if: steps.account.outputs.allowed == 'true'
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
-      - name: Run OpenCode
-        if: steps.account.outputs.allowed == 'true'
-        uses: anomalyco/opencode/github@7902e04c3a67f7c69726bc955efb46e29214c797 # v1.18.10
-        env:
-          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        uses: ./.github/actions/run-opencode
         with:
           model: openrouter/~deepseek/deepseek-v4-flash-latest
           agent: plan
-          share: false
           prompt: |
             You are performing issue triage. You MUST follow these rules strictly:
 

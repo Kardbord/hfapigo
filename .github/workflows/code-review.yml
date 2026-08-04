@@ -23,18 +23,10 @@ jobs:
         with:
           body: ${{ github.event.comment.body }}
 
-      - name: Checkout code
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
-      - name: Run OpenCode
-        uses: anomalyco/opencode/github@7902e04c3a67f7c69726bc955efb46e29214c797 # v1.18.10
-        env:
-          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      - name: Checkout and run OpenCode
+        uses: ./.github/actions/run-opencode
         with:
           model: ${{ steps.model.outputs.model }}
-          share: false
           prompt: |
             REVIEWER HINT: ${{ github.event.comment.body }}
             You are performing a code review. Your core instructions below are
