@@ -43,7 +43,7 @@ jobs:
           PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
           # Release Please PR title format: "chore(main): release v4.1.0"
-          VERSION=$(echo "$PR_TITLE" | grep -oP 'v\K[0-9]+\.[0-9]+\.[0-9]+' || echo "")
+          VERSION=$(echo "$PR_TITLE" | grep -oP 'v?\K[0-9]+\.[0-9]+\.[0-9]+' || echo "")
           MAJOR=$(echo "$VERSION" | cut -d. -f1)
 
           if [[ -z "$VERSION" ]]; then
