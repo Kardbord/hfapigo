@@ -60,11 +60,15 @@ jobs:
       # be missing when a pull_request_target run starts, causing transient
       # "couldn't find remote ref" failures. Reconstruct the merge commit
       # reliably from the base branch and the always-available PR head.
-      # Merging head into base reproduces GitHub's merge ref (base = first
-      # parent, head = second) with a byte-identical tree; only the commit hash
-      # differs (GitHub's own committer/timestamp), which is irrelevant for CI.
-      # A conflicting PR fails loudly here, mirroring GitHub, which also cannot
-      # produce a merge ref for a conflicted PR.
+      # Merging head into base reproduces the merge GitHub computes for
+      # refs/pull/N/merge (base = first parent, head = second) with the same
+      # resulting tree; only the commit hash differs (GitHub's own
+      # committer/timestamp), which is irrelevant for CI. If the base branch
+      # advances between event delivery and this fetch, the tree reflects the
+      # newer base (what a fresh merge would use), so it can differ slightly
+      # from the event-time merge ref. A conflicting PR fails loudly here,
+      # mirroring GitHub, which also cannot produce a merge ref for a conflicted
+      # PR.
       - name: Reconstruct PR merge commit
         if: github.event_name == 'pull_request_target'
         run: |
