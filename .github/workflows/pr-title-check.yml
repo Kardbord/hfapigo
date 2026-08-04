@@ -128,11 +128,18 @@ jobs:
     permissions:
       pull-requests: write
     steps:
+      - name: Write pull request title error
+        if: always() && (needs.validate.outputs.title-error != '')
+        env:
+          TITLE_ERROR: ${{ needs.validate.outputs.title-error }}
+        run: printf '%s' "$TITLE_ERROR" > "$RUNNER_TEMP/title-error.md"
+
       - name: Comment on PR title format issue
         if: always() && (needs.validate.outputs.title-error != '')
         uses: marocchino/sticky-pull-request-comment@5770ad5eb8f42dd2c4f34da00c94c5381e49af88 # v3.0.5
         with:
           header: pr-title-format
+          path: ${{ runner.temp }}/title-error.md
           message: |
             PR titles must follow the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) specification. Please adjust the title.
 
@@ -148,7 +155,7 @@ jobs:
 
             **Details:**
             ```
-            ${{ needs.validate.outputs.title-error }}
+            {{{content}}}
             ```
 
       - name: Resolve PR title format comment
@@ -158,11 +165,18 @@ jobs:
           header: pr-title-format
           delete: true
 
+      - name: Write breaking change reason
+        if: always() && (needs.validate.outputs.breaking-reason != '')
+        env:
+          BREAKING_REASON: ${{ needs.validate.outputs.breaking-reason }}
+        run: printf '%s' "$BREAKING_REASON" > "$RUNNER_TEMP/breaking-reason.md"
+
       - name: Comment on PR breaking change marker
         if: always() && (needs.validate.outputs.breaking-reason != '')
         uses: marocchino/sticky-pull-request-comment@5770ad5eb8f42dd2c4f34da00c94c5381e49af88 # v3.0.5
         with:
           header: pr-breaking-change
+          path: ${{ runner.temp }}/breaking-reason.md
           message: |
             This PR introduces breaking API changes, so the title must be marked with `!` per [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/).
 
@@ -174,7 +188,7 @@ jobs:
 
             **Details:**
             ```
-            ${{ needs.validate.outputs.breaking-reason }}
+            {{{content}}}
             ```
 
       - name: Resolve PR breaking change comment
@@ -197,9 +211,11 @@ jobs:
       contents: read
     steps:
       - name: Fail on invalid PR title
+        env:
+          TITLE_ERROR: ${{ needs.validate.outputs.title-error }}
         run: |
           echo "PR title does not follow the Conventional Commits specification:"
-          echo "${{ needs.validate.outputs.title-error }}"
+          printf '%s\n' "$TITLE_ERROR"
           exit 1
 
   block-breaking-change:
@@ -211,6 +227,8 @@ jobs:
       contents: read
     steps:
       - name: Fail on unmarked breaking change
+        env:
+          BREAKING_REASON: ${{ needs.validate.outputs.breaking-reason }}
         run: |
-          echo "${{ needs.validate.outputs.breaking-reason }}"
+          printf '%s\n' "$BREAKING_REASON"
           exit 1
