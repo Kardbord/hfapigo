@@ -1,0 +1,21 @@
+meta {
+  name: Fill-Mask - Batch
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{HF_BASE_URL}}/hf-inference/models/{{model_fill_mask}}
+  body: json
+  auth: bearer
+}
+
+body:json {
+  {
+    "inputs": [
+      "I [MASK] my dog everyday.",
+      "She is a [MASK] programmer."
+    ],
+    "parameters": {}
+  }
+}

@@ -1,0 +1,27 @@
+meta {
+  name: Question Answering - Batch
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{HF_BASE_URL}}/hf-inference/models/{{model_question_answering}}
+  body: json
+  auth: bearer
+}
+
+body:json {
+  {
+    "inputs": [
+      {
+        "question": "What is the capital of France?",
+        "context": "The capital of France is Paris."
+      },
+      {
+        "question": "Who founded Go?",
+        "context": "Go was designed at Google by Robert Griesemer, Rob Pike, and Ken Thompson."
+      }
+    ],
+    "parameters": {}
+  }
+}
