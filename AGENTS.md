@@ -162,17 +162,18 @@ Gather evidence proportional to risk.
 
 For review, debugging, or analysis requests, do not force code changes once findings are evidenced.
 
-### Tool Use
+### MCP & Tool Use
 
-Always prefer dedicated tool calls over shell or other script invocations.
+**IMPORTANT**
+ALWAYS prefer dedicated tool calls or MCP over shell or other script invocations.
+Avoid using the bash tool whenever possible. It is a last-resort.
 
 - Use the dedicated read, edit, write, glob, and grep tools (among others
   available) for file operations and content search, rather than `cat`, `sed`,
   `head`, `tail`, `find`, `grep`, `echo`, etc. — even when a shell one-liner
   would work.
-- Reserve shell/script invocation for what dedicated tools cannot do
-  (e.g. running builds, tests, git, or dependency commands).
-- When a shell command is required, write files via dedicated tools rather
+- Reserve shell/script invocation ONLY for what dedicated tools or MCP tools cannot do.
+- Even when a shell command is required, write files via dedicated tools rather
   than redirecting output (`>`/`>>`) or heredocs.
 
 ### Subagents

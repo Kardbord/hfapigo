@@ -1,0 +1,24 @@
+meta {
+  name: Chat Completion - Streaming
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{HF_BASE_URL}}/v1/chat/completions
+  body: json
+  auth: bearer
+}
+
+body:json {
+  {
+    "model": "{{model_chat_completion}}",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Tell me a short fun fact about space."
+      }
+    ],
+    "stream": true
+  }
+}

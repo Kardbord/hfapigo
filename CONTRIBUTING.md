@@ -281,6 +281,15 @@ opened, the "Run Integration Tests" check will show as
 "Waiting: Environment protection rules" until an authorized reviewer
 approves the run in the GitHub Actions UI.
 
+### Manual Testing with Bruno
+
+The repo includes a [Bruno](https://www.usebruno.com/) collection in
+`tools/bruno/hfgo/` for manually exercising the HuggingFace Inference API
+endpoints without writing Go code. These requests hit the live API and may
+incur costs, just like integration tests.
+
+See **[docs/bruno.md](./docs/bruno.md)** and **[tools/bruno/hfgo/README.md](./tools/bruno/hfgo/README.md)** for setup and usage.
+
 ### Race Condition Detection
 
 Always run race detection before submitting:
