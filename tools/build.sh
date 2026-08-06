@@ -5,6 +5,21 @@
 
 set -e
 
+# Check that all prerequisite tools are installed before doing any work.
+check_dependencies() {
+  local missing=0
+  for tool in "$@"; do
+    if ! command -v "${tool}" &>/dev/null; then
+      echo "ERROR: prerequisite not found on PATH: ${tool}" >&2
+      missing=1
+    fi
+  done
+  return "${missing}"
+}
+
+# gotestsum is optional; the script falls back to plain go test when absent.
+check_dependencies go gofmt actionlint golangci-lint govulncheck
+
 pushd "$(dirname "${BASH_SOURCE[0]}")/.." >/dev/null
 
 export GOCACHE=/tmp/hfgo-cache
@@ -32,13 +47,13 @@ go vet ./...
 echo
 
 echo "Linting..."
-go run github.com/rhysd/actionlint/cmd/actionlint@914e7df21a07ef503a81201c76d2b11c789d3fca
+actionlint
 golangci-lint config verify
 golangci-lint run --fix --disable godox ./...
 echo
 
 echo "Checking for vulnerabilities..."
-go run golang.org/x/vuln/cmd/govulncheck@0782b76014f15f24e22a438f30f308df42899ba1 ./...
+govulncheck ./...
 echo
 
 echo "Building..."
