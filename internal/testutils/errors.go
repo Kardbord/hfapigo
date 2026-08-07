@@ -7,6 +7,38 @@ import (
 	"github.com/Kardbord/hfgo/v4/internal/hferrors"
 )
 
+// WantErr selects which SDK error type a test expects from an API call.
+type WantErr int
+
+const (
+	// WantErrSDK indicates that a test should expect an SDKError.
+	WantErrSDK WantErr = iota
+
+	// WantErrAPI indicates that a test should expect an APIError.
+	WantErrAPI
+)
+
+// AssertErrorType asserts err is an SDKError of sdkErrKind (when want is
+// WantErrSDK) or an APIError with the given status (when want is WantErrAPI).
+func AssertErrorType(
+	t *testing.T,
+	err error,
+	want WantErr,
+	sdkErrKind hferrors.SDKErrorKind,
+	apiStatus int,
+) {
+	t.Helper()
+
+	switch want {
+	case WantErrSDK:
+		AssertSDKErrorKind(t, err, sdkErrKind)
+	case WantErrAPI:
+		AssertAPIErrorStatus(t, err, apiStatus)
+	default:
+		t.Fatalf("unknown error expectation: %v", want)
+	}
+}
+
 // AssertSDKErrorKind fails the test if err is not an SDKError of the expected kind.
 func AssertSDKErrorKind(t *testing.T, err error, want hferrors.SDKErrorKind) {
 	t.Helper()

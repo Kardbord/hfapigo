@@ -42,20 +42,20 @@ func TestZeroShotTextClassificationService_Classify_SingleInput(t *testing.T) {
 	require.InEpsilon(t, 0.95, result[0].Score, 0.001)
 }
 
-//nolint:dupl // Similar error test setup for different methods (Classify vs ClassifyBatch)
 func TestZeroShotTextClassificationService_Classify_Errors(t *testing.T) {
 	t.Parallel()
 
 	const zeroShotSingleClassificationResponseBody = `[{"label":"positive","score":0.95}]`
 
 	cases := []struct {
-		name            string
-		req             ZeroShotTextClassificationRequest
-		withModel       bool
-		httpStatusCode  int
-		responseBody    string
-		expectedErrKind *hferrors.SDKErrorKind
-		description     string
+		name           string
+		req            ZeroShotTextClassificationRequest
+		withModel      bool
+		httpStatusCode int
+		responseBody   string
+		want           testutils.WantErr
+		sdkErrKind     hferrors.SDKErrorKind
+		description    string
 	}{
 		{
 			name: "no candidate labels",
@@ -65,22 +65,24 @@ func TestZeroShotTextClassificationService_Classify_Errors(t *testing.T) {
 					CandidateLabels: []string{},
 				},
 			},
-			withModel:       true,
-			httpStatusCode:  http.StatusOK,
-			responseBody:    zeroShotSingleClassificationResponseBody,
-			expectedErrKind: testutils.Ptr(hferrors.SDKErrorKindConfiguration),
-			description:     "SDK error when candidate labels are empty",
+			withModel:      true,
+			httpStatusCode: http.StatusOK,
+			responseBody:   zeroShotSingleClassificationResponseBody,
+			want:           testutils.WantErrSDK,
+			sdkErrKind:     hferrors.SDKErrorKindConfiguration,
+			description:    "SDK error when candidate labels are empty",
 		},
 		{
 			name: "no parameters",
 			req: ZeroShotTextClassificationRequest{
 				Input: "test text",
 			},
-			withModel:       true,
-			httpStatusCode:  http.StatusOK,
-			responseBody:    zeroShotSingleClassificationResponseBody,
-			expectedErrKind: testutils.Ptr(hferrors.SDKErrorKindConfiguration),
-			description:     "SDK error when parameters are missing",
+			withModel:      true,
+			httpStatusCode: http.StatusOK,
+			responseBody:   zeroShotSingleClassificationResponseBody,
+			want:           testutils.WantErrSDK,
+			sdkErrKind:     hferrors.SDKErrorKindConfiguration,
+			description:    "SDK error when parameters are missing",
 		},
 		{
 			name: "no model configured",
@@ -90,11 +92,12 @@ func TestZeroShotTextClassificationService_Classify_Errors(t *testing.T) {
 					CandidateLabels: []string{"positive", "negative"},
 				},
 			},
-			withModel:       false,
-			httpStatusCode:  http.StatusOK,
-			responseBody:    zeroShotSingleClassificationResponseBody,
-			expectedErrKind: testutils.Ptr(hferrors.SDKErrorKindConfiguration),
-			description:     "SDK error when model is missing",
+			withModel:      false,
+			httpStatusCode: http.StatusOK,
+			responseBody:   zeroShotSingleClassificationResponseBody,
+			want:           testutils.WantErrSDK,
+			sdkErrKind:     hferrors.SDKErrorKindConfiguration,
+			description:    "SDK error when model is missing",
 		},
 		{
 			name: "API error on 404",
@@ -104,11 +107,11 @@ func TestZeroShotTextClassificationService_Classify_Errors(t *testing.T) {
 					CandidateLabels: []string{"positive", "negative"},
 				},
 			},
-			withModel:       true,
-			httpStatusCode:  http.StatusNotFound,
-			responseBody:    `{"error":"Model not found"}`,
-			expectedErrKind: nil, // API error, not SDK error
-			description:     "API error for nonexistent model",
+			withModel:      true,
+			httpStatusCode: http.StatusNotFound,
+			responseBody:   `{"error":"Model not found"}`,
+			want:           testutils.WantErrAPI,
+			description:    "API error for nonexistent model",
 		},
 	}
 
@@ -127,16 +130,10 @@ func TestZeroShotTextClassificationService_Classify_Errors(t *testing.T) {
 			require.Error(t, err, tc.description)
 			require.Nil(t, result)
 
-			if tc.expectedErrKind != nil {
-				// SDK error expected
-				testutils.AssertSDKErrorKind(t, err, *tc.expectedErrKind)
-				// Verify no request was made for SDK errors
+			testutils.AssertErrorType(t, err, tc.want, tc.sdkErrKind, tc.httpStatusCode)
+			if tc.want == testutils.WantErrSDK {
+				// SDK config errors short-circuit before any request
 				require.Nil(t, mt.LastRequest)
-			} else {
-				// API error expected
-				var apiErr *hferrors.APIError
-				require.ErrorAs(t, err, &apiErr, tc.description)
-				require.Equal(t, tc.httpStatusCode, apiErr.StatusCode)
 			}
 		})
 	}
@@ -223,20 +220,20 @@ func TestZeroShotTextClassificationService_ClassifyBatch_InputVariations(t *test
 	}
 }
 
-//nolint:dupl // Similar error test setup for different methods (Classify vs ClassifyBatch)
 func TestZeroShotTextClassificationService_ClassifyBatch_Errors(t *testing.T) {
 	t.Parallel()
 
 	const zeroShotBatchClassificationResponseBody = `[{"Sequence":"text1","Labels":["positive","negative","neutral"],"Scores":[0.95,0.03,0.02]}]`
 
 	cases := []struct {
-		name            string
-		req             ZeroShotTextClassificationBatchRequest
-		withModel       bool
-		httpStatusCode  int
-		responseBody    string
-		expectedErrKind *hferrors.SDKErrorKind
-		description     string
+		name           string
+		req            ZeroShotTextClassificationBatchRequest
+		withModel      bool
+		httpStatusCode int
+		responseBody   string
+		want           testutils.WantErr
+		sdkErrKind     hferrors.SDKErrorKind
+		description    string
 	}{
 		{
 			name: "no candidate labels",
@@ -246,22 +243,24 @@ func TestZeroShotTextClassificationService_ClassifyBatch_Errors(t *testing.T) {
 					CandidateLabels: []string{},
 				},
 			},
-			withModel:       true,
-			httpStatusCode:  http.StatusOK,
-			responseBody:    zeroShotBatchClassificationResponseBody,
-			expectedErrKind: testutils.Ptr(hferrors.SDKErrorKindConfiguration),
-			description:     "SDK error when candidate labels are empty",
+			withModel:      true,
+			httpStatusCode: http.StatusOK,
+			responseBody:   zeroShotBatchClassificationResponseBody,
+			want:           testutils.WantErrSDK,
+			sdkErrKind:     hferrors.SDKErrorKindConfiguration,
+			description:    "SDK error when candidate labels are empty",
 		},
 		{
 			name: "no parameters",
 			req: ZeroShotTextClassificationBatchRequest{
 				Inputs: []string{"test text"},
 			},
-			withModel:       true,
-			httpStatusCode:  http.StatusOK,
-			responseBody:    zeroShotBatchClassificationResponseBody,
-			expectedErrKind: testutils.Ptr(hferrors.SDKErrorKindConfiguration),
-			description:     "SDK error when parameters are missing",
+			withModel:      true,
+			httpStatusCode: http.StatusOK,
+			responseBody:   zeroShotBatchClassificationResponseBody,
+			want:           testutils.WantErrSDK,
+			sdkErrKind:     hferrors.SDKErrorKindConfiguration,
+			description:    "SDK error when parameters are missing",
 		},
 		{
 			name: "no model configured",
@@ -271,11 +270,12 @@ func TestZeroShotTextClassificationService_ClassifyBatch_Errors(t *testing.T) {
 					CandidateLabels: []string{"positive", "negative"},
 				},
 			},
-			withModel:       false,
-			httpStatusCode:  http.StatusOK,
-			responseBody:    zeroShotBatchClassificationResponseBody,
-			expectedErrKind: testutils.Ptr(hferrors.SDKErrorKindConfiguration),
-			description:     "SDK error when model is missing",
+			withModel:      false,
+			httpStatusCode: http.StatusOK,
+			responseBody:   zeroShotBatchClassificationResponseBody,
+			want:           testutils.WantErrSDK,
+			sdkErrKind:     hferrors.SDKErrorKindConfiguration,
+			description:    "SDK error when model is missing",
 		},
 		{
 			name: "API error on 404",
@@ -285,11 +285,11 @@ func TestZeroShotTextClassificationService_ClassifyBatch_Errors(t *testing.T) {
 					CandidateLabels: []string{"positive", "negative"},
 				},
 			},
-			withModel:       true,
-			httpStatusCode:  http.StatusNotFound,
-			responseBody:    `{"error":"Model not found"}`,
-			expectedErrKind: nil, // API error, not SDK error
-			description:     "API error for nonexistent model",
+			withModel:      true,
+			httpStatusCode: http.StatusNotFound,
+			responseBody:   `{"error":"Model not found"}`,
+			want:           testutils.WantErrAPI,
+			description:    "API error for nonexistent model",
 		},
 	}
 
@@ -308,16 +308,10 @@ func TestZeroShotTextClassificationService_ClassifyBatch_Errors(t *testing.T) {
 			require.Error(t, err, tc.description)
 			require.Nil(t, result)
 
-			if tc.expectedErrKind != nil {
-				// SDK error expected
-				testutils.AssertSDKErrorKind(t, err, *tc.expectedErrKind)
-				// Verify no request was made for SDK errors
+			testutils.AssertErrorType(t, err, tc.want, tc.sdkErrKind, tc.httpStatusCode)
+			if tc.want == testutils.WantErrSDK {
+				// SDK config errors short-circuit before any request
 				require.Nil(t, mt.LastRequest)
-			} else {
-				// API error expected
-				var apiErr *hferrors.APIError
-				require.ErrorAs(t, err, &apiErr, tc.description)
-				require.Equal(t, tc.httpStatusCode, apiErr.StatusCode)
 			}
 		})
 	}
