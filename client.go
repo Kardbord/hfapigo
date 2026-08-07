@@ -54,7 +54,7 @@ func (c Client) ZeroShotClassifyText() ZeroShotTextClassificationService {
 // The fill mask service provides methods for interacting with fill mask endpoints.
 // Service configurations are captured at creation time and do not change if the client options change later.
 // Clients are immutable to keep concurrency simple and request behavior predictable.
-// Services are lightweight; prefer to call FillMask per use instead of retaining the value.
+// Services are lightweight; prefer to call FillMask() per use instead of retaining the value.
 func (c Client) FillMask() FillMaskService {
 	return newFillMaskService(c.opts)
 }

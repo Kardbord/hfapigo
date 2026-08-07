@@ -16,13 +16,13 @@ func newFillMaskService(opts request.Options) FillMaskService {
 	return FillMaskService{opts: opts}
 }
 
-// FillMask sends a fill mask request and returns the mask filling
+// Fill sends a fill mask request and returns the mask filling
 // predictions for a single input.
 //
-// For multiple inputs, use FillMaskBatch.
+// For multiple inputs, use FillBatch.
 //
 // The Provider option is ignored for now, as hf-inference is currently the only supported provider.
-func (s FillMaskService) FillMask(
+func (s FillMaskService) Fill(
 	req FillMaskRequest,
 	opts ...Option,
 ) ([]FillMaskPrediction, error) {
@@ -49,7 +49,7 @@ func (s FillMaskService) FillMask(
 	return resp, nil
 }
 
-// FillMaskBatch sends a fill mask request for a batch of inputs
+// FillBatch sends a fill mask request for a batch of inputs
 // and returns a list of mask filling predictions for each input in
 // the batch.
 //
@@ -59,7 +59,7 @@ func (s FillMaskService) FillMask(
 // Callers should check the length of the response list before indexing.
 //
 // The Provider option is ignored for now, as hf-inference is currently the only supported provider.
-func (s FillMaskService) FillMaskBatch(
+func (s FillMaskService) FillBatch(
 	req FillMaskBatchRequest,
 	opts ...Option,
 ) ([][]FillMaskPrediction, error) {

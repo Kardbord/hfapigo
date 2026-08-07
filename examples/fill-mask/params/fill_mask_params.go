@@ -36,7 +36,7 @@ func main() {
 	fmt.Println("...")
 
 	// Make the fill mask request with parameters
-	predictions, err := client.FillMask().FillMask(
+	predictions, err := client.FillMask().Fill(
 		hfgo.FillMaskRequest{
 			Input: input,
 			Parameters: &hfgo.FillMaskParameters{

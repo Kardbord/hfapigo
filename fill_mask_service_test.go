@@ -80,7 +80,7 @@ func TestFillMaskService_FillMask_ResponseDecoding(t *testing.T) {
 				Input: "The capital of France is [MASK].",
 			}
 
-			result, err := svc.FillMask(req)
+			result, err := svc.Fill(req)
 			require.NoError(t, err, tc.description)
 			require.NotNil(t, result)
 			require.Len(t, result, tc.expectedLen, tc.description)
@@ -125,7 +125,7 @@ func TestFillMaskService_FillMask_WithParameters(t *testing.T) {
 		},
 	}
 
-	result, err := svc.FillMask(req)
+	result, err := svc.Fill(req)
 	require.NoError(t, err)
 	require.NotNil(t, result)
 
@@ -205,7 +205,7 @@ func TestFillMaskService_FillMask_Errors(t *testing.T) {
 				Input: "The capital of France is [MASK].",
 			}
 
-			result, err := svc.FillMask(req)
+			result, err := svc.Fill(req)
 			require.Error(t, err, tc.description)
 			require.Nil(t, result)
 
@@ -305,7 +305,7 @@ func TestFillMaskService_FillMaskBatch_ResponseDecoding(t *testing.T) {
 				Inputs: tc.inputs,
 			}
 
-			result, err := svc.FillMaskBatch(req)
+			result, err := svc.FillBatch(req)
 			require.NoError(t, err, tc.description)
 			require.NotNil(t, result)
 			require.Len(t, result, tc.expectedOuterLen, tc.description)
@@ -375,7 +375,7 @@ func TestFillMaskService_FillMaskBatch_Errors(t *testing.T) {
 				Inputs: []string{"I [MASK] my dog everyday."},
 			}
 
-			result, err := svc.FillMaskBatch(req)
+			result, err := svc.FillBatch(req)
 			require.Error(t, err, tc.description)
 			require.Nil(t, result)
 
@@ -404,7 +404,7 @@ func TestFillMaskService_FillMaskBatch_ModelFromOptions(t *testing.T) {
 		Inputs: []string{"I [MASK] my dog everyday."},
 	}
 
-	result, err := svc.FillMaskBatch(req, WithModel("override-model"))
+	result, err := svc.FillBatch(req, WithModel("override-model"))
 	require.NoError(t, err)
 	require.NotNil(t, result)
 

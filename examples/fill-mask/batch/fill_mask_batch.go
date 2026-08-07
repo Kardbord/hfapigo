@@ -32,7 +32,7 @@ func main() {
 	fmt.Println("...")
 
 	// Make the batched fill mask request
-	predictions, err := client.FillMask().FillMaskBatch(
+	predictions, err := client.FillMask().FillBatch(
 		hfgo.FillMaskBatchRequest{
 			Inputs: inputs,
 		},
