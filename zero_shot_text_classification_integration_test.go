@@ -13,10 +13,10 @@ import (
 
 // TestZeroShotTextClassification_LiveAPI tests a basic zero-shot text classification
 // against the live HF API.
-// This test requires the HUGGING_FACE_TOKEN environment variable to be set.
+// This test requires the HF_TOKEN environment variable to be set.
 func TestZeroShotTextClassification_LiveAPI(t *testing.T) {
-	apiToken := os.Getenv("HUGGING_FACE_TOKEN")
-	require.NotEmpty(t, apiToken, "HUGGING_FACE_TOKEN must be set")
+	apiToken := os.Getenv("HF_TOKEN")
+	require.NotEmpty(t, apiToken, "HF_TOKEN must be set")
 
 	const model = "facebook/bart-large-mnli"
 
@@ -48,10 +48,10 @@ func TestZeroShotTextClassification_LiveAPI(t *testing.T) {
 
 // TestZeroShotTextClassification_BatchLiveAPI tests batch zero-shot text classification
 // against the live HF API.
-// This test requires the HUGGING_FACE_TOKEN environment variable to be set.
+// This test requires the HF_TOKEN environment variable to be set.
 func TestZeroShotTextClassification_BatchLiveAPI(t *testing.T) {
-	apiToken := os.Getenv("HUGGING_FACE_TOKEN")
-	require.NotEmpty(t, apiToken, "HUGGING_FACE_TOKEN must be set")
+	apiToken := os.Getenv("HF_TOKEN")
+	require.NotEmpty(t, apiToken, "HF_TOKEN must be set")
 
 	const model = "facebook/bart-large-mnli"
 
@@ -98,10 +98,10 @@ func TestZeroShotTextClassification_BatchLiveAPI(t *testing.T) {
 
 // TestZeroShotTextClassification_WithHypothesisTemplate tests zero-shot text classification
 // with a custom hypothesis template.
-// This test requires the HUGGING_FACE_TOKEN environment variable to be set.
+// This test requires the HF_TOKEN environment variable to be set.
 func TestZeroShotTextClassification_WithHypothesisTemplate(t *testing.T) {
-	apiToken := os.Getenv("HUGGING_FACE_TOKEN")
-	require.NotEmpty(t, apiToken, "HUGGING_FACE_TOKEN must be set")
+	apiToken := os.Getenv("HF_TOKEN")
+	require.NotEmpty(t, apiToken, "HF_TOKEN must be set")
 
 	const model = "facebook/bart-large-mnli"
 
@@ -134,10 +134,10 @@ func TestZeroShotTextClassification_WithHypothesisTemplate(t *testing.T) {
 
 // TestZeroShotTextClassification_WithMultiLabel tests zero-shot text classification
 // with multi-label mode enabled.
-// This test requires the HUGGING_FACE_TOKEN environment variable to be set.
+// This test requires the HF_TOKEN environment variable to be set.
 func TestZeroShotTextClassification_WithMultiLabel(t *testing.T) {
-	apiToken := os.Getenv("HUGGING_FACE_TOKEN")
-	require.NotEmpty(t, apiToken, "HUGGING_FACE_TOKEN must be set")
+	apiToken := os.Getenv("HF_TOKEN")
+	require.NotEmpty(t, apiToken, "HF_TOKEN must be set")
 
 	const model = "facebook/bart-large-mnli"
 
@@ -169,10 +169,10 @@ func TestZeroShotTextClassification_WithMultiLabel(t *testing.T) {
 }
 
 // TestZeroShotTextClassification_VeryLargeBatch tests classification with a larger batch of inputs.
-// This test requires the HUGGING_FACE_TOKEN environment variable to be set.
+// This test requires the HF_TOKEN environment variable to be set.
 func TestZeroShotTextClassification_VeryLargeBatch(t *testing.T) {
-	apiToken := os.Getenv("HUGGING_FACE_TOKEN")
-	require.NotEmpty(t, apiToken, "HUGGING_FACE_TOKEN must be set")
+	apiToken := os.Getenv("HF_TOKEN")
+	require.NotEmpty(t, apiToken, "HF_TOKEN must be set")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 	defer cancel()
@@ -223,10 +223,10 @@ func TestZeroShotTextClassification_VeryLargeBatch(t *testing.T) {
 
 // TestZeroShotTextClassification_MultipleCandidateLabels tests zero-shot classification
 // with a larger set of candidate labels.
-// This test requires the HUGGING_FACE_TOKEN environment variable to be set.
+// This test requires the HF_TOKEN environment variable to be set.
 func TestZeroShotTextClassification_MultipleCandidateLabels(t *testing.T) {
-	apiToken := os.Getenv("HUGGING_FACE_TOKEN")
-	require.NotEmpty(t, apiToken, "HUGGING_FACE_TOKEN must be set")
+	apiToken := os.Getenv("HF_TOKEN")
+	require.NotEmpty(t, apiToken, "HF_TOKEN must be set")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()

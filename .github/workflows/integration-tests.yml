@@ -121,12 +121,12 @@ jobs:
       # This helps mitigate transient API failures and network issues.
       #
       # Requirements:
-      # - HUGGING_FACE_TOKEN: GitHub secret with valid HuggingFace API token
+      # - HF_TOKEN: GitHub secret with valid HuggingFace API token
       # - Tests must be tagged with '//go:build integration'
       - name: Run live API integration tests (with retry)
         id: integration_tests
         env:
-          HUGGING_FACE_TOKEN: ${{ secrets.HUGGING_FACE_TOKEN }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
           gotestsum \
             --junitfile junit.xml \

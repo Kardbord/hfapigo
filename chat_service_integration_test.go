@@ -15,10 +15,10 @@ import (
 )
 
 // TestChatCompletion_LiveAPI tests a basic chat completion against the live HF API.
-// This test requires the HUGGING_FACE_TOKEN environment variable to be set.
+// This test requires the HF_TOKEN environment variable to be set.
 func TestChatCompletion_LiveAPI(t *testing.T) {
-	apiToken := os.Getenv("HUGGING_FACE_TOKEN")
-	require.NotEmpty(t, apiToken, "HUGGING_FACE_TOKEN must be set")
+	apiToken := os.Getenv("HF_TOKEN")
+	require.NotEmpty(t, apiToken, "HF_TOKEN must be set")
 
 	// Use a model known to be available on HF Inference API
 	const model = "deepseek-ai/DeepSeek-R1"
@@ -71,10 +71,10 @@ func TestChatCompletion_LiveAPI(t *testing.T) {
 }
 
 // TestChatCompletion_StreamingLiveAPI tests streaming chat completion against the live HF API.
-// This test requires the HUGGING_FACE_TOKEN environment variable to be set.
+// This test requires the HF_TOKEN environment variable to be set.
 func TestChatCompletion_StreamingLiveAPI(t *testing.T) {
-	apiToken := os.Getenv("HUGGING_FACE_TOKEN")
-	require.NotEmpty(t, apiToken, "HUGGING_FACE_TOKEN must be set")
+	apiToken := os.Getenv("HF_TOKEN")
+	require.NotEmpty(t, apiToken, "HF_TOKEN must be set")
 
 	// Use a model known to be available on HF Inference API
 	const model = "deepseek-ai/DeepSeek-R1"
@@ -132,10 +132,10 @@ func TestChatCompletion_StreamingLiveAPI(t *testing.T) {
 }
 
 // TestChatCompletion_MultiMessageLiveAPI tests a multi-turn conversation against the live HF API.
-// This test requires the HUGGING_FACE_TOKEN environment variable to be set.
+// This test requires the HF_TOKEN environment variable to be set.
 func TestChatCompletion_MultiMessageLiveAPI(t *testing.T) {
-	apiToken := os.Getenv("HUGGING_FACE_TOKEN")
-	require.NotEmpty(t, apiToken, "HUGGING_FACE_TOKEN must be set")
+	apiToken := os.Getenv("HF_TOKEN")
+	require.NotEmpty(t, apiToken, "HF_TOKEN must be set")
 
 	// Use a model known to be available on HF Inference API
 	const model = "deepseek-ai/DeepSeek-R1"

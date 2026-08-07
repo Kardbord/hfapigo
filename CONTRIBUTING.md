@@ -30,7 +30,7 @@ If you plan to contribute code, please:
 - Git
 - Hugging Face API key (for running integration tests)
   - Get one at https://huggingface.co/settings/tokens
-  - Set as `HUGGING_FACE_TOKEN` environment variable
+  - Set as `HF_TOKEN` environment variable
 - golangci-lint
 
 ### Setting Up Your Development Environment
@@ -105,7 +105,7 @@ go test -timeout 600s -v ./...
 # Race condition detection
 go test -race -timeout 600s -v ./...
 
-# Integration tests (requires HUGGING_FACE_TOKEN)
+# Integration tests (requires HF_TOKEN)
 go test -tags=integration -timeout 600s -v ./...
 ```
 
@@ -271,7 +271,7 @@ go test -timeout 600s -v ./...
 Integration tests require a valid Hugging Face API token:
 
 ```bash
-HUGGING_FACE_TOKEN=your_token go test -tags=integration -timeout 600s -v ./...
+HF_TOKEN=your_token go test -tags=integration -timeout 600s -v ./...
 ```
 
 On pull requests, integration tests require manual approval from a
