@@ -15,9 +15,9 @@ import (
 // It sends a message to the model and processes the response stream in real-time.
 func main() {
 	// Get the API token from environment variable
-	token := os.Getenv("HUGGING_FACE_TOKEN")
+	token := os.Getenv("HF_TOKEN")
 	if token == "" {
-		log.Fatal("HUGGING_FACE_TOKEN environment variable is not set")
+		log.Fatal("HF_TOKEN environment variable is not set")
 	}
 
 	// Create a new client with your API token and model

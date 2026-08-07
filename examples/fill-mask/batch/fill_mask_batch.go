@@ -18,30 +18,31 @@ func main() {
 	// Create a new client with your API token and desired model
 	client := hfgo.NewClient(
 		hfgo.WithToken(token),
-		hfgo.WithModel("ProsusAI/finbert"),
+		hfgo.WithModel("google-bert/bert-base-uncased"),
 	)
 
-	input := "This was a masterpiece. Not completely faithful to the books, but enthralling from beginning to end. Might be my favorite of the three."
+	inputs := []string{
+		"I [MASK] my dog everyday.",
+		"She is a [MASK] programmer.",
+		"The meeting was [MASK] due to the storm.",
+	}
 
-	fmt.Println("Classifying input:")
-	PrintJSON(input)
+	fmt.Println("Filling the mask in inputs:")
+	PrintJSON(inputs)
 	fmt.Println("...")
 
-	// Make the classification request
-	classifications, err := client.ClassifyText().Classify(
-		hfgo.TextClassificationRequest{
-			Input: input,
-			Parameters: &hfgo.TextClassificationParameters{
-				TopK: Ptr(2),
-			},
+	// Make the batched fill mask request
+	predictions, err := client.FillMask().FillBatch(
+		hfgo.FillMaskBatchRequest{
+			Inputs: inputs,
 		},
 	)
 	if err != nil {
-		log.Fatalf("error running text classification: %v\n", err)
+		log.Fatalf("error running batched fill mask: %v\n", err)
 	}
 
 	fmt.Println("Results:")
-	PrintJSON(classifications)
+	PrintJSON(predictions)
 }
 
 func Ptr[T any](v T) *T {

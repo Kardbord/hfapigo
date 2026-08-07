@@ -30,7 +30,7 @@ go build ./...
 ## Configuration Requirements
 
 - Requires Go 1.25+
-- Requires `HUGGING_FACE_TOKEN` for integration tests
+- Requires `HF_TOKEN` for integration tests
 - Requires `golangci-lint` for linting
 
 ## Testing Instructions
@@ -39,7 +39,7 @@ go build ./...
 # Run unit tests
 go test -v ./...
 
-# Run integration tests (requires HUGGING_FACE_TOKEN).
+# Run integration tests (requires HF_TOKEN).
 # These make calls to the upstream API and may incur costs
 # so only run them when explicitly asked. You may suggest
 # that they be run without actually running them.

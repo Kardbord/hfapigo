@@ -31,7 +31,7 @@ type ChatClient struct {
 }
 
 func NewChatClient(sysPrompt string) ChatClient {
-	const tokenEnv = "HUGGING_FACE_TOKEN"
+	const tokenEnv = "HF_TOKEN"
 	token := os.Getenv(tokenEnv)
 	if token == "" {
 		log.Fatalf("%s environment variable is not set\n", tokenEnv)

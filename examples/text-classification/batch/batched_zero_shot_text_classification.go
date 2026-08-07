@@ -10,9 +10,9 @@ import (
 )
 
 func main() {
-	token := os.Getenv("HUGGING_FACE_TOKEN")
+	token := os.Getenv("HF_TOKEN")
 	if token == "" {
-		log.Fatal("HUGGING_FACE_TOKEN environment variable is not set")
+		log.Fatal("HF_TOKEN environment variable is not set")
 	}
 
 	// Create a new client with your API token and desired model

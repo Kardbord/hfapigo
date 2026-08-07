@@ -83,28 +83,30 @@ func TestTextClassificationService_Classify_Errors(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
-		name            string
-		withModel       bool
-		httpStatusCode  int
-		responseBody    string
-		expectedErrKind *hferrors.SDKErrorKind
-		description     string
+		name           string
+		withModel      bool
+		httpStatusCode int
+		responseBody   string
+		want           testutils.WantErr
+		sdkErrKind     hferrors.SDKErrorKind
+		description    string
 	}{
 		{
-			name:            "no model configured",
-			withModel:       false,
-			httpStatusCode:  http.StatusOK,
-			responseBody:    `[[{"label":"positive","score":0.95}]]`,
-			expectedErrKind: testutils.Ptr(hferrors.SDKErrorKindConfiguration),
-			description:     "SDK error when model is missing",
+			name:           "no model configured",
+			withModel:      false,
+			httpStatusCode: http.StatusOK,
+			responseBody:   `[[{"label":"positive","score":0.95}]]`,
+			want:           testutils.WantErrSDK,
+			sdkErrKind:     hferrors.SDKErrorKindConfiguration,
+			description:    "SDK error when model is missing",
 		},
 		{
-			name:            "API error on 404",
-			withModel:       true,
-			httpStatusCode:  http.StatusNotFound,
-			responseBody:    `{"error":"Model not found"}`,
-			expectedErrKind: nil, // API error, not SDK error
-			description:     "API error for nonexistent model",
+			name:           "API error on 404",
+			withModel:      true,
+			httpStatusCode: http.StatusNotFound,
+			responseBody:   `{"error":"Model not found"}`,
+			want:           testutils.WantErrAPI,
+			description:    "API error for nonexistent model",
 		},
 	}
 
@@ -127,16 +129,10 @@ func TestTextClassificationService_Classify_Errors(t *testing.T) {
 			require.Error(t, err, tc.description)
 			require.Nil(t, result)
 
-			if tc.expectedErrKind != nil {
-				// SDK error expected
-				testutils.AssertSDKErrorKind(t, err, *tc.expectedErrKind)
-				// Verify no request was made for SDK errors
+			testutils.AssertErrorType(t, err, tc.want, tc.sdkErrKind, tc.httpStatusCode)
+			if tc.want == testutils.WantErrSDK {
+				// SDK config errors short-circuit before any request
 				require.Nil(t, mt.LastRequest)
-			} else {
-				// API error expected
-				var apiErr *hferrors.APIError
-				require.ErrorAs(t, err, &apiErr, tc.description)
-				require.Equal(t, tc.httpStatusCode, apiErr.StatusCode)
 			}
 		})
 	}

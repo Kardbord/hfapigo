@@ -50,6 +50,15 @@ func (c Client) ZeroShotClassifyText() ZeroShotTextClassificationService {
 	return newZeroShotTextClassificationService(c.opts)
 }
 
+// FillMask returns a FillMaskService instance configured with this client's options.
+// The fill mask service provides methods for interacting with fill mask endpoints.
+// Service configurations are captured at creation time and do not change if the client options change later.
+// Clients are immutable to keep concurrency simple and request behavior predictable.
+// Services are lightweight; prefer to call FillMask() per use instead of retaining the value.
+func (c Client) FillMask() FillMaskService {
+	return newFillMaskService(c.opts)
+}
+
 // Raw returns a RawService instance configured with this client's options.
 // The raw service provides methods for sending raw HTTP requests to any desired endpoint.
 // Service configurations are captured at creation time and do not change if the client options change later.

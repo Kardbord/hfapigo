@@ -12,10 +12,10 @@ import (
 )
 
 // TestTextClassification_LiveAPI tests a basic text classification against the live HF API.
-// This test requires the HUGGING_FACE_TOKEN environment variable to be set.
+// This test requires the HF_TOKEN environment variable to be set.
 func TestTextClassification_LiveAPI(t *testing.T) {
-	apiToken := os.Getenv("HUGGING_FACE_TOKEN")
-	require.NotEmpty(t, apiToken, "HUGGING_FACE_TOKEN must be set")
+	apiToken := os.Getenv("HF_TOKEN")
+	require.NotEmpty(t, apiToken, "HF_TOKEN must be set")
 
 	const model = "ProsusAI/finbert"
 
@@ -46,10 +46,10 @@ func TestTextClassification_LiveAPI(t *testing.T) {
 }
 
 // TestTextClassification_BatchLiveAPI tests batch text classification against the live HF API.
-// This test requires the HUGGING_FACE_TOKEN environment variable to be set.
+// This test requires the HF_TOKEN environment variable to be set.
 func TestTextClassification_BatchLiveAPI(t *testing.T) {
-	apiToken := os.Getenv("HUGGING_FACE_TOKEN")
-	require.NotEmpty(t, apiToken, "HUGGING_FACE_TOKEN must be set")
+	apiToken := os.Getenv("HF_TOKEN")
+	require.NotEmpty(t, apiToken, "HF_TOKEN must be set")
 
 	const model = "ProsusAI/finbert"
 
@@ -92,10 +92,10 @@ func TestTextClassification_BatchLiveAPI(t *testing.T) {
 }
 
 // TestTextClassification_WithParameters tests text classification with various parameters.
-// This test requires the HUGGING_FACE_TOKEN environment variable to be set.
+// This test requires the HF_TOKEN environment variable to be set.
 func TestTextClassification_WithParameters(t *testing.T) {
-	apiToken := os.Getenv("HUGGING_FACE_TOKEN")
-	require.NotEmpty(t, apiToken, "HUGGING_FACE_TOKEN must be set")
+	apiToken := os.Getenv("HF_TOKEN")
+	require.NotEmpty(t, apiToken, "HF_TOKEN must be set")
 
 	const model = "ProsusAI/finbert"
 
@@ -139,10 +139,10 @@ func TestTextClassification_WithParameters(t *testing.T) {
 }
 
 // TestTextClassification_ContextCancellation tests that context cancellation is respected.
-// This test requires the HUGGING_FACE_TOKEN environment variable to be set.
+// This test requires the HF_TOKEN environment variable to be set.
 func TestTextClassification_ContextCancellation(t *testing.T) {
-	apiToken := os.Getenv("HUGGING_FACE_TOKEN")
-	require.NotEmpty(t, apiToken, "HUGGING_FACE_TOKEN must be set")
+	apiToken := os.Getenv("HF_TOKEN")
+	require.NotEmpty(t, apiToken, "HF_TOKEN must be set")
 
 	// Create a cancelled context
 	ctx, cancel := context.WithCancel(context.Background())
@@ -165,10 +165,10 @@ func TestTextClassification_ContextCancellation(t *testing.T) {
 }
 
 // TestTextClassification_VeryLargeBatch tests classification with a larger batch of inputs.
-// This test requires the HUGGING_FACE_TOKEN environment variable to be set.
+// This test requires the HF_TOKEN environment variable to be set.
 func TestTextClassification_VeryLargeBatch(t *testing.T) {
-	apiToken := os.Getenv("HUGGING_FACE_TOKEN")
-	require.NotEmpty(t, apiToken, "HUGGING_FACE_TOKEN must be set")
+	apiToken := os.Getenv("HF_TOKEN")
+	require.NotEmpty(t, apiToken, "HF_TOKEN must be set")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 	defer cancel()
@@ -224,10 +224,10 @@ func TestTextClassification_VeryLargeBatch(t *testing.T) {
 // when TopK is unset (nil), ensuring the flat format is reshaped to per-input format.
 // This conditional normalization prevents data corruption when TopK is explicitly set.
 //
-// This test requires the HUGGING_FACE_TOKEN environment variable to be set.
+// This test requires the HF_TOKEN environment variable to be set.
 func TestTextClassification_TopKResponseFormatQuirk(t *testing.T) {
-	apiToken := os.Getenv("HUGGING_FACE_TOKEN")
-	require.NotEmpty(t, apiToken, "HUGGING_FACE_TOKEN must be set")
+	apiToken := os.Getenv("HF_TOKEN")
+	require.NotEmpty(t, apiToken, "HF_TOKEN must be set")
 
 	const model = "ProsusAI/finbert"
 
