@@ -23,13 +23,62 @@ func NewClient(opts ...Option) Client {
 	}
 }
 
-// Chat returns a ChatService instance configured with this client's options.
-// The chat service provides methods for interacting with chat completion endpoints.
-// Service configurations are captured at creation time and do not change if the client options change later.
-// Clients are immutable to keep concurrency simple and request behavior predictable.
-// Services are lightweight; prefer to call Chat() per use instead of retaining the value.
-func (c Client) Chat() ChatService {
-	return newChatService(c.opts)
+// Chat sends a chat completion request and returns a chat completion response.
+//
+// The caller must not mutate req while the request is being processed.
+// For safe concurrent usage, create a new ChatRequest for each concurrent call.
+//
+// Model Precedence:
+// The Model field is resolved with the following precedence (highest to lowest):
+//  1. ChatRequest.Model field (if non-nil and non-empty)
+//  2. Per-request options Model override
+//  3. Client-level Model option
+//
+// Provider Precedence:
+// The Provider field is applied as a fallback only if the resolved Model does not
+// already contain a provider (indicated by ":" in the model string). If the Model
+// is in the format "model:provider", the Provider option is ignored.
+//
+// For example:
+//   - Model="mistral-7b", Provider="huggingface" → "mistral-7b:huggingface"
+//   - Model="mistral-7b:huggingface", Provider="mistral" → "mistral-7b:huggingface" (Provider ignored)
+//   - Model="mistral-7b:huggingface", Provider="" → "mistral-7b:huggingface"
+//
+// Behavior:
+//   - Returns a configuration error if req is nil.
+//   - Returns a configuration error if *req.Stream is true; use ChatStream for streaming.
+func (c Client) Chat(req *ChatRequest, opts ...Option) (ChatResponse, error) {
+	return newChatService(c.opts).complete(req, opts...)
+}
+
+// ChatStream sends a chat completion request and returns a streaming response.
+// Callers should Close the returned ChatStream when finished so the underlying HTTP
+// connection and decoder goroutine are released promptly.
+//
+// The caller must not mutate req while the request is being processed.
+// For safe concurrent usage, create a new ChatRequest for each concurrent call.
+//
+// Model Precedence:
+// The Model field is resolved with the following precedence (highest to lowest):
+//  1. ChatRequest.Model field (if non-nil and non-empty)
+//  2. Per-request options Model override
+//  3. Client-level Model option
+//
+// Provider Precedence:
+// The Provider field is applied as a fallback only if the resolved Model does not
+// already contain a provider (indicated by ":" in the model string). If the Model
+// is in the format "model:provider", the Provider option is ignored.
+//
+// For example:
+//   - Model="mistral-7b", Provider="huggingface" → "mistral-7b:huggingface"
+//   - Model="mistral-7b:huggingface", Provider="mistral" → "mistral-7b:huggingface" (Provider ignored)
+//   - Model="mistral-7b:huggingface", Provider="" → "mistral-7b:huggingface"
+//
+// Behavior:
+//   - Returns a configuration error if req is nil.
+//   - Always sends the request with streaming enabled.
+func (c Client) ChatStream(req *ChatRequest, opts ...Option) (*ChatStream, error) {
+	return newChatService(c.opts).completeStream(req, opts...)
 }
 
 // ClassifyText returns a TextClassificationService instance configured with this client's options.

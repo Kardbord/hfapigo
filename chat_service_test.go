@@ -65,9 +65,9 @@ func TestChatService_Complete_ModelSelection(t *testing.T) {
 
 			var err error
 			if tc.optsModel != "" {
-				_, err = svc.Complete(req, WithModel(tc.optsModel))
+				_, err = svc.complete(req, WithModel(tc.optsModel))
 			} else {
-				_, err = svc.Complete(req)
+				_, err = svc.complete(req)
 			}
 
 			require.NoError(t, err)
@@ -103,7 +103,7 @@ func TestChatService_Complete_ModelValidation(t *testing.T) {
 		},
 	}
 
-	_, err := svc.Complete(req)
+	_, err := svc.complete(req)
 	require.Error(t, err)
 	testutils.AssertSDKErrorKind(t, err, hferrors.SDKErrorKindConfiguration)
 	require.Nil(t, mt.LastRequest)
@@ -117,7 +117,7 @@ func TestChatService_Complete_NilRequest(t *testing.T) {
 		WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) })
 	svc := newChatService(opts)
 
-	_, err := svc.Complete(nil)
+	_, err := svc.complete(nil)
 	require.Error(t, err)
 	testutils.AssertSDKErrorKind(t, err, hferrors.SDKErrorKindConfiguration)
 	require.Nil(t, mt.LastRequest)
@@ -140,7 +140,7 @@ func TestChatService_Complete_StreamNotAllowed(t *testing.T) {
 		},
 	}
 
-	_, err := svc.Complete(req)
+	_, err := svc.complete(req)
 	require.Error(t, err)
 	testutils.AssertSDKErrorKind(t, err, hferrors.SDKErrorKindConfiguration)
 	require.Nil(t, mt.LastRequest)
@@ -166,7 +166,7 @@ func TestChatService_CompleteStream_Success(t *testing.T) {
 		},
 	}
 
-	stream, err := svc.CompleteStream(req)
+	stream, err := svc.completeStream(req)
 	require.NoError(t, err)
 	defer func() { _ = stream.Close() }()
 
@@ -257,7 +257,7 @@ func TestChatStream_Recv_InvalidJSONError(t *testing.T) {
 		},
 	}
 
-	stream, err := svc.CompleteStream(req)
+	stream, err := svc.completeStream(req)
 	require.NoError(t, err)
 	defer func() { _ = stream.Close() }()
 
@@ -293,7 +293,7 @@ func assertToolCallStream(
 		},
 	}
 
-	stream, err := svc.CompleteStream(req)
+	stream, err := svc.completeStream(req)
 	require.NoError(t, err)
 	defer func() { _ = stream.Close() }()
 
@@ -319,7 +319,7 @@ func TestChatService_CompleteStream_NilRequest(t *testing.T) {
 		WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) })
 	svc := newChatService(opts)
 
-	_, err := svc.CompleteStream(nil)
+	_, err := svc.completeStream(nil)
 	require.Error(t, err)
 	testutils.AssertSDKErrorKind(t, err, hferrors.SDKErrorKindConfiguration)
 	require.Nil(t, mt.LastRequest)
@@ -679,7 +679,7 @@ func TestChatService_ProviderFallback(t *testing.T) {
 		t *testing.T,
 		tc TestCase,
 		mtFactory func() *testutils.MockTransport,
-		methodCall func(*ChatService, *ChatRequest, []Option) error,
+		methodCall func(*chatService, *ChatRequest, []Option) error,
 	) {
 		t.Helper()
 
@@ -727,8 +727,8 @@ func TestChatService_ProviderFallback(t *testing.T) {
 						nil,
 					)
 				},
-				func(svc *ChatService, req *ChatRequest, opts []Option) error {
-					_, err := svc.Complete(req, opts...)
+				func(svc *chatService, req *ChatRequest, opts []Option) error {
+					_, err := svc.complete(req, opts...)
 
 					return err
 				},
@@ -744,8 +744,8 @@ func TestChatService_ProviderFallback(t *testing.T) {
 
 					return mt
 				},
-				func(svc *ChatService, req *ChatRequest, opts []Option) error {
-					stream, err := svc.CompleteStream(req, opts...)
+				func(svc *chatService, req *ChatRequest, opts []Option) error {
+					stream, err := svc.completeStream(req, opts...)
 					if err != nil {
 						return err
 					}

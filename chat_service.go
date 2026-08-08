@@ -13,37 +13,18 @@ import (
 // EndpointChatCompletion specifies the chat completion endpoint.
 const EndpointChatCompletion = "/v1/chat/completions"
 
-// ChatService implements chat completion calls using the configured request options.
-type ChatService struct {
+// chatService implements chat completion calls using the configured request options.
+type chatService struct {
 	opts request.Options
 }
 
 // newChatService builds a chat service with a snapshot of the provided options.
-func newChatService(opts request.Options) ChatService {
-	return ChatService{opts: opts}
+func newChatService(opts request.Options) chatService {
+	return chatService{opts: opts}
 }
 
-// Complete sends a chat completion request and returns a chat completion response.
-//
-// The caller must not mutate req while the request is being processed.
-// For safe concurrent usage, create a new ChatRequest for each concurrent call.
-//
-// Model Precedence:
-// The Model field is resolved with the following precedence (highest to lowest):
-//  1. ChatRequest.Model field (if non-nil and non-empty)
-//  2. Per-request options Model override
-//  3. Client-level Model option
-//
-// Provider Precedence:
-// The Provider field is applied as a fallback only if the resolved Model does not
-// already contain a provider (indicated by ":" in the model string). If the Model
-// is in the format "model:provider", the Provider option is ignored.
-//
-// For example:
-//   - Model="mistral-7b", Provider="huggingface" → "mistral-7b:huggingface"
-//   - Model="mistral-7b:huggingface", Provider="mistral" → "mistral-7b:huggingface" (Provider ignored)
-//   - Model="mistral-7b:huggingface", Provider="" → "mistral-7b:huggingface"
-func (s ChatService) Complete(req *ChatRequest, opts ...Option) (ChatResponse, error) {
+// complete sends a chat completion request and returns a chat completion response.
+func (s chatService) complete(req *ChatRequest, opts ...Option) (ChatResponse, error) {
 	if req == nil {
 		return ChatResponse{}, &SDKError{
 			Kind:    SDKErrorKindConfiguration,
@@ -60,7 +41,7 @@ func (s ChatService) Complete(req *ChatRequest, opts ...Option) (ChatResponse, e
 	if payload.Stream != nil && *payload.Stream {
 		return ChatResponse{}, &SDKError{
 			Kind:    SDKErrorKindConfiguration,
-			Message: "chat completion streaming is not supported by ChatService.Complete; use a streaming method instead",
+			Message: "chat completion streaming is not supported; use a streaming chat method instead",
 			Err:     nil,
 		}
 	}
@@ -73,29 +54,8 @@ func (s ChatService) Complete(req *ChatRequest, opts ...Option) (ChatResponse, e
 	)
 }
 
-// CompleteStream sends a chat completion request and returns a streaming response.
-// Callers should Close the returned ChatStream when finished so the underlying HTTP
-// connection and decoder goroutine are released promptly.
-//
-// The caller must not mutate req while the request is being processed.
-// For safe concurrent usage, create a new ChatRequest for each concurrent call.
-//
-// Model Precedence:
-// The Model field is resolved with the following precedence (highest to lowest):
-//  1. ChatRequest.Model field (if non-nil and non-empty)
-//  2. Per-request options Model override
-//  3. Client-level Model option
-//
-// Provider Precedence:
-// The Provider field is applied as a fallback only if the resolved Model does not
-// already contain a provider (indicated by ":" in the model string). If the Model
-// is in the format "model:provider", the Provider option is ignored.
-//
-// For example:
-//   - Model="mistral-7b", Provider="huggingface" → "mistral-7b:huggingface"
-//   - Model="mistral-7b:huggingface", Provider="mistral" → "mistral-7b:huggingface" (Provider ignored)
-//   - Model="mistral-7b:huggingface", Provider="" → "mistral-7b:huggingface"
-func (s ChatService) CompleteStream(req *ChatRequest, opts ...Option) (*ChatStream, error) {
+// completeStream sends a chat completion request and returns a streaming response.
+func (s chatService) completeStream(req *ChatRequest, opts ...Option) (*ChatStream, error) {
 	if req == nil {
 		return nil, &SDKError{
 			Kind:    SDKErrorKindConfiguration,

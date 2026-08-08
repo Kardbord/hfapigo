@@ -59,7 +59,7 @@ func NewChatClient(sysPrompt string) ChatClient {
 func (chatClient *ChatClient) Chat() error {
 	fmt.Println("Welcome to this chat bot example! Press Ctrl+d at any time to exit.")
 	fmt.Println("Initializing...")
-	stream, err := chatClient.hfClient.Chat().CompleteStream(
+	stream, err := chatClient.hfClient.ChatStream(
 		&hfgo.ChatRequest{
 			Messages: chatClient.history, // Initialize with the system prompt given to NewChatClient
 		},
@@ -113,7 +113,7 @@ func (chatClient *ChatClient) prompt(input string) (*hfgo.ChatStream, error) {
 		},
 	})
 
-	return chatClient.hfClient.Chat().CompleteStream(
+	return chatClient.hfClient.ChatStream(
 		&hfgo.ChatRequest{
 			Messages: chatClient.history,
 		},
