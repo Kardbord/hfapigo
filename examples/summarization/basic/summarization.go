@@ -30,7 +30,7 @@ func main() {
 	fmt.Println("...")
 
 	// Make the summarization request
-	summaries, err := client.Summarization().Summarize(
+	summaries, err := client.Summarize(
 		hfgo.SummarizationRequest{
 			Input: input,
 		},

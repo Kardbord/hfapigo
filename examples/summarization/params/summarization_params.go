@@ -32,7 +32,7 @@ func main() {
 	fmt.Println("...")
 
 	// Make the summarization request with custom parameters
-	summaries, err := client.Summarization().Summarize(
+	summaries, err := client.Summarize(
 		hfgo.SummarizationRequest{
 			Input: input,
 			Parameters: &hfgo.SummarizationParameters{

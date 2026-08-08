@@ -53,7 +53,7 @@ func TestSummarizationService_Summarize_ResponseVariations(t *testing.T) {
 				WithModel("test-model")
 			svc := newSummarizationService(opts)
 
-			result, err := svc.Summarize(SummarizationRequest{Input: "Some long text."})
+			result, err := svc.summarize(SummarizationRequest{Input: "Some long text."})
 			require.NoError(t, err, tc.description)
 			require.NotNil(t, result, tc.description)
 			require.Len(t, result, tc.wantLen, tc.description)
@@ -157,7 +157,7 @@ func TestSummarizationService_Summarize_ParameterSerialization(t *testing.T) {
 				}
 			}
 
-			result, err := svc.Summarize(req)
+			result, err := svc.summarize(req)
 			require.NoError(t, err, tc.description)
 			require.NotNil(t, result, tc.description)
 
@@ -197,7 +197,7 @@ func TestSummarizationService_Summarize_Errors(t *testing.T) {
 			},
 		},
 		func(opts request.Options) ([]Summarization, error) {
-			return newSummarizationService(opts).Summarize(SummarizationRequest{
+			return newSummarizationService(opts).summarize(SummarizationRequest{
 				Input: "Some long text that should be summarized.",
 			})
 		},
@@ -242,7 +242,7 @@ func TestSummarizationService_SummarizeBatch_ResponseVariations(t *testing.T) {
 				WithModel("test-model")
 			svc := newSummarizationService(opts)
 
-			result, err := svc.SummarizeBatch(SummarizationBatchRequest{
+			result, err := svc.summarizeBatch(SummarizationBatchRequest{
 				Inputs: []string{"Long text one.", "Long text two."},
 			})
 			require.NoError(t, err, tc.description)
@@ -279,7 +279,7 @@ func TestSummarizationService_SummarizeBatch_Errors(t *testing.T) {
 			},
 		},
 		func(opts request.Options) ([]Summarization, error) {
-			return newSummarizationService(opts).SummarizeBatch(SummarizationBatchRequest{
+			return newSummarizationService(opts).summarizeBatch(SummarizationBatchRequest{
 				Inputs: []string{"Long text one."},
 			})
 		},
@@ -298,7 +298,7 @@ func TestSummarizationService_SummarizeBatch_ModelFromOptions(t *testing.T) {
 		WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) })
 	svc := newSummarizationService(opts)
 
-	result, err := svc.SummarizeBatch(SummarizationBatchRequest{
+	result, err := svc.summarizeBatch(SummarizationBatchRequest{
 		Inputs: []string{"Long text one."},
 	}, WithModel("override-model"))
 	require.NoError(t, err)

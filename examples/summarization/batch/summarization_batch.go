@@ -31,7 +31,7 @@ func main() {
 	fmt.Println("...")
 
 	// Make the batched summarization request
-	summaries, err := client.Summarization().SummarizeBatch(
+	summaries, err := client.SummarizeBatch(
 		hfgo.SummarizationBatchRequest{
 			Inputs: inputs,
 		},

@@ -32,7 +32,7 @@ func TestSummarization_LiveAPI(t *testing.T) {
 		"Its base is square, measuring 125 metres (410 ft) on each side. During its construction, the Eiffel " +
 		"Tower surpassed the Washington Monument to become the tallest man-made structure in the world."
 
-	resp, err := client.Summarization().Summarize(
+	resp, err := client.Summarize(
 		SummarizationRequest{
 			Input: input,
 		},
@@ -66,7 +66,7 @@ func TestSummarization_BatchLiveAPI(t *testing.T) {
 		"The Moon orbits the Earth roughly every 27 days, a period known as a sidereal month.",
 	}
 
-	resp, err := client.Summarization().SummarizeBatch(
+	resp, err := client.SummarizeBatch(
 		SummarizationBatchRequest{
 			Inputs: inputs,
 		},
@@ -103,7 +103,7 @@ func TestSummarization_WithParameters(t *testing.T) {
 	truncation := SummarizationTruncationOnlyFirst
 	input := "The industrial revolution transformed agriculture, manufacturing, mining, and transport, " +
 		"leading to massive social and economic changes across the world."
-	resp, err := client.Summarization().Summarize(
+	resp, err := client.Summarize(
 		SummarizationRequest{
 			Input: input,
 			Parameters: &SummarizationParameters{
@@ -135,7 +135,7 @@ func TestSummarization_ContextCancellation(t *testing.T) {
 		WithContext(ctx),
 	)
 
-	resp, err := client.Summarization().Summarize(
+	resp, err := client.Summarize(
 		SummarizationRequest{
 			Input: "Some text that should be summarized.",
 		},

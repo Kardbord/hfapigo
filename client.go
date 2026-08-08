@@ -122,13 +122,31 @@ func (c Client) FillMaskBatch(req FillMaskBatchRequest, opts ...Option) ([][]Fil
 	return newFillMaskService(c.opts).fillBatch(req, opts...)
 }
 
-// Summarization returns a SummarizationService instance configured with this client's options.
-// The summarization service provides methods for interacting with summarization endpoints.
-// Service configurations are captured at creation time and do not change if the client options change later.
-// Clients are immutable to keep concurrency simple and request behavior predictable.
-// Services are lightweight; prefer to call Summarization() per use instead of retaining the value.
-func (c Client) Summarization() SummarizationService {
-	return newSummarizationService(c.opts)
+// Summarize sends a summarization request and returns the summarization output
+// for a single input.
+//
+// The API always returns a list for summarization; a single input yields a
+// one-element list rather than a bare summary object.
+//
+// For multiple inputs, use SummarizeBatch.
+//
+// The Provider option is ignored for now, as hf-inference is currently the only supported provider.
+func (c Client) Summarize(req SummarizationRequest, opts ...Option) ([]Summarization, error) {
+	return newSummarizationService(c.opts).summarize(req, opts...)
+}
+
+// SummarizeBatch sends a summarization request for a batch of inputs and returns
+// a flat list of summarization outputs, one for each input in the batch, in the
+// same order as the inputs.
+//
+// NOTE: Batched inference is supported by the upstream API, but is not
+// officially documented; behavior may change without notice. The response is
+// a flat list (one summary per input) — not a nested list — consistent with
+// how the API returns a list even for a single input.
+//
+// The Provider option is ignored for now, as hf-inference is currently the only supported provider.
+func (c Client) SummarizeBatch(req SummarizationBatchRequest, opts ...Option) ([]Summarization, error) {
+	return newSummarizationService(c.opts).summarizeBatch(req, opts...)
 }
 
 // Raw returns a RawService instance configured with this client's options.
