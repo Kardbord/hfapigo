@@ -28,7 +28,7 @@ func main() {
 	fmt.Println("...")
 
 	// Make the classification request
-	classifications, err := client.ClassifyText().Classify(
+	classifications, err := client.ClassifyText(
 		hfgo.TextClassificationRequest{
 			Input: input,
 			Parameters: &hfgo.TextClassificationParameters{

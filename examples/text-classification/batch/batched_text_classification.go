@@ -31,7 +31,7 @@ func main() {
 	fmt.Println("...")
 
 	// Make the classification request
-	classifications, err := client.ClassifyText().ClassifyBatch(
+	classifications, err := client.ClassifyTextBatch(
 		hfgo.TextClassificationBatchRequest{
 			Inputs: input,
 			Parameters: &hfgo.TextClassificationParameters{

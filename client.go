@@ -81,13 +81,27 @@ func (c Client) ChatStream(req *ChatRequest, opts ...Option) (*ChatStream, error
 	return newChatService(c.opts).completeStream(req, opts...)
 }
 
-// ClassifyText returns a TextClassificationService instance configured with this client's options.
-// The classification service provides methods for interacting with text classification endpoints.
-// Service configurations are captured at creation time and do not change if the client options change later.
-// Clients are immutable to keep concurrency simple and request behavior predictable.
-// Services are lightweight; prefer to call ClassifyText() per use instead of retaining the value.
-func (c Client) ClassifyText() TextClassificationService {
-	return newTextClassificationService(c.opts)
+// ClassifyText sends a text classification request and returns the text
+// classification response for a single input.
+//
+// For multiple classification inputs, use ClassifyTextBatch.
+//
+// The Provider option is ignored for now, as hf-inference is currently the only supported provider.
+func (c Client) ClassifyText(req TextClassificationRequest, opts ...Option) ([]TextClassification, error) {
+	return newTextClassificationService(c.opts).classify(req, opts...)
+}
+
+// ClassifyTextBatch sends a text classification request for a batch of inputs
+// and returns a list of text classification responses for each input in the batch.
+//
+// NOTE: Batched inference is supported by the upstream API, but is not
+// officially documented; behavior may change without notice.
+//
+// Callers should check the length of the response list before indexing.
+//
+// The Provider option is ignored for now, as hf-inference is currently the only supported provider.
+func (c Client) ClassifyTextBatch(req TextClassificationBatchRequest, opts ...Option) ([][]TextClassification, error) {
+	return newTextClassificationService(c.opts).classifyBatch(req, opts...)
 }
 
 // ZeroShotClassifyText returns a ZeroShotClassificationService instance configured with this client's options.

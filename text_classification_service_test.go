@@ -29,7 +29,7 @@ func TestTextClassificationService_Classify_SingleInput(t *testing.T) {
 		Input: "test text",
 	}
 
-	result, err := svc.Classify(req)
+	result, err := svc.classify(req)
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	require.Len(t, result, 1)
@@ -58,7 +58,7 @@ func TestTextClassificationService_Classify_WithParameters(t *testing.T) {
 		},
 	}
 
-	result, err := svc.Classify(req)
+	result, err := svc.classify(req)
 	require.NoError(t, err)
 	require.NotNil(t, result)
 
@@ -92,7 +92,7 @@ func TestTextClassificationService_Classify_Errors(t *testing.T) {
 			},
 		},
 		func(opts request.Options) ([]TextClassification, error) {
-			return newTextClassificationService(opts).Classify(TextClassificationRequest{
+			return newTextClassificationService(opts).classify(TextClassificationRequest{
 				Input: "test text",
 			})
 		},
@@ -181,7 +181,7 @@ func TestTextClassificationService_ClassifyBatch_ResponseVariations(t *testing.T
 				}
 			}
 
-			result, err := svc.ClassifyBatch(req)
+			result, err := svc.classifyBatch(req)
 			require.NoError(t, err, tc.description)
 			require.NotNil(t, result)
 			require.Len(t, result, tc.expectedOuterLength, tc.description)
@@ -219,7 +219,7 @@ func TestTextClassificationService_ClassifyBatch_NoModel(t *testing.T) {
 		Inputs: []string{"test text"},
 	}
 
-	result, err := svc.ClassifyBatch(req)
+	result, err := svc.classifyBatch(req)
 	require.Error(t, err)
 	require.Nil(t, result)
 	testutils.AssertSDKErrorKind(t, err, hferrors.SDKErrorKindConfiguration)
@@ -246,7 +246,7 @@ func TestTextClassificationService_ClassifyBatch_ModelFromOptions(t *testing.T) 
 		Inputs: []string{"test text"},
 	}
 
-	result, err := svc.ClassifyBatch(req, WithModel("override-model"))
+	result, err := svc.classifyBatch(req, WithModel("override-model"))
 	require.NoError(t, err)
 	require.NotNil(t, result)
 

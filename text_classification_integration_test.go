@@ -29,7 +29,7 @@ func TestTextClassification_LiveAPI(t *testing.T) {
 	)
 
 	const text = "This product is excellent and I love it!"
-	resp, err := client.ClassifyText().Classify(
+	resp, err := client.ClassifyText(
 		TextClassificationRequest{
 			Input: text,
 		},
@@ -68,7 +68,7 @@ func TestTextClassification_BatchLiveAPI(t *testing.T) {
 		"I enjoyed this film, though it had some minor flaws.",
 	}
 
-	resp, err := client.ClassifyText().ClassifyBatch(
+	resp, err := client.ClassifyTextBatch(
 		TextClassificationBatchRequest{
 			Inputs: inputs,
 		},
@@ -110,7 +110,7 @@ func TestTextClassification_WithParameters(t *testing.T) {
 
 	topK := 2
 	function := TextClassificationFuncSoftmax
-	resp, err := client.ClassifyText().Classify(
+	resp, err := client.ClassifyText(
 		TextClassificationRequest{
 			Input: "Excellent product!",
 			Parameters: &TextClassificationParameters{
@@ -154,7 +154,7 @@ func TestTextClassification_ContextCancellation(t *testing.T) {
 		WithContext(ctx),
 	)
 
-	resp, err := client.ClassifyText().Classify(
+	resp, err := client.ClassifyText(
 		TextClassificationRequest{
 			Input: "This is great!",
 		},
@@ -197,7 +197,7 @@ func TestTextClassification_VeryLargeBatch(t *testing.T) {
 		inputs[i] = "This product is " + sentiment + "!"
 	}
 
-	resp, err := client.ClassifyText().ClassifyBatch(
+	resp, err := client.ClassifyTextBatch(
 		TextClassificationBatchRequest{
 			Inputs: inputs,
 		},
@@ -248,7 +248,7 @@ func TestTextClassification_TopKResponseFormatQuirk(t *testing.T) {
 
 	// Test 1: Without TopK (unset) - API returns flat format which the SDK normalizes to per-input format
 	t.Run("without_topk_triggers_normalization", func(t *testing.T) {
-		resp, err := client.ClassifyText().ClassifyBatch(
+		resp, err := client.ClassifyTextBatch(
 			TextClassificationBatchRequest{
 				Inputs: inputs,
 				// TopK is not set (nil)
@@ -277,7 +277,7 @@ func TestTextClassification_TopKResponseFormatQuirk(t *testing.T) {
 	// Test 2: With TopK=1 - API returns per-input format; SDK skips normalization
 	t.Run("with_topk_1_skips_normalization", func(t *testing.T) {
 		topK := 1
-		resp, err := client.ClassifyText().ClassifyBatch(
+		resp, err := client.ClassifyTextBatch(
 			TextClassificationBatchRequest{
 				Inputs: inputs,
 				Parameters: &TextClassificationParameters{
@@ -304,7 +304,7 @@ func TestTextClassification_TopKResponseFormatQuirk(t *testing.T) {
 	// Test 3: With TopK=2 - API returns per-input format with multiple classifications; SDK skips normalization
 	t.Run("with_topk_2_skips_normalization", func(t *testing.T) {
 		topK := 2
-		resp, err := client.ClassifyText().ClassifyBatch(
+		resp, err := client.ClassifyTextBatch(
 			TextClassificationBatchRequest{
 				Inputs: inputs,
 				Parameters: &TextClassificationParameters{
