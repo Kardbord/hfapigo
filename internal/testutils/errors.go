@@ -18,27 +18,6 @@ const (
 	WantErrAPI
 )
 
-// AssertErrorType asserts err is an SDKError of sdkErrKind (when want is
-// WantErrSDK) or an APIError with the given status (when want is WantErrAPI).
-func AssertErrorType(
-	t *testing.T,
-	err error,
-	want WantErr,
-	sdkErrKind hferrors.SDKErrorKind,
-	apiStatus int,
-) {
-	t.Helper()
-
-	switch want {
-	case WantErrSDK:
-		AssertSDKErrorKind(t, err, sdkErrKind)
-	case WantErrAPI:
-		AssertAPIErrorStatus(t, err, apiStatus)
-	default:
-		t.Fatalf("unknown error expectation: %v", want)
-	}
-}
-
 // AssertSDKErrorKind fails the test if err is not an SDKError of the expected kind.
 func AssertSDKErrorKind(t *testing.T, err error, want hferrors.SDKErrorKind) {
 	t.Helper()

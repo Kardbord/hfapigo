@@ -10,6 +10,10 @@ import (
 // configured in opts, returning the typed response. It returns a configuration
 // SDK error when no model is set. task names the inference task in that error
 // message, e.g. "fill mask" or "summarization".
+//
+// It is intended for pointer or slice response types: on the configuration
+// error path it returns the typed zero value of Resp, which is nil for slices
+// and pointers and so also signals "no result" to callers.
 func doModelInference[Req, Resp any](opts request.Options, task string, req Req) (Resp, error) {
 	var zero Resp
 
