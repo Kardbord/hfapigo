@@ -104,13 +104,28 @@ func (c Client) ClassifyTextBatch(req TextClassificationBatchRequest, opts ...Op
 	return newTextClassificationService(c.opts).classifyBatch(req, opts...)
 }
 
-// ZeroShotClassifyText returns a ZeroShotClassificationService instance configured with this client's options.
-// The classification service provides methods for interacting with zero-shot text classification endpoints.
-// Service configurations are captured at creation time and do not change if the client options change later.
-// Clients are immutable to keep concurrency simple and request behavior predictable.
-// Services are lightweight; prefer to call ZeroShotClassifyText() per use instead of retaining the value.
-func (c Client) ZeroShotClassifyText() ZeroShotTextClassificationService {
-	return newZeroShotTextClassificationService(c.opts)
+// ZeroShotClassifyText sends a zero-shot text classification request and
+// returns the zero-shot text classification response for a single input.
+//
+// For multiple inputs, use ZeroShotClassifyTextBatch.
+//
+// The Provider option is ignored for now, as hf-inference is currently the only supported provider.
+func (c Client) ZeroShotClassifyText(req ZeroShotTextClassificationRequest, opts ...Option) ([]ZeroShotTextClassification, error) {
+	return newZeroShotTextClassificationService(c.opts).classify(req, opts...)
+}
+
+// ZeroShotClassifyTextBatch sends a zero-shot text classification request for
+// a batch of inputs and returns a list of zero-shot text classification
+// responses for each input in the batch.
+//
+// NOTE: Batched inference is supported by the upstream API, but is not
+// officially documented; behavior may change without notice.
+//
+// Callers should check the length of the response list before indexing.
+//
+// The Provider option is ignored for now, as hf-inference is currently the only supported provider.
+func (c Client) ZeroShotClassifyTextBatch(req ZeroShotTextClassificationBatchRequest, opts ...Option) ([][]ZeroShotTextClassification, error) {
+	return newZeroShotTextClassificationService(c.opts).classifyBatch(req, opts...)
 }
 
 // FillMask sends a fill mask request and returns the mask filling predictions

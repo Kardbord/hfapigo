@@ -34,7 +34,7 @@ func TestZeroShotTextClassificationService_Classify_SingleInput(t *testing.T) {
 		},
 	}
 
-	result, err := svc.Classify(req)
+	result, err := svc.classify(req)
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	require.Len(t, result, 1)
@@ -84,7 +84,7 @@ func TestZeroShotTextClassificationService_Classify_CandidateLabelValidation(t *
 				WithModel("nonexistent-model")
 			svc := newZeroShotTextClassificationService(opts)
 
-			result, err := svc.Classify(tc.req)
+			result, err := svc.classify(tc.req)
 			testutils.AssertSDKErrorKind(t, err, hferrors.SDKErrorKindConfiguration)
 			require.Nil(t, result, tc.description)
 			require.Nil(
@@ -121,7 +121,7 @@ func TestZeroShotTextClassificationService_Classify_Errors(t *testing.T) {
 		func(opts request.Options) ([]ZeroShotTextClassification, error) {
 			return newZeroShotTextClassificationService(
 				opts,
-			).Classify(ZeroShotTextClassificationRequest{
+			).classify(ZeroShotTextClassificationRequest{
 				Input: "test text",
 				Parameters: &ZeroShotTextClassificationParameters{
 					CandidateLabels: []string{"positive", "negative"},
@@ -192,7 +192,7 @@ func TestZeroShotTextClassificationService_ClassifyBatch_InputVariations(t *test
 				},
 			}
 
-			result, err := svc.ClassifyBatch(req)
+			result, err := svc.classifyBatch(req)
 			require.NoError(t, err, tc.description)
 			require.NotNil(t, result)
 			require.Len(t, result, tc.expectedOuterLength, tc.description)
@@ -254,7 +254,7 @@ func TestZeroShotTextClassificationService_ClassifyBatch_CandidateLabelValidatio
 				WithModel("nonexistent-model")
 			svc := newZeroShotTextClassificationService(opts)
 
-			result, err := svc.ClassifyBatch(tc.req)
+			result, err := svc.classifyBatch(tc.req)
 			testutils.AssertSDKErrorKind(t, err, hferrors.SDKErrorKindConfiguration)
 			require.Nil(t, result, tc.description)
 			require.Nil(
@@ -291,7 +291,7 @@ func TestZeroShotTextClassificationService_ClassifyBatch_Errors(t *testing.T) {
 		func(opts request.Options) ([][]ZeroShotTextClassification, error) {
 			return newZeroShotTextClassificationService(
 				opts,
-			).ClassifyBatch(ZeroShotTextClassificationBatchRequest{
+			).classifyBatch(ZeroShotTextClassificationBatchRequest{
 				Inputs: []string{"test text"},
 				Parameters: &ZeroShotTextClassificationParameters{
 					CandidateLabels: []string{"positive", "negative"},
@@ -323,7 +323,7 @@ func TestZeroShotTextClassificationService_ClassifyBatch_ModelFromOptions(t *tes
 		},
 	}
 
-	result, err := svc.ClassifyBatch(req, WithModel("override-model"))
+	result, err := svc.classifyBatch(req, WithModel("override-model"))
 	require.NoError(t, err)
 	require.NotNil(t, result)
 

@@ -6,26 +6,20 @@ import (
 	"github.com/Kardbord/hfgo/v4/internal/request"
 )
 
-// ZeroShotTextClassificationService implements zero-shot
-// text classification calls using the configured request
-// options.
-type ZeroShotTextClassificationService struct {
+// zeroShotTextClassificationService implements zero-shot text classification
+// calls using the configured request options.
+type zeroShotTextClassificationService struct {
 	opts request.Options
 }
 
-// newZeroShotTextClassificationService builds a ZeroShotTextClassificationService with
-// a snapshot of the provided options.
-func newZeroShotTextClassificationService(opts request.Options) ZeroShotTextClassificationService {
-	return ZeroShotTextClassificationService{opts: opts}
+// newZeroShotTextClassificationService builds a zero-shot text classification service
+// with a snapshot of the provided options.
+func newZeroShotTextClassificationService(opts request.Options) zeroShotTextClassificationService {
+	return zeroShotTextClassificationService{opts: opts}
 }
 
-// Classify sends a zero-shot text classification request and returns a zero-shot
-// text classification response for a single input.
-//
-// For multiple inputs, use ClassifyBatch.
-//
-// The Provider option is ignored for now, as hf-inference is currently the only supported provider.
-func (s ZeroShotTextClassificationService) Classify(
+// classify sends a zero-shot text classification request for a single input and returns the classifications.
+func (s zeroShotTextClassificationService) classify(
 	req ZeroShotTextClassificationRequest,
 	opts ...Option,
 ) ([]ZeroShotTextClassification, error) {
@@ -51,17 +45,9 @@ func (s ZeroShotTextClassificationService) Classify(
 	return resp, nil
 }
 
-// ClassifyBatch sends a zero-shot text classification request for a batch of inputs
-// and returns a list of zero-shot text classification responses for each input in the
-// batch.
-//
-// NOTE: Batched inference is supported by the upstream API, but is not
-// officially documented; behavior may change without notice.
-//
-// Callers should check the length of the response list before indexing.
-//
-// The Provider option is ignored for now, as hf-inference is currently the only supported provider.
-func (s ZeroShotTextClassificationService) ClassifyBatch(
+// classifyBatch sends a zero-shot text classification request for a batch of inputs
+// and returns classifications for each input.
+func (s zeroShotTextClassificationService) classifyBatch(
 	req ZeroShotTextClassificationBatchRequest,
 	opts ...Option,
 ) ([][]ZeroShotTextClassification, error) {

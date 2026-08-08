@@ -38,7 +38,7 @@ func main() {
 	fmt.Println("...")
 
 	// Make the classification request
-	classifications, err := client.ZeroShotClassifyText().ClassifyBatch(
+	classifications, err := client.ZeroShotClassifyTextBatch(
 		hfgo.ZeroShotTextClassificationBatchRequest{
 			Inputs: inputs,
 			Parameters: &hfgo.ZeroShotTextClassificationParameters{
