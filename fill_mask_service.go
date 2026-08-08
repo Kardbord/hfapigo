@@ -4,23 +4,18 @@ import (
 	"github.com/Kardbord/hfgo/v4/internal/request"
 )
 
-// FillMaskService implements fill mask calls using the configured request options.
-type FillMaskService struct {
+// fillMaskService implements fill mask calls using the configured request options.
+type fillMaskService struct {
 	opts request.Options
 }
 
-// newFillMaskService builds a FillMaskService with a snapshot of the provided options.
-func newFillMaskService(opts request.Options) FillMaskService {
-	return FillMaskService{opts: opts}
+// newFillMaskService builds a fill mask service with a snapshot of the provided options.
+func newFillMaskService(opts request.Options) fillMaskService {
+	return fillMaskService{opts: opts}
 }
 
-// Fill sends a fill mask request and returns the mask filling
-// predictions for a single input.
-//
-// For multiple inputs, use FillBatch.
-//
-// The Provider option is ignored for now, as hf-inference is currently the only supported provider.
-func (s FillMaskService) Fill(
+// fill sends a fill mask request for a single input and returns the predictions.
+func (s fillMaskService) fill(
 	req FillMaskRequest,
 	opts ...Option,
 ) ([]FillMaskPrediction, error) {
@@ -31,17 +26,8 @@ func (s FillMaskService) Fill(
 	)
 }
 
-// FillBatch sends a fill mask request for a batch of inputs
-// and returns a list of mask filling predictions for each input in
-// the batch.
-//
-// NOTE: Batched inference is supported by the upstream API, but is not
-// officially documented; behavior may change without notice.
-//
-// Callers should check the length of the response list before indexing.
-//
-// The Provider option is ignored for now, as hf-inference is currently the only supported provider.
-func (s FillMaskService) FillBatch(
+// fillBatch sends a fill mask request for a batch of inputs and returns predictions per input.
+func (s fillMaskService) fillBatch(
 	req FillMaskBatchRequest,
 	opts ...Option,
 ) ([][]FillMaskPrediction, error) {

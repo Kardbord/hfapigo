@@ -28,7 +28,7 @@ func TestFillMask_LiveAPI(t *testing.T) {
 		WithContext(ctx),
 	)
 
-	resp, err := client.FillMask().Fill(
+	resp, err := client.FillMask(
 		FillMaskRequest{
 			Input: "The capital of France is [MASK].",
 		},
@@ -66,7 +66,7 @@ func TestFillMask_WithTopK(t *testing.T) {
 	)
 
 	topK := 3
-	resp, err := client.FillMask().Fill(
+	resp, err := client.FillMask(
 		FillMaskRequest{
 			Input: "The capital of France is [MASK].",
 			Parameters: &FillMaskParameters{
@@ -108,7 +108,7 @@ func TestFillMask_WithTargets(t *testing.T) {
 	)
 
 	targets := []string{"paris", "london"}
-	resp, err := client.FillMask().Fill(
+	resp, err := client.FillMask(
 		FillMaskRequest{
 			Input: "The capital of France is [MASK].",
 			Parameters: &FillMaskParameters{
@@ -150,7 +150,7 @@ func TestFillMask_BatchLiveAPI(t *testing.T) {
 		"The meeting was [MASK] due to the storm.",
 	}
 
-	resp, err := client.FillMask().FillBatch(
+	resp, err := client.FillMaskBatch(
 		FillMaskBatchRequest{
 			Inputs: inputs,
 		},
@@ -189,7 +189,7 @@ func TestFillMask_ContextCancellation(t *testing.T) {
 		WithContext(ctx),
 	)
 
-	resp, err := client.FillMask().Fill(
+	resp, err := client.FillMask(
 		FillMaskRequest{
 			Input: "The capital of France is [MASK].",
 		},
@@ -234,7 +234,7 @@ func TestFillMask_VeryLargeBatch(t *testing.T) {
 		inputs[i] = text
 	}
 
-	resp, err := client.FillMask().FillBatch(
+	resp, err := client.FillMaskBatch(
 		FillMaskBatchRequest{
 			Inputs: inputs,
 		},

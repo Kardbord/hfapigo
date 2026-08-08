@@ -99,13 +99,27 @@ func (c Client) ZeroShotClassifyText() ZeroShotTextClassificationService {
 	return newZeroShotTextClassificationService(c.opts)
 }
 
-// FillMask returns a FillMaskService instance configured with this client's options.
-// The fill mask service provides methods for interacting with fill mask endpoints.
-// Service configurations are captured at creation time and do not change if the client options change later.
-// Clients are immutable to keep concurrency simple and request behavior predictable.
-// Services are lightweight; prefer to call FillMask() per use instead of retaining the value.
-func (c Client) FillMask() FillMaskService {
-	return newFillMaskService(c.opts)
+// FillMask sends a fill mask request and returns the mask filling predictions
+// for a single input.
+//
+// For multiple inputs, use FillMaskBatch.
+//
+// The Provider option is ignored for now, as hf-inference is currently the only supported provider.
+func (c Client) FillMask(req FillMaskRequest, opts ...Option) ([]FillMaskPrediction, error) {
+	return newFillMaskService(c.opts).fill(req, opts...)
+}
+
+// FillMaskBatch sends a fill mask request for a batch of inputs and returns a
+// list of mask filling predictions for each input in the batch.
+//
+// NOTE: Batched inference is supported by the upstream API, but is not
+// officially documented; behavior may change without notice.
+//
+// Callers should check the length of the response list before indexing.
+//
+// The Provider option is ignored for now, as hf-inference is currently the only supported provider.
+func (c Client) FillMaskBatch(req FillMaskBatchRequest, opts ...Option) ([][]FillMaskPrediction, error) {
+	return newFillMaskService(c.opts).fillBatch(req, opts...)
 }
 
 // Summarization returns a SummarizationService instance configured with this client's options.
