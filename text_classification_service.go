@@ -1,8 +1,6 @@
 package hfgo
 
 import (
-	"net/http"
-
 	"github.com/Kardbord/hfgo/v4/internal/request"
 )
 
@@ -30,23 +28,13 @@ func (s TextClassificationService) Classify(
 ) ([]TextClassification, error) {
 	optsOverride := s.opts.With(opts...)
 
-	if optsOverride.Model == "" {
-		return nil, &SDKError{
-			Kind: SDKErrorKindConfiguration,
-			//nolint:goconst // repeated string is incidental
-			Message: "the model option must be set for text classification to succeed",
-			Err:     nil,
-		}
-	}
-
 	// NOTE: The API documentation indicates that this should return an JSON array of
 	// TextClassification objects, but in reality it returns an array of arrays, where
 	// the outer array contains only a single entry (the inner array), and the inner array
 	// contains a list of TextClassification objects.
-	resp, err := request.DoJSON[TextClassificationRequest, [][]TextClassification](
+	resp, err := doModelInference[TextClassificationRequest, [][]TextClassification](
 		optsOverride,
-		http.MethodPost,
-		"hf-inference/models/"+optsOverride.Model,
+		"text classification",
 		req,
 	)
 	if err != nil {
@@ -77,18 +65,9 @@ func (s TextClassificationService) ClassifyBatch(
 ) ([][]TextClassification, error) {
 	optsOverride := s.opts.With(opts...)
 
-	if optsOverride.Model == "" {
-		return nil, &SDKError{
-			Kind:    SDKErrorKindConfiguration,
-			Message: "the model option must be set for text classification to succeed",
-			Err:     nil,
-		}
-	}
-
-	resp, err := request.DoJSON[TextClassificationBatchRequest, [][]TextClassification](
+	resp, err := doModelInference[TextClassificationBatchRequest, [][]TextClassification](
 		optsOverride,
-		http.MethodPost,
-		"hf-inference/models/"+optsOverride.Model,
+		"text classification",
 		req,
 	)
 	if err != nil {

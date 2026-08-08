@@ -59,6 +59,15 @@ func (c Client) FillMask() FillMaskService {
 	return newFillMaskService(c.opts)
 }
 
+// Summarization returns a SummarizationService instance configured with this client's options.
+// The summarization service provides methods for interacting with summarization endpoints.
+// Service configurations are captured at creation time and do not change if the client options change later.
+// Clients are immutable to keep concurrency simple and request behavior predictable.
+// Services are lightweight; prefer to call Summarization() per use instead of retaining the value.
+func (c Client) Summarization() SummarizationService {
+	return newSummarizationService(c.opts)
+}
+
 // Raw returns a RawService instance configured with this client's options.
 // The raw service provides methods for sending raw HTTP requests to any desired endpoint.
 // Service configurations are captured at creation time and do not change if the client options change later.

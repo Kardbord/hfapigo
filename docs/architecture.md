@@ -26,6 +26,7 @@ The SDK follows a strict immutability pattern for concurrency safety:
    - `ChatService`: Chat completion endpoints (Complete, CompleteStream)
    - `TextClassificationService`: Text classification endpoints (Classify, ClassifyBatch)
    - `ZeroShotTextClassificationService`: Zero-shot text classification endpoints (Classify, ClassifyBatch)
+   - `SummarizationService`: Summarization endpoints (Summarize, SummarizeBatch)
    - `RawService`: Raw HTTP request handling (Do, DoRaw, Stream, StreamReader)
 
 3. **Per-Request Options**: Can override client defaults for single calls
@@ -366,9 +367,29 @@ Batch zero-shot text classification for multiple inputs.
 **API Response Normalization**:
 The HuggingFace API returns batched zero-shot results in a different format than single inputs. The service transparently normalizes responses via `normalizeZeroShotTextClassificationResponse()`.
 
+### SummarizationService
+Created via `client.Summarization()`. For text summarization tasks.
+
+#### Summarize(req SummarizationRequest, opts ...Option) ([]Summarization, error)
+Single text summarization.
+
+**Behavior**:
+- Validates that a model is configured
+- Returns SDK error (kind: Configuration) if the model is missing
+- Applies per-request options
+- Returns a flat list of `Summarization` outputs for the single input
+
+#### SummarizeBatch(req SummarizationBatchRequest, opts ...Option) ([]Summarization, error)
+Batch text summarization for multiple inputs.
+
+**Behavior**:
+- Validates that a model is configured
+- Returns SDK error (kind: Configuration) if the model is missing
+- Applies per-request options
+- The API returns a flat list of `Summarization` outputs (one per input, in order) rather than a nested list, consistent with how it returns a list even for a single input
+
 ### RawService
 Created via `client.Raw()`. For raw HTTP requests without type-safe JSON handling.
-
 #### Do(body []byte, method, path string, opts ...Option) (*http.Response, error)
 Raw request with error interpretation on non-2xx responses.
 
