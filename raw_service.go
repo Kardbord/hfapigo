@@ -11,6 +11,15 @@ import (
 )
 
 // RawService sends raw HTTP requests using the configured request options.
+//
+// It is the deliberate exception to the rest of the SDK, where endpoints are
+// exposed as Client methods: RawService is the advanced escape hatch for
+// endpoints the SDK does not model type-safely. It combines several axes
+// (byte-slice or io.Reader bodies, typed error handling or raw HTTP responses,
+// one-shot or SSE streaming) into eight methods, which is enough surface that
+// keeping it namespaced under Client.Raw() avoids cluttering the Client API.
+//
+// RawService is immutable and holds a snapshot of the client options.
 type RawService struct {
 	opts request.Options
 }
