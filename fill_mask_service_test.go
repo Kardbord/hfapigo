@@ -3,8 +3,6 @@
 package hfgo
 
 import (
-	"encoding/json"
-	"io"
 	"net/http"
 	"testing"
 
@@ -130,15 +128,7 @@ func TestFillMaskService_FillMask_WithParameters(t *testing.T) {
 	require.NotNil(t, result)
 
 	// Verify the request was made correctly
-	require.NotNil(t, mt.LastRequest)
-	body, err := io.ReadAll(mt.LastRequest.Body)
-	require.NoError(t, err)
-	_ = mt.LastRequest.Body.Close()
-
-	var reqBody map[string]any
-	err = json.Unmarshal(body, &reqBody)
-	require.NoError(t, err)
-
+	reqBody := testutils.ReadRequestBody(t, mt)
 	params, ok := reqBody["parameters"].(map[string]any)
 	require.True(t, ok, "parameters should be a map")
 	require.InEpsilon(t, float64(5), params["top_k"], 0.001)
@@ -154,68 +144,39 @@ func TestFillMaskService_FillMask_WithParameters(t *testing.T) {
 func TestFillMaskService_FillMask_Errors(t *testing.T) {
 	t.Parallel()
 
-	cases := []struct {
-		name           string
-		withModel      bool
-		httpStatusCode int
-		responseBody   string
-		want           testutils.WantErr
-		sdkErrKind     hferrors.SDKErrorKind
-		description    string
-	}{
-		{
-			name:           "no model configured",
-			withModel:      false,
-			httpStatusCode: http.StatusOK,
-			responseBody:   `[{"sequence":"test","score":0.95,"token":1,"token_str":"test"}]`,
-			want:           testutils.WantErrSDK,
-			sdkErrKind:     hferrors.SDKErrorKindConfiguration,
-			description:    "SDK error when model is missing",
+	runErrorCases(t,
+		[]errorCase{
+			{
+				name:         "no model configured",
+				statusCode:   http.StatusOK,
+				responseBody: `[{"sequence":"test","score":0.95,"token":1,"token_str":"test"}]`,
+				want:         testutils.WantErrSDK,
+				sdkErrKind:   hferrors.SDKErrorKindConfiguration,
+				description:  "SDK error when model is missing",
+			},
+			{
+				name:         "API error on 404",
+				withModel:    true,
+				statusCode:   http.StatusNotFound,
+				responseBody: `{"error":"Model not found"}`,
+				want:         testutils.WantErrAPI,
+				description:  "API error for nonexistent model",
+			},
+			{
+				name:         "API error on 503",
+				withModel:    true,
+				statusCode:   http.StatusServiceUnavailable,
+				responseBody: `{"error":"Model loading"}`,
+				want:         testutils.WantErrAPI,
+				description:  "API error for model not yet loaded",
+			},
 		},
-		{
-			name:           "API error on 404",
-			withModel:      true,
-			httpStatusCode: http.StatusNotFound,
-			responseBody:   `{"error":"Model not found"}`,
-			want:           testutils.WantErrAPI,
-			description:    "API error for nonexistent model",
-		},
-		{
-			name:           "API error on 503",
-			withModel:      true,
-			httpStatusCode: http.StatusServiceUnavailable,
-			responseBody:   `{"error":"Model loading"}`,
-			want:           testutils.WantErrAPI,
-			description:    "API error for model not yet loaded",
-		},
-	}
-
-	for i := range cases {
-		tc := cases[i]
-		t.Run(tc.name, func(t *testing.T) {
-			mt := testutils.NewJSONMockTransport(tc.httpStatusCode, tc.responseBody, nil)
-			opts := request.NewOptions().
-				WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) })
-			if tc.withModel {
-				opts = opts.WithModel("nonexistent-model")
-			}
-			svc := newFillMaskService(opts)
-
-			req := FillMaskRequest{
+		func(opts request.Options) ([]FillMaskPrediction, error) {
+			return newFillMaskService(opts).Fill(FillMaskRequest{
 				Input: "The capital of France is [MASK].",
-			}
-
-			result, err := svc.Fill(req)
-			require.Error(t, err, tc.description)
-			require.Nil(t, result)
-
-			testutils.AssertErrorType(t, err, tc.want, tc.sdkErrKind, tc.httpStatusCode)
-			if tc.want == testutils.WantErrSDK {
-				// SDK config errors short-circuit before any request
-				require.Nil(t, mt.LastRequest)
-			}
-		})
-	}
+			})
+		},
+	)
 }
 
 func TestFillMaskService_FillMaskBatch_ResponseDecoding(t *testing.T) {
@@ -324,68 +285,39 @@ func TestFillMaskService_FillMaskBatch_ResponseDecoding(t *testing.T) {
 func TestFillMaskService_FillMaskBatch_Errors(t *testing.T) {
 	t.Parallel()
 
-	cases := []struct {
-		name           string
-		withModel      bool
-		httpStatusCode int
-		responseBody   string
-		want           testutils.WantErr
-		sdkErrKind     hferrors.SDKErrorKind
-		description    string
-	}{
-		{
-			name:           "no model configured",
-			withModel:      false,
-			httpStatusCode: http.StatusOK,
-			responseBody:   `[[]]`,
-			want:           testutils.WantErrSDK,
-			sdkErrKind:     hferrors.SDKErrorKindConfiguration,
-			description:    "SDK error when model is missing",
+	runErrorCases(t,
+		[]errorCase{
+			{
+				name:         "no model configured",
+				statusCode:   http.StatusOK,
+				responseBody: `[[]]`,
+				want:         testutils.WantErrSDK,
+				sdkErrKind:   hferrors.SDKErrorKindConfiguration,
+				description:  "SDK error when model is missing",
+			},
+			{
+				name:         "API error on 404",
+				withModel:    true,
+				statusCode:   http.StatusNotFound,
+				responseBody: `{"error":"Model not found"}`,
+				want:         testutils.WantErrAPI,
+				description:  "API error for nonexistent model",
+			},
+			{
+				name:         "API error on 503",
+				withModel:    true,
+				statusCode:   http.StatusServiceUnavailable,
+				responseBody: `{"error":"Model loading"}`,
+				want:         testutils.WantErrAPI,
+				description:  "API error for model not yet loaded",
+			},
 		},
-		{
-			name:           "API error on 404",
-			withModel:      true,
-			httpStatusCode: http.StatusNotFound,
-			responseBody:   `{"error":"Model not found"}`,
-			want:           testutils.WantErrAPI,
-			description:    "API error for nonexistent model",
-		},
-		{
-			name:           "API error on 503",
-			withModel:      true,
-			httpStatusCode: http.StatusServiceUnavailable,
-			responseBody:   `{"error":"Model loading"}`,
-			want:           testutils.WantErrAPI,
-			description:    "API error for model not yet loaded",
-		},
-	}
-
-	for i := range cases {
-		tc := cases[i]
-		t.Run(tc.name, func(t *testing.T) {
-			mt := testutils.NewJSONMockTransport(tc.httpStatusCode, tc.responseBody, nil)
-			opts := request.NewOptions().
-				WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) })
-			if tc.withModel {
-				opts = opts.WithModel("nonexistent-model")
-			}
-			svc := newFillMaskService(opts)
-
-			req := FillMaskBatchRequest{
+		func(opts request.Options) ([][]FillMaskPrediction, error) {
+			return newFillMaskService(opts).FillBatch(FillMaskBatchRequest{
 				Inputs: []string{"I [MASK] my dog everyday."},
-			}
-
-			result, err := svc.FillBatch(req)
-			require.Error(t, err, tc.description)
-			require.Nil(t, result)
-
-			testutils.AssertErrorType(t, err, tc.want, tc.sdkErrKind, tc.httpStatusCode)
-			if tc.want == testutils.WantErrSDK {
-				// SDK config errors short-circuit before any request
-				require.Nil(t, mt.LastRequest)
-			}
-		})
-	}
+			})
+		},
+	)
 }
 
 func TestFillMaskService_FillMaskBatch_ModelFromOptions(t *testing.T) {
@@ -413,14 +345,7 @@ func TestFillMaskService_FillMaskBatch_ModelFromOptions(t *testing.T) {
 	require.Contains(t, mt.LastRequest.URL.Path, "override-model")
 
 	// Verify the batch request body marshals "inputs" as a JSON array
-	body, err := io.ReadAll(mt.LastRequest.Body)
-	require.NoError(t, err)
-	_ = mt.LastRequest.Body.Close()
-
-	var reqBody map[string]any
-	err = json.Unmarshal(body, &reqBody)
-	require.NoError(t, err)
-
+	reqBody := testutils.ReadRequestBody(t, mt)
 	inputs, ok := reqBody["inputs"].([]any)
 	require.True(t, ok, "inputs should be an array for batched requests")
 	require.Len(t, inputs, 1)

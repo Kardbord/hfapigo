@@ -2,7 +2,6 @@ package hfgo
 
 import (
 	"fmt"
-	"net/http"
 
 	"github.com/Kardbord/hfgo/v4/internal/request"
 )
@@ -32,15 +31,6 @@ func (s ZeroShotTextClassificationService) Classify(
 ) ([]ZeroShotTextClassification, error) {
 	optsOverride := s.opts.With(opts...)
 
-	if optsOverride.Model == "" {
-		return nil, &SDKError{
-			Kind: SDKErrorKindConfiguration,
-			//nolint:goconst // repeated string is incidental
-			Message: "the model option must be set for text classification to succeed",
-			Err:     nil,
-		}
-	}
-
 	if req.Parameters == nil || len(req.Parameters.CandidateLabels) == 0 {
 		return nil, &SDKError{
 			Kind:    SDKErrorKindConfiguration,
@@ -49,10 +39,9 @@ func (s ZeroShotTextClassificationService) Classify(
 		}
 	}
 
-	resp, err := request.DoJSON[ZeroShotTextClassificationRequest, []ZeroShotTextClassification](
+	resp, err := doModelInference[ZeroShotTextClassificationRequest, []ZeroShotTextClassification](
 		optsOverride,
-		http.MethodPost,
-		"hf-inference/models/"+optsOverride.Model,
+		"zero-shot text classification",
 		req,
 	)
 	if err != nil {
@@ -78,14 +67,6 @@ func (s ZeroShotTextClassificationService) ClassifyBatch(
 ) ([][]ZeroShotTextClassification, error) {
 	optsOverride := s.opts.With(opts...)
 
-	if optsOverride.Model == "" {
-		return nil, &SDKError{
-			Kind:    SDKErrorKindConfiguration,
-			Message: "the model option must be set for text classification to succeed",
-			Err:     nil,
-		}
-	}
-
 	if req.Parameters == nil || len(req.Parameters.CandidateLabels) == 0 {
 		return nil, &SDKError{
 			Kind:    SDKErrorKindConfiguration,
@@ -94,10 +75,9 @@ func (s ZeroShotTextClassificationService) ClassifyBatch(
 		}
 	}
 
-	resp, err := request.DoJSON[ZeroShotTextClassificationBatchRequest, []zeroShotTextClassificationBatched](
+	resp, err := doModelInference[ZeroShotTextClassificationBatchRequest, []zeroShotTextClassificationBatched](
 		optsOverride,
-		http.MethodPost,
-		"hf-inference/models/"+optsOverride.Model,
+		"zero-shot text classification",
 		req,
 	)
 	if err != nil {

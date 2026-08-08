@@ -1,8 +1,6 @@
 package hfgo
 
 import (
-	"net/http"
-
 	"github.com/Kardbord/hfgo/v4/internal/request"
 )
 
@@ -26,27 +24,11 @@ func (s FillMaskService) Fill(
 	req FillMaskRequest,
 	opts ...Option,
 ) ([]FillMaskPrediction, error) {
-	optsOverride := s.opts.With(opts...)
-
-	if optsOverride.Model == "" {
-		return nil, &SDKError{
-			Kind:    SDKErrorKindConfiguration,
-			Message: "the model option must be set for the fill mask request to succeed",
-			Err:     nil,
-		}
-	}
-
-	resp, err := request.DoJSON[FillMaskRequest, []FillMaskPrediction](
-		optsOverride,
-		http.MethodPost,
-		"hf-inference/models/"+optsOverride.Model,
+	return doModelInference[FillMaskRequest, []FillMaskPrediction](
+		s.opts.With(opts...),
+		"fill mask",
 		req,
 	)
-	if err != nil {
-		return nil, err
-	}
-
-	return resp, nil
 }
 
 // FillBatch sends a fill mask request for a batch of inputs
@@ -63,25 +45,9 @@ func (s FillMaskService) FillBatch(
 	req FillMaskBatchRequest,
 	opts ...Option,
 ) ([][]FillMaskPrediction, error) {
-	optsOverride := s.opts.With(opts...)
-
-	if optsOverride.Model == "" {
-		return nil, &SDKError{
-			Kind:    SDKErrorKindConfiguration,
-			Message: "the model option must be set for the fill mask request to succeed",
-			Err:     nil,
-		}
-	}
-
-	resp, err := request.DoJSON[FillMaskBatchRequest, [][]FillMaskPrediction](
-		optsOverride,
-		http.MethodPost,
-		"hf-inference/models/"+optsOverride.Model,
+	return doModelInference[FillMaskBatchRequest, [][]FillMaskPrediction](
+		s.opts.With(opts...),
+		"fill mask",
 		req,
 	)
-	if err != nil {
-		return nil, err
-	}
-
-	return resp, nil
 }
