@@ -3,8 +3,6 @@
 package hfgo
 
 import (
-	"encoding/json"
-	"io"
 	"net/http"
 	"testing"
 
@@ -130,15 +128,7 @@ func TestFillMaskService_FillMask_WithParameters(t *testing.T) {
 	require.NotNil(t, result)
 
 	// Verify the request was made correctly
-	require.NotNil(t, mt.LastRequest)
-	body, err := io.ReadAll(mt.LastRequest.Body)
-	require.NoError(t, err)
-	_ = mt.LastRequest.Body.Close()
-
-	var reqBody map[string]any
-	err = json.Unmarshal(body, &reqBody)
-	require.NoError(t, err)
-
+	reqBody := testutils.ReadRequestBody(t, mt)
 	params, ok := reqBody["parameters"].(map[string]any)
 	require.True(t, ok, "parameters should be a map")
 	require.InEpsilon(t, float64(5), params["top_k"], 0.001)
@@ -355,14 +345,7 @@ func TestFillMaskService_FillMaskBatch_ModelFromOptions(t *testing.T) {
 	require.Contains(t, mt.LastRequest.URL.Path, "override-model")
 
 	// Verify the batch request body marshals "inputs" as a JSON array
-	body, err := io.ReadAll(mt.LastRequest.Body)
-	require.NoError(t, err)
-	_ = mt.LastRequest.Body.Close()
-
-	var reqBody map[string]any
-	err = json.Unmarshal(body, &reqBody)
-	require.NoError(t, err)
-
+	reqBody := testutils.ReadRequestBody(t, mt)
 	inputs, ok := reqBody["inputs"].([]any)
 	require.True(t, ok, "inputs should be an array for batched requests")
 	require.Len(t, inputs, 1)

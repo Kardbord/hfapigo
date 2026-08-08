@@ -3,8 +3,6 @@
 package hfgo
 
 import (
-	"encoding/json"
-	"io"
 	"net/http"
 	"testing"
 
@@ -13,22 +11,6 @@ import (
 	"github.com/Kardbord/hfgo/v4/internal/testutils"
 	"github.com/stretchr/testify/require"
 )
-
-// readRequestBody reads the last captured request body from the mock transport,
-// parses it as JSON, and returns the result. It fails the test on any error.
-func readRequestBody(t *testing.T, mt *testutils.MockTransport) map[string]any {
-	t.Helper()
-
-	require.NotNil(t, mt.LastRequest)
-	body, err := io.ReadAll(mt.LastRequest.Body)
-	require.NoError(t, err)
-	_ = mt.LastRequest.Body.Close()
-
-	var reqBody map[string]any
-	require.NoError(t, json.Unmarshal(body, &reqBody))
-
-	return reqBody
-}
 
 func TestSummarizationService_Summarize_ResponseVariations(t *testing.T) {
 	t.Parallel()
@@ -179,7 +161,7 @@ func TestSummarizationService_Summarize_ParameterSerialization(t *testing.T) {
 			require.NoError(t, err, tc.description)
 			require.NotNil(t, result, tc.description)
 
-			reqBody := readRequestBody(t, mt)
+			reqBody := testutils.ReadRequestBody(t, mt)
 			if tc.want == nil {
 				_, ok := reqBody["parameters"]
 				require.False(t, ok, tc.description)

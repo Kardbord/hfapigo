@@ -4,7 +4,6 @@ package hfgo
 
 import (
 	"context"
-	"encoding/json"
 	"io"
 	"net/http"
 	"strings"
@@ -76,12 +75,7 @@ func TestChatService_Complete_ModelSelection(t *testing.T) {
 			require.NotNil(t, mt.LastRequest)
 			require.Equal(t, EndpointChatCompletion, mt.LastRequest.URL.Path)
 
-			body, err := io.ReadAll(mt.LastRequest.Body)
-			require.NoError(t, err)
-			_ = mt.LastRequest.Body.Close()
-
-			var got map[string]any
-			require.NoError(t, json.Unmarshal(body, &got))
+			got := testutils.ReadRequestBody(t, mt)
 			require.Equal(t, tc.wantModel, got["model"])
 
 			if tc.reqModel == nil {
@@ -187,10 +181,7 @@ func TestChatService_CompleteStream_Success(t *testing.T) {
 	require.ErrorIs(t, err, io.EOF)
 
 	require.NotNil(t, mt.LastRequest)
-	bodyBytes, err := io.ReadAll(mt.LastRequest.Body)
-	require.NoError(t, err)
-	var payload map[string]any
-	require.NoError(t, json.Unmarshal(bodyBytes, &payload))
+	payload := testutils.ReadRequestBody(t, mt)
 	require.Equal(t, true, payload["stream"])
 	require.Equal(t, "default-model", payload["model"])
 }
@@ -721,12 +712,7 @@ func TestChatService_ProviderFallback(t *testing.T) {
 		require.NotNil(t, mt.LastRequest)
 		require.Equal(t, EndpointChatCompletion, mt.LastRequest.URL.Path)
 
-		body, err := io.ReadAll(mt.LastRequest.Body)
-		require.NoError(t, err)
-		_ = mt.LastRequest.Body.Close()
-
-		var got map[string]any
-		require.NoError(t, json.Unmarshal(body, &got))
+		got := testutils.ReadRequestBody(t, mt)
 		require.Equal(t, tc.wantModel, got["model"], tc.description)
 	}
 

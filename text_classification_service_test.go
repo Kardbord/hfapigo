@@ -3,8 +3,6 @@
 package hfgo
 
 import (
-	"encoding/json"
-	"io"
 	"net/http"
 	"testing"
 
@@ -65,15 +63,7 @@ func TestTextClassificationService_Classify_WithParameters(t *testing.T) {
 	require.NotNil(t, result)
 
 	// Verify the request was made correctly
-	require.NotNil(t, mt.LastRequest)
-	body, err := io.ReadAll(mt.LastRequest.Body)
-	require.NoError(t, err)
-	_ = mt.LastRequest.Body.Close()
-
-	var reqBody map[string]any
-	err = json.Unmarshal(body, &reqBody)
-	require.NoError(t, err)
-
+	reqBody := testutils.ReadRequestBody(t, mt)
 	params, ok := reqBody["parameters"].(map[string]any)
 	require.True(t, ok, "parameters should be a map")
 	require.InEpsilon(t, float64(2), params["top_k"], 0.001)
