@@ -7,6 +7,7 @@ import (
 	"github.com/Kardbord/hfgo/v4/internal/hferrors"
 	"github.com/Kardbord/hfgo/v4/internal/request"
 	"github.com/Kardbord/hfgo/v4/internal/testutils"
+	"github.com/stretchr/testify/require"
 )
 
 // errorCase describes a single expected-error scenario for a service call.
@@ -33,6 +34,7 @@ type errorCase struct {
 // model set only when withModel is true), invokes run, and verifies that:
 //
 //   - an error is returned,
+//   - the result is nil,
 //   - it is of the expected type (SDKError kind or APIError status), and
 //   - SDK configuration errors make no request.
 //
@@ -60,6 +62,7 @@ func runErrorCases[Res any](
 			if err == nil {
 				t.Fatalf("expected an error: %s", tc.description)
 			}
+			require.Nil(t, result, tc.description)
 
 			if tc.want == testutils.WantErrSDK {
 				testutils.AssertSDKErrorKind(t, err, tc.sdkErrKind)
@@ -69,8 +72,6 @@ func runErrorCases[Res any](
 			} else {
 				testutils.AssertAPIErrorStatus(t, err, tc.statusCode)
 			}
-
-			_ = result
 		})
 	}
 }

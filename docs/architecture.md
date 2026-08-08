@@ -390,6 +390,7 @@ Batch text summarization for multiple inputs.
 
 ### RawService
 Created via `client.Raw()`. For raw HTTP requests without type-safe JSON handling.
+
 #### Do(body []byte, method, path string, opts ...Option) (*http.Response, error)
 Raw request with error interpretation on non-2xx responses.
 
