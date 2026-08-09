@@ -30,7 +30,7 @@ func main() {
 	PrintJSON(inputs)
 	fmt.Println("...")
 
-	// Make the batched translation request with source and target languages
+	// Make the batched translation request
 	translations, err := client.TranslateBatch(
 		hfgo.TranslationBatchRequest{
 			Inputs: inputs,
