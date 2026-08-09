@@ -11,18 +11,17 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestSummarizationService_Summarize_ResponseVariations(t *testing.T) {
+func TestTranslationService_Translate_ResponseVariations(t *testing.T) {
 	t.Parallel()
 
-	runSingleResponseVariations(
-		t,
+	runSingleResponseVariations(t,
 		[]singleResponseVariationCase{
 			{
-				name:         "single summary",
-				responseBody: `[{"summary_text":"A concise summary."}]`,
+				name:         "single translation",
+				responseBody: `[{"translation_text":"Bonjour, comment allez-vous aujourd'hui ?"}]`,
 				wantLen:      1,
-				wantText:     "A concise summary.",
-				description:  "a single summary is returned",
+				wantText:     "Bonjour, comment allez-vous aujourd'hui ?",
+				description:  "a single translation is returned",
 			},
 			{
 				name:         "empty response",
@@ -31,25 +30,27 @@ func TestSummarizationService_Summarize_ResponseVariations(t *testing.T) {
 				description:  "empty response passes through as an empty list",
 			},
 			{
-				name:         "multiple summaries",
-				responseBody: `[{"summary_text":"One."},{"summary_text":"Two."}]`,
+				name:         "multiple translations",
+				responseBody: `[{"translation_text":"Un."},{"translation_text":"Deux."}]`,
 				wantLen:      2,
-				wantText:     "One.",
-				description:  "multiple summaries in one response pass through",
+				wantText:     "Un.",
+				description:  "multiple translations in one response pass through",
 			},
 		},
-		func() SummarizationRequest { return SummarizationRequest{Input: "Some long text."} },
-		func(c Client, req SummarizationRequest) ([]Summarization, error) { return c.Summarize(req) },
-		func(s Summarization) string { return s.SummaryText },
+		func() TranslationRequest { return TranslationRequest{Input: "Hello, how are you?"} },
+		func(c Client, req TranslationRequest) ([]Translation, error) { return c.Translate(req) },
+		func(tr Translation) string { return tr.TranslationText },
 	)
 }
 
-func TestSummarizationService_Summarize_ParameterSerialization(t *testing.T) {
+func TestTranslationService_Translate_ParameterSerialization(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
 		name        string
 		cleanUp     *bool
+		srcLang     *string
+		tgtLang     *string
 		truncation  *string
 		generate    map[string]any
 		want        map[string]any
@@ -66,27 +67,39 @@ func TestSummarizationService_Summarize_ParameterSerialization(t *testing.T) {
 			description: "clean_up_tokenization_spaces maps to its JSON key",
 		},
 		{
+			name:        "source language",
+			srcLang:     testutils.Ptr("en"),
+			want:        map[string]any{"src_lang": "en"},
+			description: "src_lang maps to its JSON key",
+		},
+		{
+			name:        "target language",
+			tgtLang:     testutils.Ptr("fr"),
+			want:        map[string]any{"tgt_lang": "fr"},
+			description: "tgt_lang maps to its JSON key",
+		},
+		{
 			name:        "truncation do_not_truncate",
-			truncation:  testutils.Ptr(SummarizationTruncationDoNotTruncate),
-			want:        map[string]any{"truncation": SummarizationTruncationDoNotTruncate},
+			truncation:  testutils.Ptr(TranslationTruncationDoNotTruncate),
+			want:        map[string]any{"truncation": TranslationTruncationDoNotTruncate},
 			description: "do_not_truncate constant serializes correctly",
 		},
 		{
 			name:        "truncation longest_first",
-			truncation:  testutils.Ptr(SummarizationTruncationLongestFirst),
-			want:        map[string]any{"truncation": SummarizationTruncationLongestFirst},
+			truncation:  testutils.Ptr(TranslationTruncationLongestFirst),
+			want:        map[string]any{"truncation": TranslationTruncationLongestFirst},
 			description: "longest_first constant serializes correctly",
 		},
 		{
 			name:        "truncation only_first",
-			truncation:  testutils.Ptr(SummarizationTruncationOnlyFirst),
-			want:        map[string]any{"truncation": SummarizationTruncationOnlyFirst},
+			truncation:  testutils.Ptr(TranslationTruncationOnlyFirst),
+			want:        map[string]any{"truncation": TranslationTruncationOnlyFirst},
 			description: "only_first constant serializes correctly",
 		},
 		{
 			name:        "truncation only_second",
-			truncation:  testutils.Ptr(SummarizationTruncationOnlySecond),
-			want:        map[string]any{"truncation": SummarizationTruncationOnlySecond},
+			truncation:  testutils.Ptr(TranslationTruncationOnlySecond),
+			want:        map[string]any{"truncation": TranslationTruncationOnlySecond},
 			description: "only_second constant serializes correctly",
 		},
 		{
@@ -103,11 +116,15 @@ func TestSummarizationService_Summarize_ParameterSerialization(t *testing.T) {
 		{
 			name:       "all parameters",
 			cleanUp:    testutils.Ptr(true),
-			truncation: testutils.Ptr(SummarizationTruncationOnlyFirst),
+			srcLang:    testutils.Ptr("en"),
+			tgtLang:    testutils.Ptr("de"),
+			truncation: testutils.Ptr(TranslationTruncationOnlyFirst),
 			generate:   map[string]any{"max_new_tokens": 60},
 			want: map[string]any{
 				"clean_up_tokenization_spaces": true,
-				"truncation":                   SummarizationTruncationOnlyFirst,
+				"src_lang":                     "en",
+				"tgt_lang":                     "de",
+				"truncation":                   TranslationTruncationOnlyFirst,
 				"generate_parameters":          map[string]any{"max_new_tokens": float64(60)},
 			},
 			description: "all parameters serialize together",
@@ -119,7 +136,7 @@ func TestSummarizationService_Summarize_ParameterSerialization(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mt := testutils.NewJSONMockTransport(
 				http.StatusOK,
-				`[{"summary_text":"A concise summary."}]`,
+				`[{"translation_text":"Test translation."}]`,
 				nil,
 			)
 			client := NewClient(
@@ -129,16 +146,19 @@ func TestSummarizationService_Summarize_ParameterSerialization(t *testing.T) {
 				WithModel("test-model"),
 			)
 
-			req := SummarizationRequest{Input: "Some long text."}
-			if tc.cleanUp != nil || tc.truncation != nil || tc.generate != nil {
-				req.Parameters = &SummarizationParameters{
+			req := TranslationRequest{Input: "Hello, how are you?"}
+			if tc.cleanUp != nil || tc.srcLang != nil || tc.tgtLang != nil ||
+				tc.truncation != nil || tc.generate != nil {
+				req.Parameters = &TranslationParameters{
 					CleanUpTokenizationSpaces: tc.cleanUp,
+					SrcLang:                   tc.srcLang,
+					TgtLang:                   tc.tgtLang,
 					Truncation:                tc.truncation,
 					GenerateParameters:        tc.generate,
 				}
 			}
 
-			result, err := client.Summarize(req)
+			result, err := client.Translate(req)
 			require.NoError(t, err, tc.description)
 			require.NotNil(t, result, tc.description)
 
@@ -155,7 +175,7 @@ func TestSummarizationService_Summarize_ParameterSerialization(t *testing.T) {
 	}
 }
 
-func TestSummarizationService_Summarize_Errors(t *testing.T) {
+func TestTranslationService_Translate_Errors(t *testing.T) {
 	t.Parallel()
 
 	runErrorCases(t,
@@ -163,7 +183,7 @@ func TestSummarizationService_Summarize_Errors(t *testing.T) {
 			{
 				name:         "no model configured",
 				statusCode:   http.StatusOK,
-				responseBody: `[{"summary_text":"A concise summary."}]`,
+				responseBody: `[{"translation_text":"Test translation."}]`,
 				want:         testutils.WantErrSDK,
 				sdkErrKind:   hferrors.SDKErrorKindConfiguration,
 				description:  "SDK error when model is missing",
@@ -177,15 +197,15 @@ func TestSummarizationService_Summarize_Errors(t *testing.T) {
 				description:  "API error for nonexistent model",
 			},
 		},
-		func(opts ...Option) ([]Summarization, error) {
-			return NewClient(opts...).Summarize(SummarizationRequest{
-				Input: "Some long text that should be summarized.",
+		func(opts ...Option) ([]Translation, error) {
+			return NewClient(opts...).Translate(TranslationRequest{
+				Input: "Hello, how are you?",
 			})
 		},
 	)
 }
 
-func TestSummarizationService_SummarizeBatch_ResponseVariations(t *testing.T) {
+func TestTranslationService_TranslateBatch_ResponseVariations(t *testing.T) {
 	t.Parallel()
 
 	runBatchResponseVariations(
@@ -193,15 +213,15 @@ func TestSummarizationService_SummarizeBatch_ResponseVariations(t *testing.T) {
 		[]batchResponseVariationCase{
 			{
 				name:         "single input",
-				responseBody: `[{"summary_text":"Summary one."}]`,
-				want:         []string{"Summary one."},
-				description:  "a single batched input returns one summary",
+				responseBody: `[{"translation_text":"Bonjour."}]`,
+				want:         []string{"Bonjour."},
+				description:  "a single batched input returns one translation",
 			},
 			{
 				name:         "multiple inputs",
-				responseBody: `[{"summary_text":"Summary one."},{"summary_text":"Summary two."}]`,
-				want:         []string{"Summary one.", "Summary two."},
-				description:  "each batched input returns its own flat summary",
+				responseBody: `[{"translation_text":"Bonjour."},{"translation_text":"À demain."}]`,
+				want:         []string{"Bonjour.", "À demain."},
+				description:  "each batched input returns its own flat translation",
 			},
 			{
 				name:         "empty response",
@@ -210,15 +230,15 @@ func TestSummarizationService_SummarizeBatch_ResponseVariations(t *testing.T) {
 				description:  "empty response passes through as an empty list",
 			},
 		},
-		func() SummarizationBatchRequest {
-			return SummarizationBatchRequest{Inputs: []string{"Long text one.", "Long text two."}}
+		func() TranslationBatchRequest {
+			return TranslationBatchRequest{Inputs: []string{"Hello.", "See you tomorrow."}}
 		},
-		func(c Client, req SummarizationBatchRequest) ([]Summarization, error) { return c.SummarizeBatch(req) },
-		func(s Summarization) string { return s.SummaryText },
+		func(c Client, req TranslationBatchRequest) ([]Translation, error) { return c.TranslateBatch(req) },
+		func(tr Translation) string { return tr.TranslationText },
 	)
 }
 
-func TestSummarizationService_SummarizeBatch_Errors(t *testing.T) {
+func TestTranslationService_TranslateBatch_Errors(t *testing.T) {
 	t.Parallel()
 
 	runErrorCases(t,
@@ -226,7 +246,7 @@ func TestSummarizationService_SummarizeBatch_Errors(t *testing.T) {
 			{
 				name:         "no model configured",
 				statusCode:   http.StatusOK,
-				responseBody: `[{"summary_text":"Summary one."}]`,
+				responseBody: `[{"translation_text":"Bonjour."}]`,
 				want:         testutils.WantErrSDK,
 				sdkErrKind:   hferrors.SDKErrorKindConfiguration,
 				description:  "SDK error when model is missing",
@@ -240,28 +260,28 @@ func TestSummarizationService_SummarizeBatch_Errors(t *testing.T) {
 				description:  "API error for nonexistent model",
 			},
 		},
-		func(opts ...Option) ([]Summarization, error) {
-			return NewClient(opts...).SummarizeBatch(SummarizationBatchRequest{
-				Inputs: []string{"Long text one."},
+		func(opts ...Option) ([]Translation, error) {
+			return NewClient(opts...).TranslateBatch(TranslationBatchRequest{
+				Inputs: []string{"Hello."},
 			})
 		},
 	)
 }
 
-func TestSummarizationService_SummarizeBatch_ModelFromOptions(t *testing.T) {
+func TestTranslationService_TranslateBatch_ModelFromOptions(t *testing.T) {
 	t.Parallel()
 
 	mt := testutils.NewJSONMockTransport(
 		http.StatusOK,
-		`[{"summary_text":"Summary one."}]`,
+		`[{"translation_text":"Bonjour."}]`,
 		nil,
 	)
 	client := NewClient(
 		WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }),
 	)
 
-	result, err := client.SummarizeBatch(SummarizationBatchRequest{
-		Inputs: []string{"Long text one."},
+	result, err := client.TranslateBatch(TranslationBatchRequest{
+		Inputs: []string{"Hello."},
 	}, WithModel("override-model"))
 	require.NoError(t, err)
 	require.NotNil(t, result)

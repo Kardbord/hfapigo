@@ -10,6 +10,11 @@ post {
   auth: inherit
 }
 
+headers {
+  Accept: text/event-stream
+  Content-Type: application/json
+}
+
 body:json {
   {
     "model": "{{model_chat_completion}}",

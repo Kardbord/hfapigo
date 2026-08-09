@@ -10,6 +10,11 @@ post {
   auth: inherit
 }
 
+headers {
+  Accept: application/json
+  Content-Type: application/json
+}
+
 body:json {
   {
     "inputs": "The weather is lovely and sunny today.",
@@ -17,10 +22,7 @@ body:json {
       "src_lang": "en",
       "tgt_lang": "de",
       "clean_up_tokenization_spaces": true,
-      "truncation": "only_first",
-      "generate_parameters": {
-        "max_new_tokens": 60
-      }
+      "truncation": "only_first"
     }
   }
 }

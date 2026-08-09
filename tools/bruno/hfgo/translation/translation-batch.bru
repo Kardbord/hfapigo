@@ -10,6 +10,11 @@ post {
   auth: inherit
 }
 
+headers {
+  Accept: application/json
+  Content-Type: application/json
+}
+
 body:json {
   {
     "inputs": [
@@ -18,7 +23,7 @@ body:json {
     ],
     "parameters": {
       "src_lang": "en",
-      "tgt_lang": "es"
+      "tgt_lang": "de"
     }
   }
 }
