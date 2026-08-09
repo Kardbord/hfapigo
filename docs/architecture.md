@@ -63,17 +63,18 @@ The SDK achieves concurrency safety through immutability:
 
 **Example**:
 ```go
-// Safe: Single client used by multiple goroutines
+// Safe: Single immutable client used by multiple goroutines
 client := NewClient(WithToken(token), WithModel("mistral-7b"))
 
-// Each goroutine can safely call methods
+// Each goroutine passes its OWN defensive copy of the request, so the shared
+// template is only ever read — never mutated while another call is in flight.
 go func() {
-    resp, err := client.Chat(req)
+    resp, err := client.Chat(req.Clone())
     // ...
 }()
 
 go func() {
-    stream, err := client.ChatStream(req)
+    stream, err := client.ChatStream(req.Clone())
     // ...
 }()
 ```
@@ -149,14 +150,14 @@ client := NewClient(WithModel("default-model"))
 
 // Request-level override: "request-model"
 response, err := client.Chat(
-    &ChatRequest{Messages: msgs},
+    ChatRequest{Messages: msgs},
     WithModel("request-model"),
 )
 // Result: Uses "request-model"
 
 // Request structure field: "structure-model"
 response, err := client.Chat(
-    &ChatRequest{
+    ChatRequest{
         Model: ptr("structure-model"),
         Messages: msgs,
     },
@@ -299,8 +300,14 @@ exception and is documented separately.
 
 ### Chat
 
-#### Chat(req *ChatRequest, opts ...Option) (ChatResponse, error)
+#### Chat(req ChatRequest, opts ...Option) (ChatResponse, error)
 Non-streaming chat completion.
+
+**Concurrency and request mutation**:
+- The request is passed **by value**; the SDK never mutates the caller's payload.
+- The value copy shares nested data (slices, maps, pointed-to values) with the caller, so the request and the data it references must be treated as **read-only while a call is in flight**.
+- Sequential, fully-awaited reuse of one request is safe and requires no cloning.
+- For concurrent invocation, pass a defensive copy per call: `go client.Chat(req.Clone(), ...)`, or build a fresh request per call.
 
 **Model and Provider Precedence**:
 The Model field is resolved with the following precedence (highest to lowest):
@@ -311,18 +318,23 @@ The Model field is resolved with the following precedence (highest to lowest):
 The Provider field is applied as a fallback only if the resolved Model does not already contain a provider (indicated by ":" in the model string). If the Model is in the format "model:provider", the Provider option is ignored.
 
 **Behavior**:
-- Validates request is not nil
+- Returns `SDKError` (kind: Configuration) if the request is missing a model or messages (zero-value request)
 - Applies per-request options to override client defaults
 - Rejects requests with Stream=true (use ChatStream instead)
 - Normalizes model and provider fields
 - Returns `ChatResponse` with all choices and usage stats
 - Returns `SDKError` (kind: Configuration) for invalid requests
 
-#### ChatStream(req *ChatRequest, opts ...Option) (*ChatStream, error)
+#### ChatStream(req ChatRequest, opts ...Option) (*ChatStream, error)
 Streaming chat completion using SSE.
 
+**Concurrency and request mutation**:
+- The request is passed **by value**; the SDK never mutates the caller's payload.
+- The request is fully consumed before the stream is returned, so the same sequential-reuse rules as `Chat` apply.
+- For concurrent invocation, pass a defensive copy per call: `go client.ChatStream(req.Clone(), ...)`, or build a fresh request per call.
+
 **Behavior**:
-- Validates request is not nil
+- Returns `SDKError` (kind: Configuration) if the request is missing a model or messages (zero-value request)
 - Applies per-request options
 - Always sends the request with streaming enabled
 - Normalizes model and provider fields
@@ -494,9 +506,29 @@ go test -coverprofile=coverage.out -covermode=atomic ./...
 - Use helper methods on APIError
 - Always close Body on APIError
 
-### 3. Request Mutation Safety
-- Do not mutate ChatRequest after passing it to Chat or ChatStream
-- For concurrent requests, create a new ChatRequest for each call
+### 3. Concurrency & Request Safety
+
+Request DTOs (e.g. `ChatRequest`) are passed to Client methods **by value**, and the SDK only ever mutates its own internal copy. This is the entire guarantee.
+
+**What the SDK guarantees**:
+- The SDK never mutates the request payload you pass in.
+- A single immutable Client is safe for concurrent use.
+
+**What the SDK does *not* guarantee, and why**:
+- Because the value copy shares the request's nested data by reference (slices, maps, and pointed-to values), the SDK cannot prevent a caller from racing against an in-flight call by mutating that nested data.
+- Go offers libraries no way to intercept ordinary field reads/writes on a plain struct, and retrofitting synchronization (mutexes, atomics, getters/setters) would make the DTOs non-copyable — destroying the value-copy semantics the whole SDK is built on. Preventing caller-authored races is therefore **structurally impossible** from inside the SDK; it is a caller responsibility.
+
+**Safe usage patterns**:
+1. **Read-only request**: Treat the request and the data it references as read-only while a call is in flight. Sequential, fully-awaited reuse is safe and needs no cloning.
+2. **Defensive copy for concurrency**: Invoke with a per-call deep copy so each goroutine owns its request:
+   ```go
+   go client.Chat(req.Clone(), ...)      // each goroutine passes its own copy
+   go client.ChatStream(req.Clone(), ...)
+   ```
+   `Clone()` is a **deep** copy: every slice gets new backing storage and every pointer a new pointee, so a clone shares nothing with its source. Exception: the value of an entry in `SummarizationParameters.GenerateParameters` (`map[string]any`) is shared, because its type is not known statically.
+3. **No reuse**: Simply build a fresh request per call or per goroutine and never share request objects.
+
+**Never**: share one mutable request object across goroutines and mutate it while calls are in flight — that is a data race the SDK cannot observe or prevent.
 
 ### 4. Streaming
 - Always call Close() on ChatStream or RawStream

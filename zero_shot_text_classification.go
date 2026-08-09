@@ -1,5 +1,7 @@
 package hfgo
 
+import "slices"
+
 // ZeroShotTextClassificationRequest represents a zero-shot text
 // classification request to the API for a single input.
 type ZeroShotTextClassificationRequest struct {
@@ -69,4 +71,40 @@ type zeroShotTextClassificationBatched struct {
 
 	// The classification scores.
 	Scores []float64 `json:"scores"`
+}
+
+// Clone returns a deep defensive copy of the request.
+func (r *ZeroShotTextClassificationRequest) Clone() ZeroShotTextClassificationRequest {
+	if r == nil {
+		return ZeroShotTextClassificationRequest{}
+	}
+	out := *r
+	out.Parameters = cloneStructPtr(r.Parameters, (*ZeroShotTextClassificationParameters).Clone)
+
+	return out
+}
+
+// Clone returns a deep defensive copy of the request.
+func (r *ZeroShotTextClassificationBatchRequest) Clone() ZeroShotTextClassificationBatchRequest {
+	if r == nil {
+		return ZeroShotTextClassificationBatchRequest{}
+	}
+	out := *r
+	out.Inputs = slices.Clone(r.Inputs)
+	out.Parameters = cloneStructPtr(r.Parameters, (*ZeroShotTextClassificationParameters).Clone)
+
+	return out
+}
+
+// Clone returns a deep defensive copy of the parameters.
+func (p *ZeroShotTextClassificationParameters) Clone() ZeroShotTextClassificationParameters {
+	if p == nil {
+		return ZeroShotTextClassificationParameters{}
+	}
+	out := *p
+	out.CandidateLabels = slices.Clone(p.CandidateLabels)
+	out.HypothesisTemplate = clonePtr(p.HypothesisTemplate)
+	out.MultiLabel = clonePtr(p.MultiLabel)
+
+	return out
 }

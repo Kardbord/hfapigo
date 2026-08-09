@@ -48,7 +48,9 @@ func TestSummarizationService_Summarize_ResponseVariations(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mt := testutils.NewJSONMockTransport(http.StatusOK, tc.responseBody, nil)
 			client := NewClient(
-				WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }),
+				WithHTTPClientFactory(
+					func() http.Client { return testutils.NewMockHTTPClient(mt) },
+				),
 				WithModel("test-model"),
 			)
 
@@ -143,7 +145,9 @@ func TestSummarizationService_Summarize_ParameterSerialization(t *testing.T) {
 				nil,
 			)
 			client := NewClient(
-				WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }),
+				WithHTTPClientFactory(
+					func() http.Client { return testutils.NewMockHTTPClient(mt) },
+				),
 				WithModel("test-model"),
 			)
 
@@ -237,7 +241,9 @@ func TestSummarizationService_SummarizeBatch_ResponseVariations(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mt := testutils.NewJSONMockTransport(http.StatusOK, tc.responseBody, nil)
 			client := NewClient(
-				WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }),
+				WithHTTPClientFactory(
+					func() http.Client { return testutils.NewMockHTTPClient(mt) },
+				),
 				WithModel("test-model"),
 			)
 

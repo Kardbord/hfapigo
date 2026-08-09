@@ -48,6 +48,7 @@ See the [examples](./examples) directory.
 - `Client` values are immutable; options are fixed at creation time to keep concurrency simple and request behavior predictable.
 - Each `Client` method call snapshots the client's options, so a single call is deterministic and never interferes with concurrent calls.
 - Clients are safe for concurrent use by default or when configured with immutable or synchronized dependencies.
+- Request DTOs are passed by value and the SDK never mutates the caller's payload. Treat a request (and the data it references) as read-only while a call is in flight; for concurrent invocation, pass a defensive copy per call via the deep `Clone()` method on each request DTO, or build a fresh request per call.
 - Per-request options can override client defaults for a single call.
 - The SDK favors upstream feature parity and uses DTOs closely aligned to the API; breaking changes are possible as the upstream API evolves.
 - `WithHTTPClientFactory` expects a fresh client value; avoid sharing mutable internals like transports unless synchronized to preserve safe concurrency.

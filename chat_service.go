@@ -24,21 +24,14 @@ func newChatService(opts request.Options) chatService {
 }
 
 // complete sends a chat completion request and returns a chat completion response.
-func (s chatService) complete(req *ChatRequest, opts ...Option) (ChatResponse, error) {
-	if req == nil {
-		return ChatResponse{}, &SDKError{
-			Kind:    SDKErrorKindConfiguration,
-			Message: "chat request is nil",
-			Err:     nil,
-		}
-	}
-
-	payload := *req
+//
+//nolint:gocritic // hugeParam: complete takes the request by value so the SDK never mutates the caller's payload
+func (s chatService) complete(req ChatRequest, opts ...Option) (ChatResponse, error) {
 	optsOverride := s.opts.With(opts...)
 
-	resolveModel(&payload, optsOverride)
+	resolveModel(&req, optsOverride)
 
-	if payload.Stream != nil && *payload.Stream {
+	if req.Stream != nil && *req.Stream {
 		return ChatResponse{}, &SDKError{
 			Kind:    SDKErrorKindConfiguration,
 			Message: "chat completion streaming is not supported; use a streaming chat method instead",
@@ -50,33 +43,26 @@ func (s chatService) complete(req *ChatRequest, opts ...Option) (ChatResponse, e
 		optsOverride,
 		http.MethodPost,
 		EndpointChatCompletion,
-		payload,
+		req,
 	)
 }
 
 // completeStream sends a chat completion request and returns a streaming response.
-func (s chatService) completeStream(req *ChatRequest, opts ...Option) (*ChatStream, error) {
-	if req == nil {
-		return nil, &SDKError{
-			Kind:    SDKErrorKindConfiguration,
-			Message: "chat request is nil",
-			Err:     nil,
-		}
-	}
-
-	payload := *req
+//
+//nolint:gocritic // hugeParam: completeStream takes the request by value so the SDK never mutates the caller's payload
+func (s chatService) completeStream(req ChatRequest, opts ...Option) (*ChatStream, error) {
 	optsOverride := s.opts.With(opts...)
 
-	resolveModel(&payload, optsOverride)
+	resolveModel(&req, optsOverride)
 
 	stream := true
-	payload.Stream = &stream
+	req.Stream = &stream
 
 	streamResp, err := request.DoJSONStream[ChatRequest, ChatStreamResponse](
 		optsOverride,
 		http.MethodPost,
 		EndpointChatCompletion,
-		payload,
+		req,
 	)
 	if err != nil {
 		return nil, err

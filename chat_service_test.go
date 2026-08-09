@@ -69,10 +69,12 @@ func TestChatService_Complete_ModelSelection(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mt := testutils.NewJSONMockTransport(http.StatusOK, chatServiceResponseBody, nil)
 			client := NewClient(
-				WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }),
+				WithHTTPClientFactory(
+					func() http.Client { return testutils.NewMockHTTPClient(mt) },
+				),
 				WithModel(tc.clientModel),
 			)
-			req := &ChatRequest{
+			req := ChatRequest{
 				Model: tc.reqModel,
 				Messages: []ChatMessage{
 					{Role: "user", Content: ChatMessageContent{Text: &text}},
@@ -113,7 +115,7 @@ func TestChatService_Complete_ModelValidation(t *testing.T) {
 	)
 
 	text := "hi"
-	req := &ChatRequest{
+	req := ChatRequest{
 		Messages: []ChatMessage{
 			{Role: "user", Content: ChatMessageContent{Text: &text}},
 		},
@@ -125,7 +127,7 @@ func TestChatService_Complete_ModelValidation(t *testing.T) {
 	require.Nil(t, mt.LastRequest)
 }
 
-func TestChatService_Complete_NilRequest(t *testing.T) {
+func TestChatService_Complete_ZeroValueRequest(t *testing.T) {
 	t.Parallel()
 
 	mt := testutils.NewJSONMockTransport(http.StatusOK, chatServiceResponseBody, nil)
@@ -133,7 +135,7 @@ func TestChatService_Complete_NilRequest(t *testing.T) {
 		WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }),
 	)
 
-	_, err := client.Chat(nil)
+	_, err := client.Chat(ChatRequest{})
 	require.Error(t, err)
 	testutils.AssertSDKErrorKind(t, err, hferrors.SDKErrorKindConfiguration)
 	require.Nil(t, mt.LastRequest)
@@ -149,7 +151,7 @@ func TestChatService_Complete_StreamNotAllowed(t *testing.T) {
 
 	text := "hi"
 	stream := true
-	req := &ChatRequest{
+	req := ChatRequest{
 		Stream: &stream,
 		Messages: []ChatMessage{
 			{Role: "user", Content: ChatMessageContent{Text: &text}},
@@ -176,7 +178,7 @@ func TestChatService_CompleteStream_Success(t *testing.T) {
 	)
 
 	text := "hi"
-	req := &ChatRequest{
+	req := ChatRequest{
 		Messages: []ChatMessage{
 			{Role: "user", Content: ChatMessageContent{Text: &text}},
 		},
@@ -267,7 +269,7 @@ func TestChatStream_Recv_InvalidJSONError(t *testing.T) {
 	)
 
 	text := "hi"
-	req := &ChatRequest{
+	req := ChatRequest{
 		Messages: []ChatMessage{
 			{Role: "user", Content: ChatMessageContent{Text: &text}},
 		},
@@ -303,7 +305,7 @@ func assertToolCallStream(
 	)
 
 	text := "hi"
-	req := &ChatRequest{
+	req := ChatRequest{
 		Messages: []ChatMessage{
 			{Role: "user", Content: ChatMessageContent{Text: &text}},
 		},
@@ -326,7 +328,7 @@ func assertToolCallStream(
 	assertions(chunks)
 }
 
-func TestChatService_CompleteStream_NilRequest(t *testing.T) {
+func TestChatService_CompleteStream_ZeroValueRequest(t *testing.T) {
 	t.Parallel()
 
 	mt := testutils.NewMockTransport(http.StatusOK, "", nil)
@@ -335,7 +337,7 @@ func TestChatService_CompleteStream_NilRequest(t *testing.T) {
 		WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }),
 	)
 
-	_, err := client.ChatStream(nil)
+	_, err := client.ChatStream(ChatRequest{})
 	require.Error(t, err)
 	testutils.AssertSDKErrorKind(t, err, hferrors.SDKErrorKindConfiguration)
 	require.Nil(t, mt.LastRequest)
@@ -695,7 +697,7 @@ func TestChatService_ProviderFallback(t *testing.T) {
 		t *testing.T,
 		tc TestCase,
 		mtFactory func() *testutils.MockTransport,
-		methodCall func(*Client, *ChatRequest, []Option) error,
+		methodCall func(*Client, ChatRequest, []Option) error,
 	) {
 		t.Helper()
 
@@ -707,7 +709,7 @@ func TestChatService_ProviderFallback(t *testing.T) {
 		)
 
 		text := "hi"
-		req := &ChatRequest{
+		req := ChatRequest{
 			Model: tc.reqModel,
 			Messages: []ChatMessage{
 				{Role: "user", Content: ChatMessageContent{Text: &text}},
@@ -743,7 +745,7 @@ func TestChatService_ProviderFallback(t *testing.T) {
 						nil,
 					)
 				},
-				func(client *Client, req *ChatRequest, opts []Option) error {
+				func(client *Client, req ChatRequest, opts []Option) error {
 					_, err := client.Chat(req, opts...)
 
 					return err
@@ -760,7 +762,7 @@ func TestChatService_ProviderFallback(t *testing.T) {
 
 					return mt
 				},
-				func(client *Client, req *ChatRequest, opts []Option) error {
+				func(client *Client, req ChatRequest, opts []Option) error {
 					stream, err := client.ChatStream(req, opts...)
 					if err != nil {
 						return err

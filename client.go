@@ -25,8 +25,17 @@ func NewClient(opts ...Option) Client {
 
 // Chat sends a chat completion request and returns a chat completion response.
 //
-// The caller must not mutate req while the request is being processed.
-// For safe concurrent usage, create a new ChatRequest for each concurrent call.
+// The request is passed by value and the SDK never mutates the received
+// payload. The value copy shares the request's nested data (slices, maps, and
+// pointed-to values) with the caller, so the caller must treat the request and
+// the data it references as read-only while a call is in flight.
+//
+// Concurrency:
+//   - A single Client is safe for concurrent use.
+//   - Reusing one request across sequential, fully-awaited calls is safe.
+//   - To invoke the same template request from multiple goroutines, pass a
+//     defensive copy per call, e.g. go client.Chat(req.Clone(), ...), or build a
+//     fresh request per call.
 //
 // Model Precedence:
 // The Model field is resolved with the following precedence (highest to lowest):
@@ -45,9 +54,11 @@ func NewClient(opts ...Option) Client {
 //   - Model="mistral-7b:huggingface", Provider="" → "mistral-7b:huggingface"
 //
 // Behavior:
-//   - Returns a configuration error if req is nil.
+//   - Returns a configuration error if the request is missing a model or messages.
 //   - Returns a configuration error if *req.Stream is true; use ChatStream for streaming.
-func (c Client) Chat(req *ChatRequest, opts ...Option) (ChatResponse, error) {
+//
+//nolint:gocritic // hugeParam: Chat takes the request by value so the SDK never mutates the caller's payload
+func (c Client) Chat(req ChatRequest, opts ...Option) (ChatResponse, error) {
 	return newChatService(c.opts).complete(req, opts...)
 }
 
@@ -55,8 +66,17 @@ func (c Client) Chat(req *ChatRequest, opts ...Option) (ChatResponse, error) {
 // Callers should Close the returned ChatStream when finished so the underlying HTTP
 // connection and decoder goroutine are released promptly.
 //
-// The caller must not mutate req while the request is being processed.
-// For safe concurrent usage, create a new ChatRequest for each concurrent call.
+// The request is passed by value and the SDK never mutates the received
+// payload. The value copy shares the request's nested data (slices, maps, and
+// pointed-to values) with the caller, so the caller must treat the request and
+// the data it references as read-only while a call is in flight.
+//
+// Concurrency:
+//   - A single Client is safe for concurrent use.
+//   - Reusing one request across sequential, fully-awaited calls is safe.
+//   - To invoke the same template request from multiple goroutines, pass a
+//     defensive copy per call, e.g. go client.ChatStream(req.Clone(), ...), or
+//     build a fresh request per call.
 //
 // Model Precedence:
 // The Model field is resolved with the following precedence (highest to lowest):
@@ -75,9 +95,11 @@ func (c Client) Chat(req *ChatRequest, opts ...Option) (ChatResponse, error) {
 //   - Model="mistral-7b:huggingface", Provider="" → "mistral-7b:huggingface"
 //
 // Behavior:
-//   - Returns a configuration error if req is nil.
+//   - Returns a configuration error if the request is missing a model or messages.
 //   - Always sends the request with streaming enabled.
-func (c Client) ChatStream(req *ChatRequest, opts ...Option) (*ChatStream, error) {
+//
+//nolint:gocritic // hugeParam: ChatStream takes the request by value so the SDK never mutates the caller's payload
+func (c Client) ChatStream(req ChatRequest, opts ...Option) (*ChatStream, error) {
 	return newChatService(c.opts).completeStream(req, opts...)
 }
 
@@ -87,7 +109,10 @@ func (c Client) ChatStream(req *ChatRequest, opts ...Option) (*ChatStream, error
 // For multiple classification inputs, use ClassifyTextBatch.
 //
 // The Provider option is ignored for now, as hf-inference is currently the only supported provider.
-func (c Client) ClassifyText(req TextClassificationRequest, opts ...Option) ([]TextClassification, error) {
+func (c Client) ClassifyText(
+	req TextClassificationRequest,
+	opts ...Option,
+) ([]TextClassification, error) {
 	return newTextClassificationService(c.opts).classify(req, opts...)
 }
 
@@ -100,7 +125,10 @@ func (c Client) ClassifyText(req TextClassificationRequest, opts ...Option) ([]T
 // Callers should check the length of the response list before indexing.
 //
 // The Provider option is ignored for now, as hf-inference is currently the only supported provider.
-func (c Client) ClassifyTextBatch(req TextClassificationBatchRequest, opts ...Option) ([][]TextClassification, error) {
+func (c Client) ClassifyTextBatch(
+	req TextClassificationBatchRequest,
+	opts ...Option,
+) ([][]TextClassification, error) {
 	return newTextClassificationService(c.opts).classifyBatch(req, opts...)
 }
 
@@ -110,7 +138,10 @@ func (c Client) ClassifyTextBatch(req TextClassificationBatchRequest, opts ...Op
 // For multiple inputs, use ZeroShotClassifyTextBatch.
 //
 // The Provider option is ignored for now, as hf-inference is currently the only supported provider.
-func (c Client) ZeroShotClassifyText(req ZeroShotTextClassificationRequest, opts ...Option) ([]ZeroShotTextClassification, error) {
+func (c Client) ZeroShotClassifyText(
+	req ZeroShotTextClassificationRequest,
+	opts ...Option,
+) ([]ZeroShotTextClassification, error) {
 	return newZeroShotTextClassificationService(c.opts).classify(req, opts...)
 }
 
@@ -124,7 +155,10 @@ func (c Client) ZeroShotClassifyText(req ZeroShotTextClassificationRequest, opts
 // Callers should check the length of the response list before indexing.
 //
 // The Provider option is ignored for now, as hf-inference is currently the only supported provider.
-func (c Client) ZeroShotClassifyTextBatch(req ZeroShotTextClassificationBatchRequest, opts ...Option) ([][]ZeroShotTextClassification, error) {
+func (c Client) ZeroShotClassifyTextBatch(
+	req ZeroShotTextClassificationBatchRequest,
+	opts ...Option,
+) ([][]ZeroShotTextClassification, error) {
 	return newZeroShotTextClassificationService(c.opts).classifyBatch(req, opts...)
 }
 
@@ -147,7 +181,10 @@ func (c Client) FillMask(req FillMaskRequest, opts ...Option) ([]FillMaskPredict
 // Callers should check the length of the response list before indexing.
 //
 // The Provider option is ignored for now, as hf-inference is currently the only supported provider.
-func (c Client) FillMaskBatch(req FillMaskBatchRequest, opts ...Option) ([][]FillMaskPrediction, error) {
+func (c Client) FillMaskBatch(
+	req FillMaskBatchRequest,
+	opts ...Option,
+) ([][]FillMaskPrediction, error) {
 	return newFillMaskService(c.opts).fillBatch(req, opts...)
 }
 
@@ -174,7 +211,10 @@ func (c Client) Summarize(req SummarizationRequest, opts ...Option) ([]Summariza
 // how the API returns a list even for a single input.
 //
 // The Provider option is ignored for now, as hf-inference is currently the only supported provider.
-func (c Client) SummarizeBatch(req SummarizationBatchRequest, opts ...Option) ([]Summarization, error) {
+func (c Client) SummarizeBatch(
+	req SummarizationBatchRequest,
+	opts ...Option,
+) ([]Summarization, error) {
 	return newSummarizationService(c.opts).summarizeBatch(req, opts...)
 }
 

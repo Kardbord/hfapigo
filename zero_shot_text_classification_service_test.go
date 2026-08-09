@@ -79,7 +79,9 @@ func TestZeroShotTextClassificationService_Classify_CandidateLabelValidation(t *
 				nil,
 			)
 			client := NewClient(
-				WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }),
+				WithHTTPClientFactory(
+					func() http.Client { return testutils.NewMockHTTPClient(mt) },
+				),
 				WithModel("nonexistent-model"),
 			)
 
@@ -177,7 +179,9 @@ func TestZeroShotTextClassificationService_ClassifyBatch_InputVariations(t *test
 		t.Run(tc.name, func(t *testing.T) {
 			mt := testutils.NewJSONMockTransport(http.StatusOK, tc.responseBody, nil)
 			client := NewClient(
-				WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }),
+				WithHTTPClientFactory(
+					func() http.Client { return testutils.NewMockHTTPClient(mt) },
+				),
 				WithModel("test-model"),
 			)
 
@@ -247,7 +251,9 @@ func TestZeroShotTextClassificationService_ClassifyBatch_CandidateLabelValidatio
 				nil,
 			)
 			client := NewClient(
-				WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }),
+				WithHTTPClientFactory(
+					func() http.Client { return testutils.NewMockHTTPClient(mt) },
+				),
 				WithModel("nonexistent-model"),
 			)
 
@@ -286,7 +292,8 @@ func TestZeroShotTextClassificationService_ClassifyBatch_Errors(t *testing.T) {
 			},
 		},
 		func(opts ...Option) ([][]ZeroShotTextClassification, error) {
-			return NewClient(opts...).ZeroShotClassifyTextBatch(ZeroShotTextClassificationBatchRequest{
+			return NewClient(
+				opts...).ZeroShotClassifyTextBatch(ZeroShotTextClassificationBatchRequest{
 				Inputs: []string{"test text"},
 				Parameters: &ZeroShotTextClassificationParameters{
 					CandidateLabels: []string{"positive", "negative"},

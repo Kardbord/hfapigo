@@ -28,7 +28,7 @@ func main() {
 
 	// Create a chat request for streaming
 	prompt := "Tell me a short joke about programming."
-	request := &hfgo.ChatRequest{
+	request := hfgo.ChatRequest{
 		Messages: []hfgo.ChatMessage{
 			{
 				Role: "user",

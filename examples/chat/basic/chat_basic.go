@@ -23,7 +23,7 @@ func main() {
 	)
 
 	// Create a chat request with a simple message
-	request := &hfgo.ChatRequest{
+	request := hfgo.ChatRequest{
 		Messages: []hfgo.ChatMessage{
 			{
 				Role: "user",

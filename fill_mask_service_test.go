@@ -69,7 +69,9 @@ func TestFillMaskService_FillMask_ResponseDecoding(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mt := testutils.NewJSONMockTransport(tc.statusCode, tc.responseBody, nil)
 			client := NewClient(
-				WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }),
+				WithHTTPClientFactory(
+					func() http.Client { return testutils.NewMockHTTPClient(mt) },
+				),
 				WithModel("test-model"),
 			)
 
@@ -257,7 +259,9 @@ func TestFillMaskService_FillMaskBatch_ResponseDecoding(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mt := testutils.NewJSONMockTransport(http.StatusOK, tc.responseBody, nil)
 			client := NewClient(
-				WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }),
+				WithHTTPClientFactory(
+					func() http.Client { return testutils.NewMockHTTPClient(mt) },
+				),
 				WithModel("test-model"),
 			)
 

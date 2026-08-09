@@ -15,4 +15,8 @@
 //     serialization errors.
 //   - Concurrency assumes externally supplied objects (for example, transports) are not mutated after use
 //     unless callers provide their own synchronization.
+//   - Request DTOs are passed to Client methods by value and the SDK never mutates the caller's payload.
+//   - A request and the nested data it references must be treated as read-only while a call is in flight.
+//     For concurrent invocation, pass a defensive copy per call (for example, go client.Chat(req.Clone(), ...))
+//     or build a fresh request per call. Every request DTO provides a deep Clone method.
 package hfgo
