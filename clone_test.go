@@ -64,4 +64,9 @@ func TestChatRequestClone_ConcurrentInvocation(t *testing.T) {
 		})
 	}
 	wg.Wait()
+
+	require.NotNil(t, req.Messages)
+	require.NotNil(t, req.Messages[0].Content.Text)
+	require.Equal(t, "hi", *req.Messages[0].Content.Text)
+	require.Nil(t, req.Model)
 }
