@@ -8,7 +8,7 @@ import (
 	"github.com/Kardbord/hfgo/v4"
 )
 
-// This example demonstrates how to use the ChatService for basic (non-streaming)
+// This example demonstrates how to use the client for basic (non-streaming)
 // chat completions. It sends a single message to the model and prints the response.
 func main() {
 	token := os.Getenv("HF_TOKEN")
@@ -23,7 +23,7 @@ func main() {
 	)
 
 	// Create a chat request with a simple message
-	request := &hfgo.ChatRequest{
+	request := hfgo.ChatRequest{
 		Messages: []hfgo.ChatMessage{
 			{
 				Role: "user",
@@ -36,7 +36,7 @@ func main() {
 	}
 
 	// Send the request and get the response
-	response, err := client.Chat().Complete(request)
+	response, err := client.Chat(request)
 	if err != nil {
 		log.Fatalf("Failed to complete chat request: %v", err)
 	}

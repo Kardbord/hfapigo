@@ -32,7 +32,7 @@ func TestZeroShotTextClassification_LiveAPI(t *testing.T) {
 	const text = "This product is excellent and I love it!"
 	candidateLabels := []string{"positive", "negative", "neutral"}
 
-	resp, err := client.ZeroShotClassifyText().Classify(
+	resp, err := client.ZeroShotClassifyText(
 		ZeroShotTextClassificationRequest{
 			Input: text,
 			Parameters: &ZeroShotTextClassificationParameters{
@@ -72,7 +72,7 @@ func TestZeroShotTextClassification_BatchLiveAPI(t *testing.T) {
 
 	candidateLabels := []string{"positive", "negative", "neutral"}
 
-	resp, err := client.ZeroShotClassifyText().ClassifyBatch(
+	resp, err := client.ZeroShotClassifyTextBatch(
 		ZeroShotTextClassificationBatchRequest{
 			Inputs: inputs,
 			Parameters: &ZeroShotTextClassificationParameters{
@@ -117,7 +117,7 @@ func TestZeroShotTextClassification_WithHypothesisTemplate(t *testing.T) {
 	candidateLabels := []string{"positive", "negative"}
 	hypothesisTemplate := "This example is {}."
 
-	resp, err := client.ZeroShotClassifyText().Classify(
+	resp, err := client.ZeroShotClassifyText(
 		ZeroShotTextClassificationRequest{
 			Input: "I love this product!",
 			Parameters: &ZeroShotTextClassificationParameters{
@@ -153,7 +153,7 @@ func TestZeroShotTextClassification_WithMultiLabel(t *testing.T) {
 	candidateLabels := []string{"positive", "negative", "neutral"}
 	multiLabel := true
 
-	resp, err := client.ZeroShotClassifyText().Classify(
+	resp, err := client.ZeroShotClassifyText(
 		ZeroShotTextClassificationRequest{
 			Input: "This product is great and I love it!",
 			Parameters: &ZeroShotTextClassificationParameters{
@@ -203,7 +203,7 @@ func TestZeroShotTextClassification_VeryLargeBatch(t *testing.T) {
 
 	candidateLabels := []string{"positive", "negative", "neutral"}
 
-	resp, err := client.ZeroShotClassifyText().ClassifyBatch(
+	resp, err := client.ZeroShotClassifyTextBatch(
 		ZeroShotTextClassificationBatchRequest{
 			Inputs: inputs,
 			Parameters: &ZeroShotTextClassificationParameters{
@@ -247,7 +247,7 @@ func TestZeroShotTextClassification_MultipleCandidateLabels(t *testing.T) {
 		"confused",
 	}
 
-	resp, err := client.ZeroShotClassifyText().Classify(
+	resp, err := client.ZeroShotClassifyText(
 		ZeroShotTextClassificationRequest{
 			Input: "I absolutely love this product! It exceeded all my expectations!",
 			Parameters: &ZeroShotTextClassificationParameters{

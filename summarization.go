@@ -1,5 +1,10 @@
 package hfgo
 
+import (
+	"maps"
+	"slices"
+)
+
 // SummarizationRequest represents a summarization
 // inference request to the API for a single input.
 type SummarizationRequest struct {
@@ -59,4 +64,42 @@ const (
 type Summarization struct {
 	// The summarized text.
 	SummaryText string `json:"summary_text"`
+}
+
+// Clone returns a deep defensive copy of the request.
+func (r *SummarizationRequest) Clone() SummarizationRequest {
+	if r == nil {
+		return SummarizationRequest{}
+	}
+	out := *r
+	out.Parameters = cloneStructPtr(r.Parameters, (*SummarizationParameters).Clone)
+
+	return out
+}
+
+// Clone returns a deep defensive copy of the request.
+func (r *SummarizationBatchRequest) Clone() SummarizationBatchRequest {
+	if r == nil {
+		return SummarizationBatchRequest{}
+	}
+	out := *r
+	out.Inputs = slices.Clone(r.Inputs)
+	out.Parameters = cloneStructPtr(r.Parameters, (*SummarizationParameters).Clone)
+
+	return out
+}
+
+// Clone returns a deep defensive copy of the parameters. The GenerateParameters
+// map is copied as a new map, but its values are shared because their types are
+// not known statically.
+func (p *SummarizationParameters) Clone() SummarizationParameters {
+	if p == nil {
+		return SummarizationParameters{}
+	}
+	out := *p
+	out.CleanUpTokenizationSpaces = clonePtr(p.CleanUpTokenizationSpaces)
+	out.Truncation = clonePtr(p.Truncation)
+	out.GenerateParameters = maps.Clone(p.GenerateParameters)
+
+	return out
 }

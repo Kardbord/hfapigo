@@ -4,25 +4,18 @@ import (
 	"github.com/Kardbord/hfgo/v4/internal/request"
 )
 
-// TextClassificationService implements text classification
-// calls using the configured request options.
-type TextClassificationService struct {
+// textClassificationService implements text classification calls using the configured request options.
+type textClassificationService struct {
 	opts request.Options
 }
 
-// newTextClassificationService builds a TextClassificationService with a snapshot
-// of the provided options.
-func newTextClassificationService(opts request.Options) TextClassificationService {
-	return TextClassificationService{opts: opts}
+// newTextClassificationService builds a text classification service with a snapshot of the provided options.
+func newTextClassificationService(opts request.Options) textClassificationService {
+	return textClassificationService{opts: opts}
 }
 
-// Classify sends a text classification request and returns a text
-// classification response for a single input.
-//
-// For multiple classification inputs, use ClassifyBatch.
-//
-// The Provider option is ignored for now, as hf-inference is currently the only supported provider.
-func (s TextClassificationService) Classify(
+// classify sends a text classification request for a single input and returns the classifications.
+func (s textClassificationService) classify(
 	req TextClassificationRequest,
 	opts ...Option,
 ) ([]TextClassification, error) {
@@ -49,17 +42,8 @@ func (s TextClassificationService) Classify(
 	return resp[0], nil
 }
 
-// ClassifyBatch sends a text classification request for a batch of inputs
-// and returns a list of text classification responses for each input in
-// the batch.
-//
-// NOTE: Batched inference is supported by the upstream API, but is not
-// officially documented; behavior may change without notice.
-//
-// Callers should check the length of the response list before indexing.
-//
-// The Provider option is ignored for now, as hf-inference is currently the only supported provider.
-func (s TextClassificationService) ClassifyBatch(
+// classifyBatch sends a text classification request for a batch of inputs and returns classifications per input.
+func (s textClassificationService) classifyBatch(
 	req TextClassificationBatchRequest,
 	opts ...Option,
 ) ([][]TextClassification, error) {

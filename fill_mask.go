@@ -1,5 +1,7 @@
 package hfgo
 
+import "slices"
+
 // FillMaskRequest represents a fill mask
 // inference request to the API for a single
 // input.
@@ -52,4 +54,39 @@ type FillMaskPrediction struct {
 
 	// The predicted token (to replace the masked one).
 	TokenStr *string `json:"token_str"`
+}
+
+// Clone returns a deep defensive copy of the request.
+func (r *FillMaskRequest) Clone() FillMaskRequest {
+	if r == nil {
+		return FillMaskRequest{}
+	}
+	out := *r
+	out.Parameters = cloneStructPtr(r.Parameters, (*FillMaskParameters).Clone)
+
+	return out
+}
+
+// Clone returns a deep defensive copy of the request.
+func (r *FillMaskBatchRequest) Clone() FillMaskBatchRequest {
+	if r == nil {
+		return FillMaskBatchRequest{}
+	}
+	out := *r
+	out.Inputs = slices.Clone(r.Inputs)
+	out.Parameters = cloneStructPtr(r.Parameters, (*FillMaskParameters).Clone)
+
+	return out
+}
+
+// Clone returns a deep defensive copy of the parameters.
+func (p *FillMaskParameters) Clone() FillMaskParameters {
+	if p == nil {
+		return FillMaskParameters{}
+	}
+	out := *p
+	out.Targets = slices.Clone(p.Targets)
+	out.TopK = clonePtr(p.TopK)
+
+	return out
 }

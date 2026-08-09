@@ -33,8 +33,8 @@ func TestChatCompletion_LiveAPI(t *testing.T) {
 	)
 
 	const text = "Say hello in one sentence."
-	resp, err := client.Chat().Complete(
-		&ChatRequest{
+	resp, err := client.Chat(
+		ChatRequest{
 			Messages: []ChatMessage{
 				{
 					Role: "user",
@@ -89,8 +89,8 @@ func TestChatCompletion_StreamingLiveAPI(t *testing.T) {
 	)
 
 	text := "Say hello in one sentence."
-	stream, err := client.Chat().CompleteStream(
-		&ChatRequest{
+	stream, err := client.ChatStream(
+		ChatRequest{
 			Messages: []ChatMessage{
 				{
 					Role: "user",
@@ -152,8 +152,8 @@ func TestChatCompletion_MultiMessageLiveAPI(t *testing.T) {
 	text1 := "What is 2+2?"
 	text2 := "What is the answer multiplied by 3?"
 
-	resp, err := client.Chat().Complete(
-		&ChatRequest{
+	resp, err := client.Chat(
+		ChatRequest{
 			Messages: []ChatMessage{
 				{
 					Role: "user",

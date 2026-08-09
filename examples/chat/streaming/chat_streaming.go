@@ -11,7 +11,7 @@ import (
 	"github.com/Kardbord/hfgo/v4"
 )
 
-// This example demonstrates how to use the ChatService for streaming chat completions.
+// This example demonstrates how to use the client for streaming chat completions.
 // It sends a message to the model and processes the response stream in real-time.
 func main() {
 	// Get the API token from environment variable
@@ -28,7 +28,7 @@ func main() {
 
 	// Create a chat request for streaming
 	prompt := "Tell me a short joke about programming."
-	request := &hfgo.ChatRequest{
+	request := hfgo.ChatRequest{
 		Messages: []hfgo.ChatMessage{
 			{
 				Role: "user",
@@ -47,7 +47,7 @@ func main() {
 	ctx := context.Background()
 
 	// Send the streaming request
-	stream, err := client.Chat().CompleteStream(request, hfgo.WithContext(ctx))
+	stream, err := client.ChatStream(request, hfgo.WithContext(ctx))
 	if err != nil {
 		log.Fatalf("Failed to start streaming chat request: %v", err)
 	}

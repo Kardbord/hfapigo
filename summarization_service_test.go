@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/Kardbord/hfgo/v4/internal/hferrors"
-	"github.com/Kardbord/hfgo/v4/internal/request"
 	"github.com/Kardbord/hfgo/v4/internal/testutils"
 	"github.com/stretchr/testify/require"
 )
@@ -48,12 +47,14 @@ func TestSummarizationService_Summarize_ResponseVariations(t *testing.T) {
 		tc := cases[i]
 		t.Run(tc.name, func(t *testing.T) {
 			mt := testutils.NewJSONMockTransport(http.StatusOK, tc.responseBody, nil)
-			opts := request.NewOptions().
-				WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }).
-				WithModel("test-model")
-			svc := newSummarizationService(opts)
+			client := NewClient(
+				WithHTTPClientFactory(
+					func() http.Client { return testutils.NewMockHTTPClient(mt) },
+				),
+				WithModel("test-model"),
+			)
 
-			result, err := svc.Summarize(SummarizationRequest{Input: "Some long text."})
+			result, err := client.Summarize(SummarizationRequest{Input: "Some long text."})
 			require.NoError(t, err, tc.description)
 			require.NotNil(t, result, tc.description)
 			require.Len(t, result, tc.wantLen, tc.description)
@@ -143,10 +144,12 @@ func TestSummarizationService_Summarize_ParameterSerialization(t *testing.T) {
 				`[{"summary_text":"A concise summary."}]`,
 				nil,
 			)
-			opts := request.NewOptions().
-				WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }).
-				WithModel("test-model")
-			svc := newSummarizationService(opts)
+			client := NewClient(
+				WithHTTPClientFactory(
+					func() http.Client { return testutils.NewMockHTTPClient(mt) },
+				),
+				WithModel("test-model"),
+			)
 
 			req := SummarizationRequest{Input: "Some long text."}
 			if tc.cleanUp != nil || tc.truncation != nil || tc.generate != nil {
@@ -157,7 +160,7 @@ func TestSummarizationService_Summarize_ParameterSerialization(t *testing.T) {
 				}
 			}
 
-			result, err := svc.Summarize(req)
+			result, err := client.Summarize(req)
 			require.NoError(t, err, tc.description)
 			require.NotNil(t, result, tc.description)
 
@@ -196,8 +199,8 @@ func TestSummarizationService_Summarize_Errors(t *testing.T) {
 				description:  "API error for nonexistent model",
 			},
 		},
-		func(opts request.Options) ([]Summarization, error) {
-			return newSummarizationService(opts).Summarize(SummarizationRequest{
+		func(opts ...Option) ([]Summarization, error) {
+			return NewClient(opts...).Summarize(SummarizationRequest{
 				Input: "Some long text that should be summarized.",
 			})
 		},
@@ -237,12 +240,14 @@ func TestSummarizationService_SummarizeBatch_ResponseVariations(t *testing.T) {
 		tc := cases[i]
 		t.Run(tc.name, func(t *testing.T) {
 			mt := testutils.NewJSONMockTransport(http.StatusOK, tc.responseBody, nil)
-			opts := request.NewOptions().
-				WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }).
-				WithModel("test-model")
-			svc := newSummarizationService(opts)
+			client := NewClient(
+				WithHTTPClientFactory(
+					func() http.Client { return testutils.NewMockHTTPClient(mt) },
+				),
+				WithModel("test-model"),
+			)
 
-			result, err := svc.SummarizeBatch(SummarizationBatchRequest{
+			result, err := client.SummarizeBatch(SummarizationBatchRequest{
 				Inputs: []string{"Long text one.", "Long text two."},
 			})
 			require.NoError(t, err, tc.description)
@@ -278,8 +283,8 @@ func TestSummarizationService_SummarizeBatch_Errors(t *testing.T) {
 				description:  "API error for nonexistent model",
 			},
 		},
-		func(opts request.Options) ([]Summarization, error) {
-			return newSummarizationService(opts).SummarizeBatch(SummarizationBatchRequest{
+		func(opts ...Option) ([]Summarization, error) {
+			return NewClient(opts...).SummarizeBatch(SummarizationBatchRequest{
 				Inputs: []string{"Long text one."},
 			})
 		},
@@ -294,11 +299,11 @@ func TestSummarizationService_SummarizeBatch_ModelFromOptions(t *testing.T) {
 		`[{"summary_text":"Summary one."}]`,
 		nil,
 	)
-	opts := request.NewOptions().
-		WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) })
-	svc := newSummarizationService(opts)
+	client := NewClient(
+		WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }),
+	)
 
-	result, err := svc.SummarizeBatch(SummarizationBatchRequest{
+	result, err := client.SummarizeBatch(SummarizationBatchRequest{
 		Inputs: []string{"Long text one."},
 	}, WithModel("override-model"))
 	require.NoError(t, err)

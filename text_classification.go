@@ -1,5 +1,7 @@
 package hfgo
 
+import "slices"
+
 // TextClassificationRequest represents a text classification
 // inference request to the API for a single input.
 type TextClassificationRequest struct {
@@ -53,4 +55,39 @@ type TextClassification struct {
 
 	// The corresponding probability.
 	Score float64 `json:"score"`
+}
+
+// Clone returns a deep defensive copy of the request.
+func (r *TextClassificationRequest) Clone() TextClassificationRequest {
+	if r == nil {
+		return TextClassificationRequest{}
+	}
+	out := *r
+	out.Parameters = cloneStructPtr(r.Parameters, (*TextClassificationParameters).Clone)
+
+	return out
+}
+
+// Clone returns a deep defensive copy of the request.
+func (r *TextClassificationBatchRequest) Clone() TextClassificationBatchRequest {
+	if r == nil {
+		return TextClassificationBatchRequest{}
+	}
+	out := *r
+	out.Inputs = slices.Clone(r.Inputs)
+	out.Parameters = cloneStructPtr(r.Parameters, (*TextClassificationParameters).Clone)
+
+	return out
+}
+
+// Clone returns a deep defensive copy of the parameters.
+func (p *TextClassificationParameters) Clone() TextClassificationParameters {
+	if p == nil {
+		return TextClassificationParameters{}
+	}
+	out := *p
+	out.FunctionToApply = clonePtr(p.FunctionToApply)
+	out.TopK = clonePtr(p.TopK)
+
+	return out
 }

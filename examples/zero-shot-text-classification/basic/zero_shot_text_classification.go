@@ -35,7 +35,7 @@ func main() {
 	fmt.Println("...")
 
 	// Make the classification request
-	classifications, err := client.ZeroShotClassifyText().Classify(
+	classifications, err := client.ZeroShotClassifyText(
 		hfgo.ZeroShotTextClassificationRequest{
 			Input: input,
 			Parameters: &hfgo.ZeroShotTextClassificationParameters{

@@ -327,7 +327,10 @@ All of these are run by `./tools/build.sh`.
 The SDK prioritizes **concurrency safety**:
 
 - Clients are immutable value types
-- Services are lightweight snapshots of client options
+- Client methods snapshot the client's options on each call
+- Request DTOs are passed by value and never mutated by the SDK;
+  callers prevent caller-side races (for example via each DTO's
+  deep `Clone()` before concurrent invocation)
 - No shared mutable state between goroutines
 - All public APIs are safe for concurrent use
 

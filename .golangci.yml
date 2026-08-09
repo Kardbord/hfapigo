@@ -97,6 +97,8 @@ linters:
           - lll
         source: "^//go:generate "
   settings:
+    exhaustruct:
+      allow-empty-returns: true
     ireturn:
       allow:
         - error

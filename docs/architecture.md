@@ -19,15 +19,16 @@ The SDK follows a strict immutability pattern for concurrency safety:
 1. **Client**: Immutable value type that captures configuration at creation time
    - Options are fixed and never mutated
    - Safe for concurrent use across goroutines
-   - Services capture a snapshot of client options when created
-   - Lightweight; prefer calling `Chat()` or `Raw()` per use rather than caching service instances
+   - Each method call snapshots the client's options, so calls are independent and deterministic
 
-2. **Services**: Lightweight wrappers that snapshot client options
-   - `ChatService`: Chat completion endpoints (Complete, CompleteStream)
-   - `TextClassificationService`: Text classification endpoints (Classify, ClassifyBatch)
-   - `ZeroShotTextClassificationService`: Zero-shot text classification endpoints (Classify, ClassifyBatch)
-   - `SummarizationService`: Summarization endpoints (Summarize, SummarizeBatch)
-   - `RawService`: Raw HTTP request handling (Do, DoRaw, Stream, StreamReader)
+2. **Client Methods**: Every inference endpoint is called directly on the `Client`
+   - `Chat` / `ChatStream`: Chat completions
+   - `ClassifyText` / `ClassifyTextBatch`: Text classification
+   - `ZeroShotClassifyText` / `ZeroShotClassifyTextBatch`: Zero-shot text classification
+   - `FillMask` / `FillMaskBatch`: Mask filling
+   - `Summarize` / `SummarizeBatch`: Summarization
+   - The former per-domain service types are unexported implementation details; callers interact only with the Client
+   - `Client.Raw()` returns the `RawService` escape hatch for arbitrary endpoints (see below); it is the deliberate exception to the flat-method design
 
 3. **Per-Request Options**: Can override client defaults for single calls
    - Applied by value with defensive header copies
@@ -38,7 +39,7 @@ The SDK follows a strict immutability pattern for concurrency safety:
 From `doc.go` and README:
 
 - **Immutability**: Clients are immutable; to change options, create a new Client
-- **Concurrency**: Clients and services are safe for concurrent use by default
+- **Concurrency**: Clients are safe for concurrent use by default
 - **Feature Parity**: SDK favors upstream API feature parity; breaking changes possible as API evolves
 - **DTOs**: Request/response types closely aligned to the HuggingFace API
 - **Streaming**: Server-Sent Events (SSE) based streaming for chat completions
@@ -47,34 +48,33 @@ From `doc.go` and README:
 
 ### Concurrency Safety
 
-This SDK is **safe for concurrent use out of the box**. No explicit synchronization is required when using clients and services from multiple goroutines.
+This SDK is **safe for concurrent use out of the box**. No explicit synchronization is required when using a client from multiple goroutines.
 
 **Concurrency Guarantees**:
 - **Clients**: Fully concurrent-safe as immutable value types
-- **Services**: Concurrent-safe as lightweight snapshots of client options
-- **Per-request calls**: Each call is independent and concurrent-safe
+- **Client method calls**: Each call snapshots the client's options, so per-request overrides and concurrent calls never interfere
 - **Shared HTTP clients**: If you inject an HTTP client via `WithHTTPClientFactory()`, ensure it's either thread-safe by design or properly synchronized externally
 
 **How It Works**:
-The SDK achieves concurrency safety through immutability and snapshots:
+The SDK achieves concurrency safety through immutability:
 1. Clients never mutate their options after creation
-2. Services capture a snapshot of client options when created
-3. Per-request options are applied by value (defensive copies)
-4. No shared mutable state between goroutines
+2. Each method call derives a fresh snapshot from the client's options, applying per-request overrides by value (defensive copies)
+3. No shared mutable state between goroutines
 
 **Example**:
 ```go
-// Safe: Single client used by multiple goroutines
+// Safe: Single immutable client used by multiple goroutines
 client := NewClient(WithToken(token), WithModel("mistral-7b"))
 
-// Each goroutine can safely call methods
+// Each goroutine passes its OWN defensive copy of the request, so the shared
+// template is only ever read — never mutated while another call is in flight.
 go func() {
-    resp, err := client.Chat().Complete(req)
+    resp, err := client.Chat(req.Clone())
     // ...
 }()
 
 go func() {
-    stream, err := client.Chat().CompleteStream(req)
+    stream, err := client.ChatStream(req.Clone())
     // ...
 }()
 ```
@@ -138,7 +138,7 @@ All options are functions that return `hfgo.Option`. Applied to clients and per-
 When an option can be specified at multiple levels (client-level, request-level, or in request structures), the following precedence applies (highest to lowest):
 
 1. **Request Structure Fields** (if applicable): Values set directly in request structures (e.g., `ChatRequest.Model`)
-2. **Request-Level Options**: Options passed to individual method calls (e.g., `Complete(req, WithModel("..."))`)
+2. **Request-Level Options**: Options passed to individual method calls (e.g., `Chat(req, WithModel("..."))`)
 3. **Client-Level Options**: Options set when creating the Client (e.g., `NewClient(WithModel("..."))`)
 
 This precedence ensures that more specific (request-level) configurations always override more general (client-level) configurations.
@@ -149,15 +149,15 @@ This precedence ensures that more specific (request-level) configurations always
 client := NewClient(WithModel("default-model"))
 
 // Request-level override: "request-model"
-response, err := client.Chat().Complete(
-    &ChatRequest{Messages: msgs},
+response, err := client.Chat(
+    ChatRequest{Messages: msgs},
     WithModel("request-model"),
 )
 // Result: Uses "request-model"
 
 // Request structure field: "structure-model"
-response, err := client.Chat().Complete(
-    &ChatRequest{
+response, err := client.Chat(
+    ChatRequest{
         Model: ptr("structure-model"),
         Messages: msgs,
     },
@@ -211,7 +211,7 @@ Represents a chat completion request. Key fields:
 - `PresencePenalty *float64`: Penalty for new topics (-2.0 to 2.0)
 - `Stop []string`: Stop sequences (up to 4)
 - `Seed *int64`: Deterministic sampling seed
-- `Stream *bool`: Enable streaming (use CompleteStream, not Complete)
+- `Stream *bool`: Enable streaming (use ChatStream, not Chat)
 - `StreamOptions *ChatStreamOptions`: SSE stream configuration
 - `Tools []ChatTool`: Available tools/functions
 - `ToolChoice *ChatToolChoice`: Tool selection behavior (auto, none, required, or function spec)
@@ -237,7 +237,7 @@ Validation:
 - Invalid response payloads surface as SDK validation errors
 
 ### ChatStream
-Wraps streaming chat completion response from `CompleteStream()`.
+Wraps streaming chat completion response from `ChatStream()`.
 
 **Methods**:
 - `Recv(ctx context.Context) (ChatStreamResponse, error)`: Blocks until next chunk arrives
@@ -283,20 +283,31 @@ Configuration for streaming responses.
 - `IncludeUsage *bool`: Include token usage in stream
 
 ### RawEvent
-Represents a raw SSE event from RawService streaming methods.
+Represents a raw SSE event from the raw streaming methods (`Client.Raw().Stream*`).
 
 - `Data []byte`: Event data payload
 - `Event string`: Event type identifier
 - `ID string`: Event ID
 - `Retry *time.Duration`: Retry duration hint (if provided)
 
-## Services
+## Client API
 
-### ChatService
-Created via `client.Chat()`. Methods:
+All inference endpoints are called directly on a `Client` value. Each method
+takes a request DTO and returns a typed response or stream; per-request options
+are passed as variadic `Option` values. The behavior below describes what the
+Client methods perform. The `RawService` exposed by `Client.Raw()` is the one
+exception and is documented separately.
 
-#### Complete(req *ChatRequest, opts ...Option) (ChatResponse, error)
+### Chat
+
+#### Chat(req ChatRequest, opts ...Option) (ChatResponse, error)
 Non-streaming chat completion.
+
+**Concurrency and request mutation**:
+- The request is passed **by value**; the SDK never mutates the caller's payload.
+- The value copy shares nested data (slices, maps, pointed-to values) with the caller, so the request and the data it references must be treated as **read-only while a call is in flight**.
+- Sequential, fully-awaited reuse of one request is safe and requires no cloning.
+- For concurrent invocation, pass a defensive copy per call: `go client.Chat(req.Clone(), ...)`, or build a fresh request per call.
 
 **Model and Provider Precedence**:
 The Model field is resolved with the following precedence (highest to lowest):
@@ -307,52 +318,53 @@ The Model field is resolved with the following precedence (highest to lowest):
 The Provider field is applied as a fallback only if the resolved Model does not already contain a provider (indicated by ":" in the model string). If the Model is in the format "model:provider", the Provider option is ignored.
 
 **Behavior**:
-- Validates request is not nil
+- Returns `SDKError` (kind: Configuration) if the request is missing a model or messages (zero-value request)
 - Applies per-request options to override client defaults
-- Rejects requests with Stream=true (use CompleteStream instead)
+- Rejects requests with Stream=true (use ChatStream instead)
 - Normalizes model and provider fields
 - Returns `ChatResponse` with all choices and usage stats
 - Returns `SDKError` (kind: Configuration) for invalid requests
 
-#### CompleteStream(req *ChatRequest, opts ...Option) (*ChatStream, error)
+#### ChatStream(req ChatRequest, opts ...Option) (*ChatStream, error)
 Streaming chat completion using SSE.
 
+**Concurrency and request mutation**:
+- The request is passed **by value**; the SDK never mutates the caller's payload.
+- The request is fully consumed before the stream is returned, so the same sequential-reuse rules as `Chat` apply.
+- For concurrent invocation, pass a defensive copy per call: `go client.ChatStream(req.Clone(), ...)`, or build a fresh request per call.
+
 **Behavior**:
-- Validates request is not nil
+- Returns `SDKError` (kind: Configuration) if the request is missing a model or messages (zero-value request)
 - Applies per-request options
-- Automatically sets Stream=true in request
+- Always sends the request with streaming enabled
 - Normalizes model and provider fields
 - Returns `*ChatStream` for consuming chunks
 - Caller must call `Close()` on returned stream
 - Returns `SDKError` (kind: Configuration) for invalid requests
 
-### TextClassificationService
-Created via `client.ClassifyText()`. For text classification tasks like sentiment analysis.
+### Text Classification
 
-#### Classify(req TextClassificationRequest, opts ...Option) ([]TextClassification, error)
+#### ClassifyText(req TextClassificationRequest, opts ...Option) ([]TextClassification, error)
 Single text classification.
 
 **Behavior**:
-- Validates request contains exactly one input
-- Returns error if multiple inputs provided (use ClassifyBatch instead)
 - Applies per-request options
 - Returns flat array of classifications for the single input
-- Automatically unwraps batch response to get single input result
+- Automatically unwraps the response to get the single input result
 
-#### ClassifyBatch(req TextClassificationRequest, opts ...Option) ([][]TextClassification, error)
+#### ClassifyTextBatch(req TextClassificationBatchRequest, opts ...Option) ([][]TextClassification, error)
 Batch text classification for multiple inputs.
 
 **API Response Format Normalization**:
-The service handles a quirk in the HuggingFace API where the response format differs based on whether the `TopK` parameter is explicitly set:
+The SDK handles a quirk in the HuggingFace API where the response format differs based on whether the `TopK` parameter is explicitly set:
 - **When TopK is explicitly set**: Returns `[[classifications for input1], [classifications for input2], ...]` (per-input format)
 - **When TopK is unset (nil)**: Returns `[[all classifications together]]` (flat format)
 
 This inconsistency is handled transparently by the `normalizeTextClassificationResponse()` helper function.
 
-### ZeroShotTextClassificationService
-Created via `client.ZeroShotClassifyText()`. For zero-shot text classification tasks.
+### Zero-Shot Text Classification
 
-#### Classify(req ZeroShotTextClassificationRequest, opts ...Option) ([]ZeroShotTextClassification, error)
+#### ZeroShotClassifyText(req ZeroShotTextClassificationRequest, opts ...Option) ([]ZeroShotTextClassification, error)
 Single input zero-shot text classification.
 
 **Behavior**:
@@ -361,54 +373,83 @@ Single input zero-shot text classification.
 - Applies per-request options
 - Returns flat array of classifications for the single input, ordered by score (descending)
 
-#### ClassifyBatch(req ZeroShotTextClassificationBatchRequest, opts ...Option) ([][]ZeroShotTextClassification, error)
+#### ZeroShotClassifyTextBatch(req ZeroShotTextClassificationBatchRequest, opts ...Option) ([][]ZeroShotTextClassification, error)
 Batch zero-shot text classification for multiple inputs.
 
 **API Response Normalization**:
-The HuggingFace API returns batched zero-shot results in a different format than single inputs. The service transparently normalizes responses via `normalizeZeroShotTextClassificationResponse()`.
+The HuggingFace API returns batched zero-shot results in a different format than single inputs. The SDK transparently normalizes responses via `normalizeZeroShotTextClassificationResponse()`.
 
-### SummarizationService
-Created via `client.Summarization()`. For text summarization tasks.
+### Fill Mask
+
+#### FillMask(req FillMaskRequest, opts ...Option) ([]FillMaskPrediction, error)
+Single input mask filling.
+
+**Behavior**:
+- Applies per-request options
+- Validates that a model is configured
+- Returns ranked mask filling predictions for the single input
+
+#### FillMaskBatch(req FillMaskBatchRequest, opts ...Option) ([][]FillMaskPrediction, error)
+Batch mask filling for multiple inputs.
+
+**Behavior**:
+- Applies per-request options
+- Validates that a model is configured
+- Returns a list of prediction lists, one per input, in input order
+- Callers should check the length of the response list before indexing
+
+### Summarization
 
 #### Summarize(req SummarizationRequest, opts ...Option) ([]Summarization, error)
 Single text summarization.
 
 **Behavior**:
-- Validates that a model is configured
-- Returns SDK error (kind: Configuration) if the model is missing
 - Applies per-request options
+- Validates that a model is configured
 - Returns a flat list of `Summarization` outputs for the single input
 
 #### SummarizeBatch(req SummarizationBatchRequest, opts ...Option) ([]Summarization, error)
 Batch text summarization for multiple inputs.
 
 **Behavior**:
-- Validates that a model is configured
-- Returns SDK error (kind: Configuration) if the model is missing
 - Applies per-request options
+- Validates that a model is configured
 - The API returns a flat list of `Summarization` outputs (one per input, in order) rather than a nested list, consistent with how it returns a list even for a single input
 
-### RawService
-Created via `client.Raw()`. For raw HTTP requests without type-safe JSON handling.
+### RawService (escape hatch)
 
-#### Do(body []byte, method, path string, opts ...Option) (*http.Response, error)
+Created via `client.Raw()`. For raw HTTP requests without type-safe JSON handling. This is the only endpoint path exposed as a service rather than as flat Client methods; it is the advanced escape hatch for endpoints the SDK does not model, and its broader method matrix is easier to discover grouped here.
+
+#### Do(requestBody []byte, method, path string, opts ...Option) (*http.Response, error)
 Raw request with error interpretation on non-2xx responses.
 
-#### DoRaw(body []byte, method, path string, opts ...Option) (*http.Response, error)
+#### DoRaw(requestBody []byte, method, path string, opts ...Option) (*http.Response, error)
 Raw request without error interpretation (allows non-2xx responses).
 
-#### Stream(body []byte, method, path string, opts ...Option) (*RawStream, error)
+#### DoReader(requestBody io.Reader, method, path string, opts ...Option) (*http.Response, error)
+Same as `Do`, but streams the request body from an `io.Reader`.
+
+#### DoRawReader(requestBody io.Reader, method, path string, opts ...Option) (*http.Response, error)
+Same as `DoRaw`, but streams the request body from an `io.Reader`.
+
+#### Stream(requestBody []byte, method, path string, opts ...Option) (*RawStream, error)
 SSE stream with error interpretation.
 
-#### StreamRaw(body []byte, method, path string, opts ...Option) (*RawStream, error)
+#### StreamReader(requestBody io.Reader, method, path string, opts ...Option) (*RawStream, error)
+Same as `Stream`, but streams the request body from an `io.Reader`.
+
+#### StreamRaw(requestBody []byte, method, path string, opts ...Option) (*RawStream, error)
 SSE stream without error interpretation (allows non-2xx responses).
+
+#### StreamRawReader(requestBody io.Reader, method, path string, opts ...Option) (*RawStream, error)
+Same as `StreamRaw`, but streams the request body from an `io.Reader`.
 
 ## Endpoints
 
 ### Chat Completions
 - **Constant**: `EndpointChatCompletion = "/v1/chat/completions"`
 - **Method**: POST
-- **Service**: `ChatService.Complete()` or `ChatService.CompleteStream()`
+- **Methods**: `Client.Chat(...)` or `Client.ChatStream(...)`
 
 ## Quality Assurance
 
@@ -458,16 +499,36 @@ go test -coverprofile=coverage.out -covermode=atomic ./...
 
 ### 1. Concurrency & Immutability
 - Create new Client for different configurations, don't mutate
-- Services are lightweight; create per use rather than caching
+- Client methods snapshot the client's options on each call, so nothing needs to be cached or pre-bound
 
 ### 2. Error Handling
 - Always type-assert errors to APIError or SDKError
 - Use helper methods on APIError
 - Always close Body on APIError
 
-### 3. Request Mutation Safety
-- Do not mutate ChatRequest after passing it to Complete or CompleteStream
-- For concurrent requests, create a new ChatRequest for each call
+### 3. Concurrency & Request Safety
+
+Request DTOs (e.g. `ChatRequest`) are passed to Client methods **by value**, and the SDK only ever mutates its own internal copy. This is the entire guarantee.
+
+**What the SDK guarantees**:
+- The SDK never mutates the request payload you pass in.
+- A single immutable Client is safe for concurrent use.
+
+**What the SDK does *not* guarantee, and why**:
+- Because the value copy shares the request's nested data by reference (slices, maps, and pointed-to values), the SDK cannot prevent a caller from racing against an in-flight call by mutating that nested data.
+- Go offers libraries no way to intercept ordinary field reads/writes on a plain struct, and retrofitting synchronization (mutexes, atomics, getters/setters) would make the DTOs non-copyable — destroying the value-copy semantics the whole SDK is built on. Preventing caller-authored races is therefore **structurally impossible** from inside the SDK; it is a caller responsibility.
+
+**Safe usage patterns**:
+1. **Read-only request**: Treat the request and the data it references as read-only while a call is in flight. Sequential, fully-awaited reuse is safe and needs no cloning.
+2. **Defensive copy for concurrency**: Invoke with a per-call deep copy so each goroutine owns its request:
+   ```go
+   go client.Chat(req.Clone(), ...)      // each goroutine passes its own copy
+   go client.ChatStream(req.Clone(), ...)
+   ```
+   `Clone()` is a **deep** copy: every slice gets new backing storage and every pointer a new pointee, so a clone shares nothing with its source. Exception: the value of an entry in `SummarizationParameters.GenerateParameters` (`map[string]any`) is shared, because its type is not known statically.
+3. **No reuse**: Simply build a fresh request per call or per goroutine and never share request objects.
+
+**Never**: share one mutable request object across goroutines and mutate it while calls are in flight — that is a data race the SDK cannot observe or prevent.
 
 ### 4. Streaming
 - Always call Close() on ChatStream or RawStream

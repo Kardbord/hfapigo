@@ -3,6 +3,7 @@ package hfgo
 import (
 	"encoding/json"
 	"fmt"
+	"slices"
 )
 
 // ChatRequest represents a completion request for the chat API.
@@ -97,6 +98,449 @@ func (r ChatRequest) MarshalJSON() ([]byte, error) {
 	return json.Marshal(alias(r))
 }
 
+// Clone returns a deep defensive copy of the request. All reference fields —
+// slices, maps, pointers, and JSON blobs — are copied so the returned value
+// shares no backing storage with the receiver. This makes it safe to reuse a
+// template request across concurrent calls, e.g. go client.Chat(req.Clone(), ...).
+func (r *ChatRequest) Clone() ChatRequest {
+	if r == nil {
+		return ChatRequest{}
+	}
+	out := *r
+	out.Model = clonePtr(r.Model)
+	out.FrequencyPenalty = clonePtr(r.FrequencyPenalty)
+	out.LogProbs = clonePtr(r.LogProbs)
+	out.MaxTokens = clonePtr(r.MaxTokens)
+	out.Messages = cloneSlice(r.Messages, (*ChatMessage).Clone)
+	out.PresencePenalty = clonePtr(r.PresencePenalty)
+	out.ResponseFormat = cloneStructPtr(r.ResponseFormat, (*ChatResponseFormat).Clone)
+	out.Seed = clonePtr(r.Seed)
+	out.Stop = slices.Clone(r.Stop)
+	out.Stream = clonePtr(r.Stream)
+	out.StreamOptions = cloneStructPtr(r.StreamOptions, (*ChatStreamOptions).Clone)
+	out.Temperature = clonePtr(r.Temperature)
+	out.ToolChoice = cloneStructPtr(r.ToolChoice, (*ChatToolChoice).Clone)
+	out.ToolPrompt = clonePtr(r.ToolPrompt)
+	out.Tools = cloneSlice(r.Tools, (*ChatTool).Clone)
+	out.TopLogProbs = clonePtr(r.TopLogProbs)
+	out.TopP = clonePtr(r.TopP)
+
+	return out
+}
+
+// ChatMessage represents a single chat message.
+type ChatMessage struct {
+	// Role of the message author (for example: system, user, assistant, tool).
+	// Required.
+	Role string `json:"role"`
+	// Optional name for the participant.
+	Name *string `json:"name,omitempty"`
+
+	// Content may be a string or a list of content chunks.
+	// Either Content or ToolCalls should be supplied.
+	Content ChatMessageContent `json:"content"`
+
+	// ToolCalls is used instead of Content when providing tool call messages.
+	ToolCalls []ChatToolCall `json:"tool_calls,omitempty"`
+}
+
+// Clone returns a deep defensive copy of the message.
+func (m *ChatMessage) Clone() ChatMessage {
+	if m == nil {
+		return ChatMessage{}
+	}
+	out := *m
+	out.Name = clonePtr(m.Name)
+	out.Content = m.Content.Clone()
+	out.ToolCalls = cloneSlice(m.ToolCalls, (*ChatToolCall).Clone)
+
+	return out
+}
+
+// MarshalJSON enforces the union shape for ChatMessage.
+func (m ChatMessage) MarshalJSON() ([]byte, error) {
+	if err := m.validate(); err != nil {
+		return nil, err
+	}
+	type alias ChatMessage
+
+	return json.Marshal(alias(m))
+}
+
+// ChatMessageContent can be a string or []ChatMessageChunk.
+// Use a string for pure text content or a chunk list for multimodal content.
+type ChatMessageContent struct {
+	// NOTE: ChatMessageContent uses json:"-" on its fields because the JSON payload is
+	// a union (string or []ChatMessageChunk) handled by custom marshal/unmarshal.
+
+	// Text holds plain string content.
+	Text *string `json:"-"`
+	// Chunks holds structured content chunks.
+	Chunks []ChatMessageChunk `json:"-"`
+}
+
+// Clone returns a deep defensive copy of the content.
+func (c *ChatMessageContent) Clone() ChatMessageContent {
+	if c == nil {
+		return ChatMessageContent{}
+	}
+	out := *c
+	out.Text = clonePtr(c.Text)
+	out.Chunks = cloneSlice(c.Chunks, (*ChatMessageChunk).Clone)
+
+	return out
+}
+
+// MarshalJSON enforces the union shape for ChatMessageContent.
+func (c ChatMessageContent) MarshalJSON() ([]byte, error) {
+	if err := c.validate(); err != nil {
+		return nil, err
+	}
+	if c.Text != nil {
+		return json.Marshal(*c.Text)
+	}
+	if c.Chunks != nil {
+		return json.Marshal(c.Chunks)
+	}
+
+	return []byte("null"), nil
+}
+
+// ChatMessageChunk represents a content chunk (text or image URL).
+// Type must be "text" with Text set, or "image_url" with ImageURL set.
+type ChatMessageChunk struct {
+	// Required when Type is "text".
+	Text *string `json:"text,omitempty"`
+	// Required when Type is "image_url".
+	ImageURL *ChatImageURL `json:"image_url,omitempty"`
+	// Required. Possible values: text, image_url.
+	Type MessageChunkType `json:"type"`
+}
+
+// Clone returns a deep defensive copy of the chunk.
+func (c *ChatMessageChunk) Clone() ChatMessageChunk {
+	if c == nil {
+		return ChatMessageChunk{}
+	}
+	out := *c
+	out.Text = clonePtr(c.Text)
+	out.ImageURL = cloneStructPtr(c.ImageURL, (*ChatImageURL).Clone)
+
+	return out
+}
+
+// MarshalJSON enforces the union shape for ChatMessageChunk.
+func (c ChatMessageChunk) MarshalJSON() ([]byte, error) {
+	if err := c.validate(); err != nil {
+		return nil, err
+	}
+	type alias ChatMessageChunk
+
+	return json.Marshal(alias(c))
+}
+
+// ChatImageURL contains the URL for an image chunk.
+type ChatImageURL struct {
+	// Required.
+	URL string `json:"url"`
+}
+
+// Clone returns a defensive copy of the image URL.
+func (u *ChatImageURL) Clone() ChatImageURL {
+	if u == nil {
+		return ChatImageURL{}
+	}
+
+	return *u
+}
+
+// MarshalJSON enforces the required URL on ChatImageURL.
+func (u ChatImageURL) MarshalJSON() ([]byte, error) {
+	if err := u.validate(); err != nil {
+		return nil, err
+	}
+	type alias ChatImageURL
+
+	return json.Marshal(alias(u))
+}
+
+// MessageChunkType enumerates supported chat message chunk types.
+type MessageChunkType string
+
+const (
+	// MessageChunkTypeText represents a text chunk.
+	MessageChunkTypeText MessageChunkType = "text"
+	// MessageChunkTypeImageURL represents an image_url chunk.
+	MessageChunkTypeImageURL MessageChunkType = "image_url"
+)
+
+// ChatToolCall represents a tool call in a message.
+type ChatToolCall struct {
+	// Tool call ID.
+	// Required.
+	ID string `json:"id"`
+	// Tool call type (for example: function).
+	// Required.
+	Type string `json:"type"`
+	// Required.
+	Function ChatFunctionCall `json:"function"`
+}
+
+// Clone returns a deep defensive copy of the tool call.
+func (c *ChatToolCall) Clone() ChatToolCall {
+	if c == nil {
+		return ChatToolCall{}
+	}
+	out := *c
+	out.Function = c.Function.Clone()
+
+	return out
+}
+
+// MarshalJSON enforces the tool call shape for ChatToolCall.
+func (c ChatToolCall) MarshalJSON() ([]byte, error) {
+	if err := c.validate(); err != nil {
+		return nil, err
+	}
+	type alias ChatToolCall
+
+	return json.Marshal(alias(c))
+}
+
+// ChatFunctionDefinition describes a callable function.
+type ChatFunctionDefinition struct {
+	// Required.
+	Name string `json:"name"`
+	// A description of what the function does.
+	Description *string `json:"description,omitempty"`
+	// JSON schema describing function parameters.
+	Parameters json.RawMessage `json:"parameters,omitempty"`
+}
+
+// Clone returns a deep defensive copy of the function definition.
+func (f *ChatFunctionDefinition) Clone() ChatFunctionDefinition {
+	if f == nil {
+		return ChatFunctionDefinition{}
+	}
+	out := *f
+	out.Description = clonePtr(f.Description)
+	out.Parameters = slices.Clone(f.Parameters)
+
+	return out
+}
+
+// MarshalJSON enforces required fields on ChatFunctionDefinition.
+func (f ChatFunctionDefinition) MarshalJSON() ([]byte, error) {
+	if err := f.validate(); err != nil {
+		return nil, err
+	}
+	type alias ChatFunctionDefinition
+
+	return json.Marshal(alias(f))
+}
+
+// ChatResponseFormat configures the response format.
+type ChatResponseFormat struct {
+	// Known type values: text, json_schema, json_object.
+	// Non-empty provider-specific values are also accepted.
+	// For json_schema, JSONSchema is required.
+	Type       ResponseFormatType    `json:"type"`
+	JSONSchema *ChatJSONSchemaConfig `json:"json_schema,omitempty"`
+}
+
+// Clone returns a deep defensive copy of the response format.
+func (r *ChatResponseFormat) Clone() ChatResponseFormat {
+	if r == nil {
+		return ChatResponseFormat{}
+	}
+	out := *r
+	out.JSONSchema = cloneStructPtr(r.JSONSchema, (*ChatJSONSchemaConfig).Clone)
+
+	return out
+}
+
+// ResponseFormatType enumerates known response formats.
+type ResponseFormatType string
+
+const (
+	// ResponseFormatTypeText requests a text response.
+	ResponseFormatTypeText ResponseFormatType = "text"
+	// ResponseFormatTypeJSONSchema requests a JSON schema response.
+	ResponseFormatTypeJSONSchema ResponseFormatType = "json_schema"
+	// ResponseFormatTypeJSONObject requests a JSON object response.
+	ResponseFormatTypeJSONObject ResponseFormatType = "json_object"
+)
+
+// MarshalJSON enforces the union shape for ChatResponseFormat.
+func (r ChatResponseFormat) MarshalJSON() ([]byte, error) {
+	if err := r.validate(); err != nil {
+		return nil, err
+	}
+	type alias ChatResponseFormat
+
+	return json.Marshal(alias(r))
+}
+
+// ChatJSONSchemaConfig defines JSON schema response formatting.
+type ChatJSONSchemaConfig struct {
+	// The name of the response format.
+	// Required.
+	Name string `json:"name"`
+	// A description of what the response format is for.
+	Description *string `json:"description,omitempty"`
+	// The schema for the response format as a JSON Schema object.
+	// Learn how to build JSON schemas at https://json-schema.org/.
+	Schema json.RawMessage `json:"schema,omitempty"`
+	// Whether to enable strict schema adherence.
+	Strict *bool `json:"strict,omitempty"`
+}
+
+// Clone returns a deep defensive copy of the JSON schema configuration.
+func (c *ChatJSONSchemaConfig) Clone() ChatJSONSchemaConfig {
+	if c == nil {
+		return ChatJSONSchemaConfig{}
+	}
+	out := *c
+	out.Description = clonePtr(c.Description)
+	out.Schema = slices.Clone(c.Schema)
+	out.Strict = clonePtr(c.Strict)
+
+	return out
+}
+
+// ChatStreamOptions configures streaming behavior.
+type ChatStreamOptions struct {
+	// If set, an additional chunk is streamed before the [DONE] message
+	// showing overall usage. The usage field on this chunk shows the token
+	// usage statistics for the entire request, and the choices field will
+	// always be an empty array. All other chunks include a usage field with
+	// a null value.
+	IncludeUsage *bool `json:"include_usage,omitempty"`
+}
+
+// Clone returns a deep defensive copy of the stream options.
+func (o *ChatStreamOptions) Clone() ChatStreamOptions {
+	if o == nil {
+		return ChatStreamOptions{}
+	}
+	out := *o
+	out.IncludeUsage = clonePtr(o.IncludeUsage)
+
+	return out
+}
+
+// ChatTool represents a tool definition provided to the model.
+type ChatTool struct {
+	// Tool type (currently only function is supported).
+	Type     string                 `json:"type"`
+	Function ChatFunctionDefinition `json:"function"`
+}
+
+// MarshalJSON enforces the tool shape for ChatTool.
+func (t ChatTool) MarshalJSON() ([]byte, error) {
+	if err := t.validate(); err != nil {
+		return nil, err
+	}
+	type alias ChatTool
+
+	return json.Marshal(alias(t))
+}
+
+// Clone returns a deep defensive copy of the tool.
+func (t *ChatTool) Clone() ChatTool {
+	if t == nil {
+		return ChatTool{}
+	}
+	out := *t
+	out.Function = t.Function.Clone()
+
+	return out
+}
+
+// ChatToolChoice represents the tool choice union type.
+// Either Mode is set to auto/none/required, or Function is set.
+type ChatToolChoice struct {
+	// NOTE: ChatToolChoice uses json:"-" on its fields because the JSON payload is
+	// a union (string or {"function":{...}}) handled by custom marshal/unmarshal.
+
+	// Mode is a tool choice mode. Known values: auto, none, required.
+	// Non-empty provider-specific values are also accepted.
+	Mode *ToolChoiceMode `json:"-"`
+	// Function selects a specific tool function by name.
+	Function *ChatFunctionName `json:"-"`
+}
+
+// Clone returns a deep defensive copy of the tool choice.
+func (t *ChatToolChoice) Clone() ChatToolChoice {
+	if t == nil {
+		return ChatToolChoice{}
+	}
+	out := *t
+	out.Mode = clonePtr(t.Mode)
+	out.Function = cloneStructPtr(t.Function, (*ChatFunctionName).Clone)
+
+	return out
+}
+
+// ToolChoiceMode enumerates known tool choice modes.
+type ToolChoiceMode string
+
+const (
+	// ToolChoiceModeAuto lets the provider decide the tool choice.
+	ToolChoiceModeAuto ToolChoiceMode = "auto"
+	// ToolChoiceModeNone disables tool usage.
+	ToolChoiceModeNone ToolChoiceMode = "none"
+	// ToolChoiceModeRequired requires tool usage.
+	ToolChoiceModeRequired ToolChoiceMode = "required"
+)
+
+// toolChoiceFunctionPayload is the JSON object shape for function tool choices.
+type toolChoiceFunctionPayload struct {
+	Function *ChatFunctionName `json:"function"`
+}
+
+// MarshalJSON enforces the union shape for ChatToolChoice.
+func (t ChatToolChoice) MarshalJSON() ([]byte, error) {
+	if err := t.validate(); err != nil {
+		return nil, err
+	}
+	if t.Mode != nil {
+		return json.Marshal(*t.Mode)
+	}
+	if t.Function != nil {
+		return json.Marshal(toolChoiceFunctionPayload{
+			Function: t.Function,
+		})
+	}
+
+	return []byte("null"), nil
+}
+
+// ChatFunctionName identifies a tool function by name.
+type ChatFunctionName struct {
+	// Required.
+	Name string `json:"name"`
+}
+
+// MarshalJSON enforces required fields on ChatFunctionName.
+func (f ChatFunctionName) MarshalJSON() ([]byte, error) {
+	if err := f.validate(); err != nil {
+		return nil, err
+	}
+	type alias ChatFunctionName
+
+	return json.Marshal(alias(f))
+}
+
+// Clone returns a defensive copy of the function name.
+func (f *ChatFunctionName) Clone() ChatFunctionName {
+	if f == nil {
+		return ChatFunctionName{}
+	}
+
+	return *f
+}
+
 //nolint:gocritic // hugeParam: using a value receiver guarantees no modifications to the caller
 func (r ChatRequest) validate() error {
 	if r.Model == nil || *r.Model == "" {
@@ -116,32 +560,6 @@ func (r ChatRequest) validate() error {
 	}
 
 	return nil
-}
-
-// ChatMessage represents a single chat message.
-type ChatMessage struct {
-	// Role of the message author (for example: system, user, assistant, tool).
-	// Required.
-	Role string `json:"role"`
-	// Optional name for the participant.
-	Name *string `json:"name,omitempty"`
-
-	// Content may be a string or a list of content chunks.
-	// Either Content or ToolCalls should be supplied.
-	Content ChatMessageContent `json:"content"`
-
-	// ToolCalls is used instead of Content when providing tool call messages.
-	ToolCalls []ChatToolCall `json:"tool_calls,omitempty"`
-}
-
-// MarshalJSON enforces the union shape for ChatMessage.
-func (m ChatMessage) MarshalJSON() ([]byte, error) {
-	if err := m.validate(); err != nil {
-		return nil, err
-	}
-	type alias ChatMessage
-
-	return json.Marshal(alias(m))
 }
 
 // validate enforces the union shape for ChatMessage.
@@ -172,33 +590,6 @@ func (m ChatMessage) validate() error {
 	return nil
 }
 
-// ChatMessageContent can be a string or []ChatMessageChunk.
-// Use a string for pure text content or a chunk list for multimodal content.
-type ChatMessageContent struct {
-	// NOTE: ChatMessageContent uses json:"-" on its fields because the JSON payload is
-	// a union (string or []ChatMessageChunk) handled by custom marshal/unmarshal.
-
-	// Text holds plain string content.
-	Text *string `json:"-"`
-	// Chunks holds structured content chunks.
-	Chunks []ChatMessageChunk `json:"-"`
-}
-
-// MarshalJSON enforces the union shape for ChatMessageContent.
-func (c ChatMessageContent) MarshalJSON() ([]byte, error) {
-	if err := c.validate(); err != nil {
-		return nil, err
-	}
-	if c.Text != nil {
-		return json.Marshal(*c.Text)
-	}
-	if c.Chunks != nil {
-		return json.Marshal(c.Chunks)
-	}
-
-	return []byte("null"), nil
-}
-
 // validate enforces the union shape for ChatMessageContent.
 func (c ChatMessageContent) validate() error {
 	if c.Text != nil && len(c.Chunks) > 0 {
@@ -210,27 +601,6 @@ func (c ChatMessageContent) validate() error {
 	}
 
 	return nil
-}
-
-// ChatMessageChunk represents a content chunk (text or image URL).
-// Type must be "text" with Text set, or "image_url" with ImageURL set.
-type ChatMessageChunk struct {
-	// Required when Type is "text".
-	Text *string `json:"text,omitempty"`
-	// Required when Type is "image_url".
-	ImageURL *ChatImageURL `json:"image_url,omitempty"`
-	// Required. Possible values: text, image_url.
-	Type MessageChunkType `json:"type"`
-}
-
-// MarshalJSON enforces the union shape for ChatMessageChunk.
-func (c ChatMessageChunk) MarshalJSON() ([]byte, error) {
-	if err := c.validate(); err != nil {
-		return nil, err
-	}
-	type alias ChatMessageChunk
-
-	return json.Marshal(alias(c))
 }
 
 // validate enforces the union shape for ChatMessageChunk.
@@ -277,22 +647,6 @@ func (c ChatMessageChunk) validate() error {
 	return nil
 }
 
-// ChatImageURL contains the URL for an image chunk.
-type ChatImageURL struct {
-	// Required.
-	URL string `json:"url"`
-}
-
-// MarshalJSON enforces the required URL on ChatImageURL.
-func (u ChatImageURL) MarshalJSON() ([]byte, error) {
-	if err := u.validate(); err != nil {
-		return nil, err
-	}
-	type alias ChatImageURL
-
-	return json.Marshal(alias(u))
-}
-
 func (u ChatImageURL) validate() error {
 	if u.URL == "" {
 		return &SDKError{
@@ -303,38 +657,6 @@ func (u ChatImageURL) validate() error {
 	}
 
 	return nil
-}
-
-// MessageChunkType enumerates supported chat message chunk types.
-type MessageChunkType string
-
-const (
-	// MessageChunkTypeText represents a text chunk.
-	MessageChunkTypeText MessageChunkType = "text"
-	// MessageChunkTypeImageURL represents an image_url chunk.
-	MessageChunkTypeImageURL MessageChunkType = "image_url"
-)
-
-// ChatToolCall represents a tool call in a message.
-type ChatToolCall struct {
-	// Tool call ID.
-	// Required.
-	ID string `json:"id"`
-	// Tool call type (for example: function).
-	// Required.
-	Type string `json:"type"`
-	// Required.
-	Function ChatFunctionCall `json:"function"`
-}
-
-// MarshalJSON enforces the tool call shape for ChatToolCall.
-func (c ChatToolCall) MarshalJSON() ([]byte, error) {
-	if err := c.validate(); err != nil {
-		return nil, err
-	}
-	type alias ChatToolCall
-
-	return json.Marshal(alias(c))
 }
 
 // validate enforces the tool call shape for ChatToolCall.
@@ -357,26 +679,6 @@ func (c ChatToolCall) validate() error {
 	return nil
 }
 
-// ChatFunctionDefinition describes a callable function.
-type ChatFunctionDefinition struct {
-	// Required.
-	Name string `json:"name"`
-	// A description of what the function does.
-	Description *string `json:"description,omitempty"`
-	// JSON schema describing function parameters.
-	Parameters json.RawMessage `json:"parameters,omitempty"`
-}
-
-// MarshalJSON enforces required fields on ChatFunctionDefinition.
-func (f ChatFunctionDefinition) MarshalJSON() ([]byte, error) {
-	if err := f.validate(); err != nil {
-		return nil, err
-	}
-	type alias ChatFunctionDefinition
-
-	return json.Marshal(alias(f))
-}
-
 func (f ChatFunctionDefinition) validate() error {
 	if f.Name == "" {
 		return &SDKError{
@@ -387,37 +689,6 @@ func (f ChatFunctionDefinition) validate() error {
 	}
 
 	return nil
-}
-
-// ChatResponseFormat configures the response format.
-type ChatResponseFormat struct {
-	// Known type values: text, json_schema, json_object.
-	// Non-empty provider-specific values are also accepted.
-	// For json_schema, JSONSchema is required.
-	Type       ResponseFormatType    `json:"type"`
-	JSONSchema *ChatJSONSchemaConfig `json:"json_schema,omitempty"`
-}
-
-// ResponseFormatType enumerates known response formats.
-type ResponseFormatType string
-
-const (
-	// ResponseFormatTypeText requests a text response.
-	ResponseFormatTypeText ResponseFormatType = "text"
-	// ResponseFormatTypeJSONSchema requests a JSON schema response.
-	ResponseFormatTypeJSONSchema ResponseFormatType = "json_schema"
-	// ResponseFormatTypeJSONObject requests a JSON object response.
-	ResponseFormatTypeJSONObject ResponseFormatType = "json_object"
-)
-
-// MarshalJSON enforces the union shape for ChatResponseFormat.
-func (r ChatResponseFormat) MarshalJSON() ([]byte, error) {
-	if err := r.validate(); err != nil {
-		return nil, err
-	}
-	type alias ChatResponseFormat
-
-	return json.Marshal(alias(r))
 }
 
 // validate enforces the union shape for ChatResponseFormat.
@@ -465,47 +736,6 @@ func (r ChatResponseFormat) validate() error {
 	return nil
 }
 
-// ChatJSONSchemaConfig defines JSON schema response formatting.
-type ChatJSONSchemaConfig struct {
-	// The name of the response format.
-	// Required.
-	Name string `json:"name"`
-	// A description of what the response format is for.
-	Description *string `json:"description,omitempty"`
-	// The schema for the response format as a JSON Schema object.
-	// Learn how to build JSON schemas at https://json-schema.org/.
-	Schema json.RawMessage `json:"schema,omitempty"`
-	// Whether to enable strict schema adherence.
-	Strict *bool `json:"strict,omitempty"`
-}
-
-// ChatStreamOptions configures streaming behavior.
-type ChatStreamOptions struct {
-	// If set, an additional chunk is streamed before the [DONE] message
-	// showing overall usage. The usage field on this chunk shows the token
-	// usage statistics for the entire request, and the choices field will
-	// always be an empty array. All other chunks include a usage field with
-	// a null value.
-	IncludeUsage *bool `json:"include_usage,omitempty"`
-}
-
-// ChatTool represents a tool definition provided to the model.
-type ChatTool struct {
-	// Tool type (currently only function is supported).
-	Type     string                 `json:"type"`
-	Function ChatFunctionDefinition `json:"function"`
-}
-
-// MarshalJSON enforces the tool shape for ChatTool.
-func (t ChatTool) MarshalJSON() ([]byte, error) {
-	if err := t.validate(); err != nil {
-		return nil, err
-	}
-	type alias ChatTool
-
-	return json.Marshal(alias(t))
-}
-
 // validate enforces the tool shape for ChatTool.
 func (t ChatTool) validate() error {
 	if t.Type == "" {
@@ -517,53 +747,6 @@ func (t ChatTool) validate() error {
 	}
 
 	return nil
-}
-
-// ChatToolChoice represents the tool choice union type.
-// Either Mode is set to auto/none/required, or Function is set.
-type ChatToolChoice struct {
-	// NOTE: ChatToolChoice uses json:"-" on its fields because the JSON payload is
-	// a union (string or {"function":{...}}) handled by custom marshal/unmarshal.
-
-	// Mode is a tool choice mode. Known values: auto, none, required.
-	// Non-empty provider-specific values are also accepted.
-	Mode *ToolChoiceMode `json:"-"`
-	// Function selects a specific tool function by name.
-	Function *ChatFunctionName `json:"-"`
-}
-
-// ToolChoiceMode enumerates known tool choice modes.
-type ToolChoiceMode string
-
-const (
-	// ToolChoiceModeAuto lets the provider decide the tool choice.
-	ToolChoiceModeAuto ToolChoiceMode = "auto"
-	// ToolChoiceModeNone disables tool usage.
-	ToolChoiceModeNone ToolChoiceMode = "none"
-	// ToolChoiceModeRequired requires tool usage.
-	ToolChoiceModeRequired ToolChoiceMode = "required"
-)
-
-// toolChoiceFunctionPayload is the JSON object shape for function tool choices.
-type toolChoiceFunctionPayload struct {
-	Function *ChatFunctionName `json:"function"`
-}
-
-// MarshalJSON enforces the union shape for ChatToolChoice.
-func (t ChatToolChoice) MarshalJSON() ([]byte, error) {
-	if err := t.validate(); err != nil {
-		return nil, err
-	}
-	if t.Mode != nil {
-		return json.Marshal(*t.Mode)
-	}
-	if t.Function != nil {
-		return json.Marshal(toolChoiceFunctionPayload{
-			Function: t.Function,
-		})
-	}
-
-	return []byte("null"), nil
 }
 
 // validate enforces the union shape for ChatToolChoice.
@@ -584,22 +767,6 @@ func (t ChatToolChoice) validate() error {
 	}
 
 	return nil
-}
-
-// ChatFunctionName identifies a tool function by name.
-type ChatFunctionName struct {
-	// Required.
-	Name string `json:"name"`
-}
-
-// MarshalJSON enforces required fields on ChatFunctionName.
-func (f ChatFunctionName) MarshalJSON() ([]byte, error) {
-	if err := f.validate(); err != nil {
-		return nil, err
-	}
-	type alias ChatFunctionName
-
-	return json.Marshal(alias(f))
 }
 
 func (f ChatFunctionName) validate() error {

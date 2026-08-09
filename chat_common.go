@@ -39,6 +39,17 @@ func (f *ChatFunctionCall) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// Clone returns a deep defensive copy of the function call.
+func (f *ChatFunctionCall) Clone() ChatFunctionCall {
+	if f == nil {
+		return ChatFunctionCall{}
+	}
+	out := *f
+	out.Description = clonePtr(f.Description)
+
+	return out
+}
+
 func (f ChatFunctionCall) validate() error {
 	if f.Name == "" {
 		return &SDKError{

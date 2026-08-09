@@ -81,3 +81,32 @@ func TestChatFunctionCall_Validation(t *testing.T) {
 	require.Error(t, err)
 	testutils.AssertSDKErrorKind(t, err, hferrors.SDKErrorKindValidation)
 }
+
+func TestChatFunctionCallClone_Deep(t *testing.T) {
+	t.Parallel()
+
+	fc := &ChatFunctionCall{
+		Name:        "fn",
+		Arguments:   "{}",
+		Description: testutils.Ptr("does things"),
+	}
+
+	cloned := fc.Clone()
+
+	*cloned.Description = "changed"
+	cloned.Name = "other"
+	cloned.Arguments = `{"x":1}`
+
+	require.Equal(t, "fn", fc.Name)
+	require.Equal(t, "{}", fc.Arguments)
+	require.Equal(t, "does things", *fc.Description)
+	require.Equal(t, "other", cloned.Name)
+	require.Equal(t, "changed", *cloned.Description)
+}
+
+func TestChatFunctionCallClone_Nil(t *testing.T) {
+	t.Parallel()
+
+	var f *ChatFunctionCall
+	require.Empty(t, f.Clone())
+}

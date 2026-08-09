@@ -96,7 +96,7 @@ See `docs/architecture.md` for comprehensive technical documentation including:
 - Concurrency safety model
 - Detailed error handling
 - Complete API reference
-- Service implementations
+- Client method API
 - CI/CD workflows
 
 ## Global Instructions

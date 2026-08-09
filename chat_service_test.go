@@ -11,11 +11,27 @@ import (
 
 	"github.com/Kardbord/hfgo/v4/internal/hferrors"
 	"github.com/Kardbord/hfgo/v4/internal/request"
+	"github.com/Kardbord/hfgo/v4/internal/sdkversion"
 	"github.com/Kardbord/hfgo/v4/internal/testutils"
 	"github.com/stretchr/testify/require"
 )
 
 const chatServiceResponseBody = `{"id":"id","created":1,"model":"m","system_fingerprint":"s","choices":[{"finish_reason":"stop","index":0,"message":{"role":"assistant","content":"hi"}}],"usage":{"prompt_tokens":1,"completion_tokens":2,"total_tokens":3}}`
+
+func TestNewClient_Defaults(t *testing.T) {
+	t.Parallel()
+
+	client := NewClient()
+
+	require.Equal(t, request.DefaultBaseURL, client.opts.BaseURL)
+	require.Equal(t, request.DefaultToken, client.opts.Token)
+	require.Equal(t, request.DefaultModel, client.opts.Model)
+	require.Equal(t, request.DefaultProvider, client.opts.Provider)
+	require.Equal(t, request.DefaultMaxResponseBodyBytes, client.opts.MaxResponseBodyBytes)
+	require.Equal(t, sdkversion.UserAgent(), client.opts.UserAgent)
+	require.Nil(t, client.opts.Headers)
+	require.NotNil(t, client.opts.HTTPClient)
+}
 
 func TestChatService_Complete_ModelSelection(t *testing.T) {
 	t.Parallel()
@@ -52,11 +68,13 @@ func TestChatService_Complete_ModelSelection(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			mt := testutils.NewJSONMockTransport(http.StatusOK, chatServiceResponseBody, nil)
-			opts := request.NewOptions().
-				WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }).
-				WithModel(tc.clientModel)
-			svc := newChatService(opts)
-			req := &ChatRequest{
+			client := NewClient(
+				WithHTTPClientFactory(
+					func() http.Client { return testutils.NewMockHTTPClient(mt) },
+				),
+				WithModel(tc.clientModel),
+			)
+			req := ChatRequest{
 				Model: tc.reqModel,
 				Messages: []ChatMessage{
 					{Role: "user", Content: ChatMessageContent{Text: &text}},
@@ -65,9 +83,9 @@ func TestChatService_Complete_ModelSelection(t *testing.T) {
 
 			var err error
 			if tc.optsModel != "" {
-				_, err = svc.Complete(req, WithModel(tc.optsModel))
+				_, err = client.Chat(req, WithModel(tc.optsModel))
 			} else {
-				_, err = svc.Complete(req)
+				_, err = client.Chat(req)
 			}
 
 			require.NoError(t, err)
@@ -92,32 +110,32 @@ func TestChatService_Complete_ModelValidation(t *testing.T) {
 	t.Parallel()
 
 	mt := testutils.NewJSONMockTransport(http.StatusOK, chatServiceResponseBody, nil)
-	opts := request.NewOptions().
-		WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) })
-	svc := newChatService(opts)
+	client := NewClient(
+		WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }),
+	)
 
 	text := "hi"
-	req := &ChatRequest{
+	req := ChatRequest{
 		Messages: []ChatMessage{
 			{Role: "user", Content: ChatMessageContent{Text: &text}},
 		},
 	}
 
-	_, err := svc.Complete(req)
+	_, err := client.Chat(req)
 	require.Error(t, err)
 	testutils.AssertSDKErrorKind(t, err, hferrors.SDKErrorKindConfiguration)
 	require.Nil(t, mt.LastRequest)
 }
 
-func TestChatService_Complete_NilRequest(t *testing.T) {
+func TestChatService_Complete_ZeroValueRequest(t *testing.T) {
 	t.Parallel()
 
 	mt := testutils.NewJSONMockTransport(http.StatusOK, chatServiceResponseBody, nil)
-	opts := request.NewOptions().
-		WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) })
-	svc := newChatService(opts)
+	client := NewClient(
+		WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }),
+	)
 
-	_, err := svc.Complete(nil)
+	_, err := client.Chat(ChatRequest{})
 	require.Error(t, err)
 	testutils.AssertSDKErrorKind(t, err, hferrors.SDKErrorKindConfiguration)
 	require.Nil(t, mt.LastRequest)
@@ -127,20 +145,20 @@ func TestChatService_Complete_StreamNotAllowed(t *testing.T) {
 	t.Parallel()
 
 	mt := testutils.NewJSONMockTransport(http.StatusOK, chatServiceResponseBody, nil)
-	opts := request.NewOptions().
-		WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) })
-	svc := newChatService(opts)
+	client := NewClient(
+		WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }),
+	)
 
 	text := "hi"
 	stream := true
-	req := &ChatRequest{
+	req := ChatRequest{
 		Stream: &stream,
 		Messages: []ChatMessage{
 			{Role: "user", Content: ChatMessageContent{Text: &text}},
 		},
 	}
 
-	_, err := svc.Complete(req)
+	_, err := client.Chat(req)
 	require.Error(t, err)
 	testutils.AssertSDKErrorKind(t, err, hferrors.SDKErrorKindConfiguration)
 	require.Nil(t, mt.LastRequest)
@@ -154,19 +172,19 @@ func TestChatService_CompleteStream_Success(t *testing.T) {
 	mt := testutils.NewMockTransport(http.StatusOK, body, nil)
 	mt.Response.Header.Set("Content-Type", "text/event-stream")
 
-	opts := request.NewOptions().
-		WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }).
-		WithModel("default-model")
-	svc := newChatService(opts)
+	client := NewClient(
+		WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }),
+		WithModel("default-model"),
+	)
 
 	text := "hi"
-	req := &ChatRequest{
+	req := ChatRequest{
 		Messages: []ChatMessage{
 			{Role: "user", Content: ChatMessageContent{Text: &text}},
 		},
 	}
 
-	stream, err := svc.CompleteStream(req)
+	stream, err := client.ChatStream(req)
 	require.NoError(t, err)
 	defer func() { _ = stream.Close() }()
 
@@ -245,19 +263,19 @@ func TestChatStream_Recv_InvalidJSONError(t *testing.T) {
 	mt := testutils.NewMockTransport(http.StatusOK, body, nil)
 	mt.Response.Header.Set("Content-Type", "text/event-stream")
 
-	opts := request.NewOptions().
-		WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }).
-		WithModel("default-model")
-	svc := newChatService(opts)
+	client := NewClient(
+		WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }),
+		WithModel("default-model"),
+	)
 
 	text := "hi"
-	req := &ChatRequest{
+	req := ChatRequest{
 		Messages: []ChatMessage{
 			{Role: "user", Content: ChatMessageContent{Text: &text}},
 		},
 	}
 
-	stream, err := svc.CompleteStream(req)
+	stream, err := client.ChatStream(req)
 	require.NoError(t, err)
 	defer func() { _ = stream.Close() }()
 
@@ -281,19 +299,19 @@ func assertToolCallStream(
 	mt := testutils.NewMockTransport(http.StatusOK, body, nil)
 	mt.Response.Header.Set("Content-Type", "text/event-stream")
 
-	opts := request.NewOptions().
-		WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }).
-		WithModel("default-model")
-	svc := newChatService(opts)
+	client := NewClient(
+		WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }),
+		WithModel("default-model"),
+	)
 
 	text := "hi"
-	req := &ChatRequest{
+	req := ChatRequest{
 		Messages: []ChatMessage{
 			{Role: "user", Content: ChatMessageContent{Text: &text}},
 		},
 	}
 
-	stream, err := svc.CompleteStream(req)
+	stream, err := client.ChatStream(req)
 	require.NoError(t, err)
 	defer func() { _ = stream.Close() }()
 
@@ -310,16 +328,16 @@ func assertToolCallStream(
 	assertions(chunks)
 }
 
-func TestChatService_CompleteStream_NilRequest(t *testing.T) {
+func TestChatService_CompleteStream_ZeroValueRequest(t *testing.T) {
 	t.Parallel()
 
 	mt := testutils.NewMockTransport(http.StatusOK, "", nil)
 	mt.Response.Header.Set("Content-Type", "text/event-stream")
-	opts := request.NewOptions().
-		WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) })
-	svc := newChatService(opts)
+	client := NewClient(
+		WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }),
+	)
 
-	_, err := svc.CompleteStream(nil)
+	_, err := client.ChatStream(ChatRequest{})
 	require.Error(t, err)
 	testutils.AssertSDKErrorKind(t, err, hferrors.SDKErrorKindConfiguration)
 	require.Nil(t, mt.LastRequest)
@@ -679,19 +697,19 @@ func TestChatService_ProviderFallback(t *testing.T) {
 		t *testing.T,
 		tc TestCase,
 		mtFactory func() *testutils.MockTransport,
-		methodCall func(*ChatService, *ChatRequest, []Option) error,
+		methodCall func(*Client, ChatRequest, []Option) error,
 	) {
 		t.Helper()
 
 		mt := mtFactory()
-		opts := request.NewOptions().
-			WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }).
-			WithModel(tc.clientModel).
-			WithProvider(tc.clientProvider)
-		svc := newChatService(opts)
+		client := NewClient(
+			WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }),
+			WithModel(tc.clientModel),
+			WithProvider(tc.clientProvider),
+		)
 
 		text := "hi"
-		req := &ChatRequest{
+		req := ChatRequest{
 			Model: tc.reqModel,
 			Messages: []ChatMessage{
 				{Role: "user", Content: ChatMessageContent{Text: &text}},
@@ -706,7 +724,7 @@ func TestChatService_ProviderFallback(t *testing.T) {
 			optsToPass = append(optsToPass, WithProvider(*tc.optsProvider))
 		}
 
-		err := methodCall(&svc, req, optsToPass)
+		err := methodCall(&client, req, optsToPass)
 		require.NoError(t, err)
 
 		require.NotNil(t, mt.LastRequest)
@@ -727,8 +745,8 @@ func TestChatService_ProviderFallback(t *testing.T) {
 						nil,
 					)
 				},
-				func(svc *ChatService, req *ChatRequest, opts []Option) error {
-					_, err := svc.Complete(req, opts...)
+				func(client *Client, req ChatRequest, opts []Option) error {
+					_, err := client.Chat(req, opts...)
 
 					return err
 				},
@@ -744,8 +762,8 @@ func TestChatService_ProviderFallback(t *testing.T) {
 
 					return mt
 				},
-				func(svc *ChatService, req *ChatRequest, opts []Option) error {
-					stream, err := svc.CompleteStream(req, opts...)
+				func(client *Client, req ChatRequest, opts []Option) error {
+					stream, err := client.ChatStream(req, opts...)
 					if err != nil {
 						return err
 					}

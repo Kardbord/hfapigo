@@ -228,6 +228,198 @@ func TestChatMessage_Validation(t *testing.T) {
 	}
 }
 
+func TestChatRequestClone_Deep_Scalars(t *testing.T) {
+	t.Parallel()
+
+	req := &ChatRequest{
+		Model:            testutils.Ptr("m"),
+		FrequencyPenalty: testutils.Ptr(0.5),
+		LogProbs:         testutils.Ptr(true),
+		MaxTokens:        testutils.Ptr(100),
+		PresencePenalty:  testutils.Ptr(-0.2),
+		Seed:             testutils.Ptr(int64(42)),
+		Stop:             []string{"x"},
+		Stream:           testutils.Ptr(false),
+		Temperature:      testutils.Ptr(1.0),
+		ToolPrompt:       testutils.Ptr("prompt"),
+		TopLogProbs:      testutils.Ptr(1),
+		TopP:             testutils.Ptr(0.9),
+	}
+
+	cloned := req.Clone()
+
+	*cloned.Model = "m2"
+	*cloned.FrequencyPenalty = 0.9
+	*cloned.LogProbs = false
+	*cloned.MaxTokens = 200
+	*cloned.PresencePenalty = 0.5
+	*cloned.Seed = 7
+	cloned.Stop[0] = "y"
+	*cloned.Stream = true
+	*cloned.Temperature = 2.0
+	*cloned.ToolPrompt = "changed"
+	*cloned.TopLogProbs = 5
+	*cloned.TopP = 0.1
+
+	require.Equal(t, "m", *req.Model)
+	require.InEpsilon(t, 0.5, *req.FrequencyPenalty, 0.001)
+	require.True(t, *req.LogProbs)
+	require.Equal(t, 100, *req.MaxTokens)
+	require.InEpsilon(t, -0.2, *req.PresencePenalty, 0.001)
+	require.Equal(t, int64(42), *req.Seed)
+	require.Equal(t, []string{"x"}, req.Stop)
+	require.False(t, *req.Stream)
+	require.InEpsilon(t, 1.0, *req.Temperature, 0.001)
+	require.Equal(t, "prompt", *req.ToolPrompt)
+	require.Equal(t, 1, *req.TopLogProbs)
+	require.InEpsilon(t, 0.9, *req.TopP, 0.001)
+}
+
+func TestChatRequestClone_Deep_Nested(t *testing.T) {
+	t.Parallel()
+
+	req := &ChatRequest{
+		Messages: []ChatMessage{
+			{Role: "assistant", ToolCalls: []ChatToolCall{
+				{
+					ID:   "id1",
+					Type: "function",
+					Function: ChatFunctionCall{
+						Name:        "fn",
+						Arguments:   "{}",
+						Description: testutils.Ptr("desc"),
+					},
+				},
+			}},
+			{Role: "user", Content: ChatMessageContent{Chunks: []ChatMessageChunk{
+				{
+					Type:     MessageChunkTypeImageURL,
+					ImageURL: &ChatImageURL{URL: "https://example.com/img.png"},
+				},
+				{Type: MessageChunkTypeText, Text: testutils.Ptr("hi")},
+			}}},
+		},
+		ResponseFormat: &ChatResponseFormat{
+			Type: ResponseFormatTypeJSONSchema,
+			JSONSchema: &ChatJSONSchemaConfig{
+				Name:        "n",
+				Description: testutils.Ptr("d"),
+				Strict:      testutils.Ptr(true),
+			},
+		},
+		StreamOptions: &ChatStreamOptions{IncludeUsage: testutils.Ptr(true)},
+		ToolChoice:    &ChatToolChoice{Function: &ChatFunctionName{Name: "fn"}},
+		Tools: []ChatTool{
+			{
+				Type: "function",
+				Function: ChatFunctionDefinition{
+					Name:        "f",
+					Description: testutils.Ptr("desc"),
+					Parameters:  json.RawMessage(`{"type":"object"}`),
+				},
+			},
+		},
+	}
+
+	cloned := req.Clone()
+
+	*cloned.Messages[0].ToolCalls[0].Function.Description = "changed"
+	cloned.Messages[1].Content.Chunks[0].ImageURL.URL = "https://example.com/other.png"
+	*cloned.Messages[1].Content.Chunks[1].Text = "changed"
+	*cloned.ResponseFormat.JSONSchema.Strict = false
+	*cloned.StreamOptions.IncludeUsage = false
+	cloned.ToolChoice.Function.Name = "other"
+	cloned.Tools[0].Function.Parameters = json.RawMessage(`{"type":"object"}zzz`)
+
+	require.Equal(t, "desc", *req.Messages[0].ToolCalls[0].Function.Description)
+	require.Equal(t, "https://example.com/img.png", req.Messages[1].Content.Chunks[0].ImageURL.URL)
+	require.Equal(t, "hi", *req.Messages[1].Content.Chunks[1].Text)
+	require.True(t, *req.ResponseFormat.JSONSchema.Strict)
+	require.True(t, *req.StreamOptions.IncludeUsage)
+	require.Equal(t, "fn", req.ToolChoice.Function.Name)
+	require.JSONEq(t, `{"type":"object"}`, string(req.Tools[0].Function.Parameters))
+}
+
+func TestChatRequestClone_Deep_JSONSchema(t *testing.T) {
+	t.Parallel()
+
+	schema := json.RawMessage(`{"type":"object"}`)
+	req := &ChatRequest{
+		Model: testutils.Ptr("m"),
+		Messages: []ChatMessage{
+			{Role: "user", Content: ChatMessageContent{Text: testutils.Ptr("hello")}},
+		},
+		Stop: []string{"x"},
+		Tools: []ChatTool{
+			{Type: "function", Function: ChatFunctionDefinition{Name: "f", Parameters: schema}},
+		},
+		ResponseFormat: &ChatResponseFormat{
+			Type:       ResponseFormatTypeJSONSchema,
+			JSONSchema: &ChatJSONSchemaConfig{Name: "n", Schema: schema},
+		},
+		ToolChoice: &ChatToolChoice{Mode: testutils.Ptr(ToolChoiceModeAuto)},
+	}
+
+	cloned := req.Clone()
+
+	*cloned.Messages[0].Content.Text = "changed"
+	cloned.Messages[0].Role = "assistant"
+	cloned.Stop[0] = "y"
+	cloned.Tools[0].Function.Parameters = json.RawMessage(`{"type":"object"}zzz`)
+	cloned.ResponseFormat.JSONSchema.Schema = json.RawMessage(`{"type":"object"}xxx`)
+	*cloned.ToolChoice.Mode = ToolChoiceModeNone
+
+	require.Equal(t, "hello", *req.Messages[0].Content.Text)
+	require.Equal(t, "user", req.Messages[0].Role)
+	require.Equal(t, []string{"x"}, req.Stop)
+	require.JSONEq(t, `{"type":"object"}`, string(req.Tools[0].Function.Parameters))
+	require.JSONEq(t, `{"type":"object"}`, string(req.ResponseFormat.JSONSchema.Schema))
+	require.Equal(t, ToolChoiceModeAuto, *req.ToolChoice.Mode)
+}
+
+func TestChatRequestClone_Nil(t *testing.T) {
+	t.Parallel()
+
+	var req *ChatRequest
+	require.Empty(t, req.Clone())
+
+	var m *ChatMessage
+	require.Empty(t, m.Clone())
+
+	var c *ChatMessageContent
+	require.Empty(t, c.Clone())
+
+	var chunk *ChatMessageChunk
+	require.Empty(t, chunk.Clone())
+
+	var u *ChatImageURL
+	require.Empty(t, u.Clone())
+
+	var tc *ChatToolCall
+	require.Empty(t, tc.Clone())
+
+	var fd *ChatFunctionDefinition
+	require.Empty(t, fd.Clone())
+
+	var rf *ChatResponseFormat
+	require.Empty(t, rf.Clone())
+
+	var cfg *ChatJSONSchemaConfig
+	require.Empty(t, cfg.Clone())
+
+	var so *ChatStreamOptions
+	require.Empty(t, so.Clone())
+
+	var tool *ChatTool
+	require.Empty(t, tool.Clone())
+
+	var choice *ChatToolChoice
+	require.Empty(t, choice.Clone())
+
+	var name *ChatFunctionName
+	require.Empty(t, name.Clone())
+}
+
 func TestChatRequest_MarshalSuccess(t *testing.T) {
 	t.Parallel()
 
