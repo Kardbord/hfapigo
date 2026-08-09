@@ -10,6 +10,11 @@ post {
   auth: inherit
 }
 
+headers {
+  Accept: application/json
+  Content-Type: application/json
+}
+
 body:json {
   {
     "inputs": "Hugging Face is a company that develops tools for machine learning. It is best known for its Transformers library and the Model Hub, which hosts thousands of pretrained models.",

@@ -10,6 +10,10 @@ post {
   auth: inherit
 }
 
+headers {
+  Accept: application/json
+}
+
 body:multipart-form {
   inputs: @file({{sample_png}})
   parameters: {"threshold": 0.6}

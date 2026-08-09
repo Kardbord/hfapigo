@@ -10,12 +10,17 @@ post {
   auth: inherit
 }
 
+headers {
+  Accept: application/json
+  Content-Type: application/json
+}
+
 body:json {
   {
     "inputs": "Hello, how are you doing today?",
     "parameters": {
       "src_lang": "en",
-      "tgt_lang": "fr"
+      "tgt_lang": "de"
     }
   }
 }
