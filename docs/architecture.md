@@ -27,6 +27,7 @@ The SDK follows a strict immutability pattern for concurrency safety:
    - `ZeroShotClassifyText` / `ZeroShotClassifyTextBatch`: Zero-shot text classification
    - `FillMask` / `FillMaskBatch`: Mask filling
    - `Summarize` / `SummarizeBatch`: Summarization
+   - `Translate` / `TranslateBatch`: Translation
    - The former per-domain service types are unexported implementation details; callers interact only with the Client
    - `Client.Raw()` returns the `RawService` escape hatch for arbitrary endpoints (see below); it is the deliberate exception to the flat-method design
 
@@ -416,6 +417,24 @@ Batch text summarization for multiple inputs.
 - Validates that a model is configured
 - The API returns a flat list of `Summarization` outputs (one per input, in order) rather than a nested list, consistent with how it returns a list even for a single input
 
+### Translation
+
+#### Translate(req TranslationRequest, opts ...Option) ([]Translation, error)
+Single text translation.
+
+**Behavior**:
+- Applies per-request options
+- Validates that a model is configured
+- Returns a flat list of `Translation` outputs for the single input
+
+#### TranslateBatch(req TranslationBatchRequest, opts ...Option) ([]Translation, error)
+Batch text translation for multiple inputs.
+
+**Behavior**:
+- Applies per-request options
+- Validates that a model is configured
+- The API returns a flat list of `Translation` outputs (one per input, in order) rather than a nested list, consistent with how it returns a list even for a single input
+
 ### RawService (escape hatch)
 
 Created via `client.Raw()`. For raw HTTP requests without type-safe JSON handling. This is the only endpoint path exposed as a service rather than as flat Client methods; it is the advanced escape hatch for endpoints the SDK does not model, and its broader method matrix is easier to discover grouped here.
@@ -525,7 +544,7 @@ Request DTOs (e.g. `ChatRequest`) are passed to Client methods **by value**, and
    go client.Chat(req.Clone(), ...)      // each goroutine passes its own copy
    go client.ChatStream(req.Clone(), ...)
    ```
-   `Clone()` is a **deep** copy: every slice gets new backing storage and every pointer a new pointee, so a clone shares nothing with its source. Exception: the value of an entry in `SummarizationParameters.GenerateParameters` (`map[string]any`) is shared, because its type is not known statically.
+   `Clone()` is a **deep** copy: every slice gets new backing storage and every pointer a new pointee, so a clone shares nothing with its source. Exception: the value of an entry in `SummarizationParameters.GenerateParameters` or `TranslationParameters.GenerateParameters` (`map[string]any`) is shared, because its type is not known statically.
 3. **No reuse**: Simply build a fresh request per call or per goroutine and never share request objects.
 
 **Never**: share one mutable request object across goroutines and mutate it while calls are in flight — that is a data race the SDK cannot observe or prevent.

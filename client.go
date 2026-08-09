@@ -218,6 +218,36 @@ func (c Client) SummarizeBatch(
 	return newSummarizationService(c.opts).summarizeBatch(req, opts...)
 }
 
+// Translate sends a translation request and returns the translation output
+// for a single input.
+//
+// The API always returns a list for translation; a single input yields a
+// one-element list rather than a bare translation object.
+//
+// For multiple inputs, use TranslateBatch.
+//
+// The Provider option is ignored for now, as hf-inference is currently the only supported provider.
+func (c Client) Translate(req TranslationRequest, opts ...Option) ([]Translation, error) {
+	return newTranslationService(c.opts).translate(req, opts...)
+}
+
+// TranslateBatch sends a translation request for a batch of inputs and returns
+// a flat list of translation outputs, one for each input in the batch, in the
+// same order as the inputs.
+//
+// NOTE: Batched inference is supported by the upstream API, but is not
+// officially documented; behavior may change without notice. The response is
+// a flat list (one translation per input) — not a nested list — consistent with
+// how the API returns a list even for a single input.
+//
+// The Provider option is ignored for now, as hf-inference is currently the only supported provider.
+func (c Client) TranslateBatch(
+	req TranslationBatchRequest,
+	opts ...Option,
+) ([]Translation, error) {
+	return newTranslationService(c.opts).translateBatch(req, opts...)
+}
+
 // Raw returns the raw HTTP request service for this client. Unlike the other
 // endpoints, which are exposed directly as Client methods, the raw path remains
 // namespaced under RawService: it is the advanced escape hatch for endpoints the
