@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/Kardbord/hfgo/v4/internal/request"
 	"github.com/Kardbord/hfgo/v4/internal/testutils"
 )
 
@@ -20,11 +19,11 @@ func TestRawService_Stream_Success(t *testing.T) {
 	mt := testutils.NewMockTransport(http.StatusOK, body, nil)
 	mt.Response.Header.Set("Content-Type", "text/event-stream")
 
-	opts := request.NewOptions().
-		WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) })
-	svc := newRawService(opts)
+	client := NewClient(
+		WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }),
+	)
 
-	stream, err := svc.Stream(nil, http.MethodGet, "/stream")
+	stream, err := client.Raw().Stream(nil, http.MethodGet, "/stream")
 	if err != nil {
 		t.Fatalf("Stream: %v", err)
 	}
@@ -50,11 +49,11 @@ func TestRawService_Stream_DoError(t *testing.T) {
 	t.Parallel()
 
 	mt := &testutils.MockTransport{Err: errors.New("boom")}
-	opts := request.NewOptions().
-		WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) })
-	svc := newRawService(opts)
+	client := NewClient(
+		WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }),
+	)
 
-	_, err := svc.Stream(nil, http.MethodGet, "/stream")
+	_, err := client.Raw().Stream(nil, http.MethodGet, "/stream")
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -67,11 +66,11 @@ func TestRawService_StreamRaw_AllowsNon2xx(t *testing.T) {
 	mt := testutils.NewMockTransport(http.StatusUnauthorized, body, nil)
 	mt.Response.Header.Set("Content-Type", "text/event-stream")
 
-	opts := request.NewOptions().
-		WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) })
-	svc := newRawService(opts)
+	client := NewClient(
+		WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }),
+	)
 
-	stream, err := svc.StreamRaw(nil, http.MethodGet, "/stream")
+	stream, err := client.Raw().StreamRaw(nil, http.MethodGet, "/stream")
 	if err != nil {
 		t.Fatalf("StreamRaw: %v", err)
 	}

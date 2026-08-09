@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/Kardbord/hfgo/v4/internal/hferrors"
-	"github.com/Kardbord/hfgo/v4/internal/request"
 	"github.com/Kardbord/hfgo/v4/internal/testutils"
 	"github.com/stretchr/testify/require"
 )
@@ -20,16 +19,16 @@ func TestTextClassificationService_Classify_SingleInput(t *testing.T) {
 		`[[{"label":"positive","score":0.95}]]`,
 		nil,
 	)
-	opts := request.NewOptions().
-		WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }).
-		WithModel("test-model")
-	svc := newTextClassificationService(opts)
+	client := NewClient(
+		WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }),
+		WithModel("test-model"),
+	)
 
 	req := TextClassificationRequest{
 		Input: "test text",
 	}
 
-	result, err := svc.classify(req)
+	result, err := client.ClassifyText(req)
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	require.Len(t, result, 1)
@@ -45,10 +44,10 @@ func TestTextClassificationService_Classify_WithParameters(t *testing.T) {
 		`[[{"label":"positive","score":0.95}]]`,
 		nil,
 	)
-	opts := request.NewOptions().
-		WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }).
-		WithModel("test-model")
-	svc := newTextClassificationService(opts)
+	client := NewClient(
+		WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }),
+		WithModel("test-model"),
+	)
 
 	topK := 2
 	req := TextClassificationRequest{
@@ -58,7 +57,7 @@ func TestTextClassificationService_Classify_WithParameters(t *testing.T) {
 		},
 	}
 
-	result, err := svc.classify(req)
+	result, err := client.ClassifyText(req)
 	require.NoError(t, err)
 	require.NotNil(t, result)
 
@@ -91,8 +90,8 @@ func TestTextClassificationService_Classify_Errors(t *testing.T) {
 				description:  "API error for nonexistent model",
 			},
 		},
-		func(opts request.Options) ([]TextClassification, error) {
-			return newTextClassificationService(opts).classify(TextClassificationRequest{
+		func(opts ...Option) ([]TextClassification, error) {
+			return NewClient(opts...).ClassifyText(TextClassificationRequest{
 				Input: "test text",
 			})
 		},
@@ -167,10 +166,10 @@ func TestTextClassificationService_ClassifyBatch_ResponseVariations(t *testing.T
 		tc := cases[i]
 		t.Run(tc.name, func(t *testing.T) {
 			mt := testutils.NewJSONMockTransport(http.StatusOK, tc.responseBody, nil)
-			opts := request.NewOptions().
-				WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }).
-				WithModel("test-model")
-			svc := newTextClassificationService(opts)
+			client := NewClient(
+				WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }),
+				WithModel("test-model"),
+			)
 
 			req := TextClassificationBatchRequest{
 				Inputs: tc.inputs,
@@ -181,7 +180,7 @@ func TestTextClassificationService_ClassifyBatch_ResponseVariations(t *testing.T
 				}
 			}
 
-			result, err := svc.classifyBatch(req)
+			result, err := client.ClassifyTextBatch(req)
 			require.NoError(t, err, tc.description)
 			require.NotNil(t, result)
 			require.Len(t, result, tc.expectedOuterLength, tc.description)
@@ -211,15 +210,15 @@ func TestTextClassificationService_ClassifyBatch_NoModel(t *testing.T) {
 	const batchTextClassificationResponseBody = `[[{"label":"positive","score":0.95}]]`
 
 	mt := testutils.NewJSONMockTransport(http.StatusOK, batchTextClassificationResponseBody, nil)
-	opts := request.NewOptions().
-		WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) })
-	svc := newTextClassificationService(opts)
+	client := NewClient(
+		WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }),
+	)
 
 	req := TextClassificationBatchRequest{
 		Inputs: []string{"test text"},
 	}
 
-	result, err := svc.classifyBatch(req)
+	result, err := client.ClassifyTextBatch(req)
 	require.Error(t, err)
 	require.Nil(t, result)
 	testutils.AssertSDKErrorKind(t, err, hferrors.SDKErrorKindConfiguration)
@@ -238,15 +237,15 @@ func TestTextClassificationService_ClassifyBatch_ModelFromOptions(t *testing.T) 
 	const batchTextClassificationResponseBody = `[[{"label":"positive","score":0.95}]]`
 
 	mt := testutils.NewJSONMockTransport(http.StatusOK, batchTextClassificationResponseBody, nil)
-	opts := request.NewOptions().
-		WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) })
-	svc := newTextClassificationService(opts)
+	client := NewClient(
+		WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }),
+	)
 
 	req := TextClassificationBatchRequest{
 		Inputs: []string{"test text"},
 	}
 
-	result, err := svc.classifyBatch(req, WithModel("override-model"))
+	result, err := client.ClassifyTextBatch(req, WithModel("override-model"))
 	require.NoError(t, err)
 	require.NotNil(t, result)
 

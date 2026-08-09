@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/Kardbord/hfgo/v4/internal/hferrors"
-	"github.com/Kardbord/hfgo/v4/internal/request"
 	"github.com/Kardbord/hfgo/v4/internal/testutils"
 	"github.com/stretchr/testify/require"
 )
@@ -21,10 +20,10 @@ func TestZeroShotTextClassificationService_Classify_SingleInput(t *testing.T) {
 		zeroShotSingleClassificationResponseBody,
 		nil,
 	)
-	opts := request.NewOptions().
-		WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }).
-		WithModel("test-model")
-	svc := newZeroShotTextClassificationService(opts)
+	client := NewClient(
+		WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }),
+		WithModel("test-model"),
+	)
 
 	candidateLabels := []string{"positive", "negative", "neutral"}
 	req := ZeroShotTextClassificationRequest{
@@ -34,7 +33,7 @@ func TestZeroShotTextClassificationService_Classify_SingleInput(t *testing.T) {
 		},
 	}
 
-	result, err := svc.classify(req)
+	result, err := client.ZeroShotClassifyText(req)
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	require.Len(t, result, 1)
@@ -79,12 +78,12 @@ func TestZeroShotTextClassificationService_Classify_CandidateLabelValidation(t *
 				zeroShotSingleClassificationResponseBody,
 				nil,
 			)
-			opts := request.NewOptions().
-				WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }).
-				WithModel("nonexistent-model")
-			svc := newZeroShotTextClassificationService(opts)
+			client := NewClient(
+				WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }),
+				WithModel("nonexistent-model"),
+			)
 
-			result, err := svc.classify(tc.req)
+			result, err := client.ZeroShotClassifyText(tc.req)
 			testutils.AssertSDKErrorKind(t, err, hferrors.SDKErrorKindConfiguration)
 			require.Nil(t, result, tc.description)
 			require.Nil(
@@ -118,10 +117,8 @@ func TestZeroShotTextClassificationService_Classify_Errors(t *testing.T) {
 				description:  "API error for nonexistent model",
 			},
 		},
-		func(opts request.Options) ([]ZeroShotTextClassification, error) {
-			return newZeroShotTextClassificationService(
-				opts,
-			).classify(ZeroShotTextClassificationRequest{
+		func(opts ...Option) ([]ZeroShotTextClassification, error) {
+			return NewClient(opts...).ZeroShotClassifyText(ZeroShotTextClassificationRequest{
 				Input: "test text",
 				Parameters: &ZeroShotTextClassificationParameters{
 					CandidateLabels: []string{"positive", "negative"},
@@ -179,10 +176,10 @@ func TestZeroShotTextClassificationService_ClassifyBatch_InputVariations(t *test
 		tc := cases[i]
 		t.Run(tc.name, func(t *testing.T) {
 			mt := testutils.NewJSONMockTransport(http.StatusOK, tc.responseBody, nil)
-			opts := request.NewOptions().
-				WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }).
-				WithModel("test-model")
-			svc := newZeroShotTextClassificationService(opts)
+			client := NewClient(
+				WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }),
+				WithModel("test-model"),
+			)
 
 			candidateLabels := []string{"positive", "negative", "neutral"}
 			req := ZeroShotTextClassificationBatchRequest{
@@ -192,7 +189,7 @@ func TestZeroShotTextClassificationService_ClassifyBatch_InputVariations(t *test
 				},
 			}
 
-			result, err := svc.classifyBatch(req)
+			result, err := client.ZeroShotClassifyTextBatch(req)
 			require.NoError(t, err, tc.description)
 			require.NotNil(t, result)
 			require.Len(t, result, tc.expectedOuterLength, tc.description)
@@ -249,12 +246,12 @@ func TestZeroShotTextClassificationService_ClassifyBatch_CandidateLabelValidatio
 				zeroShotBatchClassificationResponseBody,
 				nil,
 			)
-			opts := request.NewOptions().
-				WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }).
-				WithModel("nonexistent-model")
-			svc := newZeroShotTextClassificationService(opts)
+			client := NewClient(
+				WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }),
+				WithModel("nonexistent-model"),
+			)
 
-			result, err := svc.classifyBatch(tc.req)
+			result, err := client.ZeroShotClassifyTextBatch(tc.req)
 			testutils.AssertSDKErrorKind(t, err, hferrors.SDKErrorKindConfiguration)
 			require.Nil(t, result, tc.description)
 			require.Nil(
@@ -288,10 +285,8 @@ func TestZeroShotTextClassificationService_ClassifyBatch_Errors(t *testing.T) {
 				description:  "API error for nonexistent model",
 			},
 		},
-		func(opts request.Options) ([][]ZeroShotTextClassification, error) {
-			return newZeroShotTextClassificationService(
-				opts,
-			).classifyBatch(ZeroShotTextClassificationBatchRequest{
+		func(opts ...Option) ([][]ZeroShotTextClassification, error) {
+			return NewClient(opts...).ZeroShotClassifyTextBatch(ZeroShotTextClassificationBatchRequest{
 				Inputs: []string{"test text"},
 				Parameters: &ZeroShotTextClassificationParameters{
 					CandidateLabels: []string{"positive", "negative"},
@@ -311,9 +306,9 @@ func TestZeroShotTextClassificationService_ClassifyBatch_ModelFromOptions(t *tes
 		zeroShotBatchSingleTestTextResponseBody,
 		nil,
 	)
-	opts := request.NewOptions().
-		WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) })
-	svc := newZeroShotTextClassificationService(opts)
+	client := NewClient(
+		WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }),
+	)
 
 	candidateLabels := []string{"positive", "negative"}
 	req := ZeroShotTextClassificationBatchRequest{
@@ -323,7 +318,7 @@ func TestZeroShotTextClassificationService_ClassifyBatch_ModelFromOptions(t *tes
 		},
 	}
 
-	result, err := svc.classifyBatch(req, WithModel("override-model"))
+	result, err := client.ZeroShotClassifyTextBatch(req, WithModel("override-model"))
 	require.NoError(t, err)
 	require.NotNil(t, result)
 

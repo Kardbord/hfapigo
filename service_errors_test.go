@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/Kardbord/hfgo/v4/internal/hferrors"
-	"github.com/Kardbord/hfgo/v4/internal/request"
 	"github.com/Kardbord/hfgo/v4/internal/testutils"
 	"github.com/stretchr/testify/require"
 )
@@ -43,7 +42,7 @@ type errorCase struct {
 func runErrorCases[Res any](
 	t *testing.T,
 	cases []errorCase,
-	run func(opts request.Options) (Res, error),
+	run func(opts ...Option) (Res, error),
 ) {
 	t.Helper()
 
@@ -51,14 +50,16 @@ func runErrorCases[Res any](
 		tc := cases[i]
 		t.Run(tc.name, func(t *testing.T) {
 			mt := testutils.NewJSONMockTransport(tc.statusCode, tc.responseBody, nil)
-			opts := request.NewOptions().WithHTTPClientFactory(func() http.Client {
-				return testutils.NewMockHTTPClient(mt)
-			})
+			opts := []Option{
+				WithHTTPClientFactory(func() http.Client {
+					return testutils.NewMockHTTPClient(mt)
+				}),
+			}
 			if tc.withModel {
-				opts = opts.WithModel("nonexistent-model")
+				opts = append(opts, WithModel("nonexistent-model"))
 			}
 
-			result, err := run(opts)
+			result, err := run(opts...)
 			if err == nil {
 				t.Fatalf("expected an error: %s", tc.description)
 			}

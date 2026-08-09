@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/Kardbord/hfgo/v4/internal/hferrors"
-	"github.com/Kardbord/hfgo/v4/internal/request"
 	"github.com/Kardbord/hfgo/v4/internal/testutils"
 	"github.com/stretchr/testify/require"
 )
@@ -69,16 +68,16 @@ func TestFillMaskService_FillMask_ResponseDecoding(t *testing.T) {
 		tc := cases[i]
 		t.Run(tc.name, func(t *testing.T) {
 			mt := testutils.NewJSONMockTransport(tc.statusCode, tc.responseBody, nil)
-			opts := request.NewOptions().
-				WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }).
-				WithModel("test-model")
-			svc := newFillMaskService(opts)
+			client := NewClient(
+				WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }),
+				WithModel("test-model"),
+			)
 
 			req := FillMaskRequest{
 				Input: "The capital of France is [MASK].",
 			}
 
-			result, err := svc.fill(req)
+			result, err := client.FillMask(req)
 			require.NoError(t, err, tc.description)
 			require.NotNil(t, result)
 			require.Len(t, result, tc.expectedLen, tc.description)
@@ -109,10 +108,10 @@ func TestFillMaskService_FillMask_WithParameters(t *testing.T) {
 		`[{"sequence":"The quick brown fox jumps over the lazy dog.","score":0.95,"token":1,"token_str":"lazy"}]`,
 		nil,
 	)
-	opts := request.NewOptions().
-		WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }).
-		WithModel("test-model")
-	svc := newFillMaskService(opts)
+	client := NewClient(
+		WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }),
+		WithModel("test-model"),
+	)
 
 	topK := 5
 	req := FillMaskRequest{
@@ -123,7 +122,7 @@ func TestFillMaskService_FillMask_WithParameters(t *testing.T) {
 		},
 	}
 
-	result, err := svc.fill(req)
+	result, err := client.FillMask(req)
 	require.NoError(t, err)
 	require.NotNil(t, result)
 
@@ -171,8 +170,8 @@ func TestFillMaskService_FillMask_Errors(t *testing.T) {
 				description:  "API error for model not yet loaded",
 			},
 		},
-		func(opts request.Options) ([]FillMaskPrediction, error) {
-			return newFillMaskService(opts).fill(FillMaskRequest{
+		func(opts ...Option) ([]FillMaskPrediction, error) {
+			return NewClient(opts...).FillMask(FillMaskRequest{
 				Input: "The capital of France is [MASK].",
 			})
 		},
@@ -257,16 +256,16 @@ func TestFillMaskService_FillMaskBatch_ResponseDecoding(t *testing.T) {
 		tc := cases[i]
 		t.Run(tc.name, func(t *testing.T) {
 			mt := testutils.NewJSONMockTransport(http.StatusOK, tc.responseBody, nil)
-			opts := request.NewOptions().
-				WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }).
-				WithModel("test-model")
-			svc := newFillMaskService(opts)
+			client := NewClient(
+				WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }),
+				WithModel("test-model"),
+			)
 
 			req := FillMaskBatchRequest{
 				Inputs: tc.inputs,
 			}
 
-			result, err := svc.fillBatch(req)
+			result, err := client.FillMaskBatch(req)
 			require.NoError(t, err, tc.description)
 			require.NotNil(t, result)
 			require.Len(t, result, tc.expectedOuterLen, tc.description)
@@ -312,8 +311,8 @@ func TestFillMaskService_FillMaskBatch_Errors(t *testing.T) {
 				description:  "API error for model not yet loaded",
 			},
 		},
-		func(opts request.Options) ([][]FillMaskPrediction, error) {
-			return newFillMaskService(opts).fillBatch(FillMaskBatchRequest{
+		func(opts ...Option) ([][]FillMaskPrediction, error) {
+			return NewClient(opts...).FillMaskBatch(FillMaskBatchRequest{
 				Inputs: []string{"I [MASK] my dog everyday."},
 			})
 		},
@@ -328,15 +327,15 @@ func TestFillMaskService_FillMaskBatch_ModelFromOptions(t *testing.T) {
 		`[[{"sequence":"I walk my dog everyday.","score":0.95,"token":1,"token_str":"walk"}]]`,
 		nil,
 	)
-	opts := request.NewOptions().
-		WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) })
-	svc := newFillMaskService(opts)
+	client := NewClient(
+		WithHTTPClientFactory(func() http.Client { return testutils.NewMockHTTPClient(mt) }),
+	)
 
 	req := FillMaskBatchRequest{
 		Inputs: []string{"I [MASK] my dog everyday."},
 	}
 
-	result, err := svc.fillBatch(req, WithModel("override-model"))
+	result, err := client.FillMaskBatch(req, WithModel("override-model"))
 	require.NoError(t, err)
 	require.NotNil(t, result)
 
