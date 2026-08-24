@@ -74,7 +74,7 @@ func decodeJSONResponse[T any](resp *http.Response, maxResponseBodyBytes int64) 
 	if len(body) == 0 {
 		return out, &hferrors.SDKError{
 			Kind: hferrors.SDKErrorKindSerialization,
-			//nolint:goconst // repeated string is incidental
+
 			Message: "empty response body",
 			Err:     nil,
 		}
