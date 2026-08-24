@@ -14,6 +14,7 @@ linters:
     - arangolint
     - depguard
     - err113
+    - exhaustruct
     - ginkgolinter
     - gocyclo # Redundant to cyclop
     - goheader
@@ -60,7 +61,7 @@ linters:
           - canonicalheader
           - cyclop
           - errcheck
-          - exhaustruct
+          - exhaustruct_v5
           - gocognit
           - goconst
           - gocyclo
@@ -72,7 +73,7 @@ linters:
           - canonicalheader
           - cyclop
           - errcheck
-          - exhaustruct
+          - exhaustruct_v5
           - gocognit
           - goconst
           - gocyclo
@@ -82,7 +83,7 @@ linters:
         linters:
           - revive
           - mnd
-          - exhaustruct
+          - exhaustruct_v5
           - errcheck
           - godoclint
       # Run some linter only for test files by excluding its issues for everything else.
@@ -97,7 +98,7 @@ linters:
           - lll
         source: "^//go:generate "
   settings:
-    exhaustruct:
+    exhaustruct_v5:
       allow-empty-returns: true
     ireturn:
       allow:
