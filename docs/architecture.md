@@ -23,8 +23,9 @@ The SDK follows a strict immutability pattern for concurrency safety:
 
 2. **Client Methods**: Every inference endpoint is called directly on the `Client`
    - `Chat` / `ChatStream`: Chat completions
-   - `ClassifyText` / `ClassifyTextBatch`: Text classification
-   - `ZeroShotClassifyText` / `ZeroShotClassifyTextBatch`: Zero-shot text classification
+    - `ClassifyText` / `ClassifyTextBatch`: Text classification
+    - `ClassifyTokens` / `ClassifyTokensBatch`: Token classification (named entity recognition)
+    - `ZeroShotClassifyText` / `ZeroShotClassifyTextBatch`: Zero-shot text classification
    - `FillMask` / `FillMaskBatch`: Mask filling
    - `Summarize` / `SummarizeBatch`: Summarization
    - `Translate` / `TranslateBatch`: Translation
@@ -362,6 +363,27 @@ The SDK handles a quirk in the HuggingFace API where the response format differs
 - **When TopK is unset (nil)**: Returns `[[all classifications together]]` (flat format)
 
 This inconsistency is handled transparently by the `normalizeTextClassificationResponse()` helper function.
+
+### Token Classification
+
+#### ClassifyTokens(req TokenClassificationRequest, opts ...Option) ([]TokenClassification, error)
+Single input token classification (named entity recognition).
+
+**Behavior**:
+- Applies per-request options
+- Validates that a model is configured
+- Returns a list of classified tokens/entities for the single input
+- Each entity includes its label, score, word text, and character span (start/end)
+- When aggregation_strategy is "none", the `Entity` field is populated; otherwise `EntityGroup` is populated
+
+#### ClassifyTokensBatch(req TokenClassificationBatchRequest, opts ...Option) ([][]TokenClassification, error)
+Batch token classification for multiple inputs.
+
+**Behavior**:
+- Applies per-request options
+- Validates that a model is configured
+- Returns a list of entity lists, one per input, in input order
+- Callers should check the length of the response list before indexing
 
 ### Zero-Shot Text Classification
 

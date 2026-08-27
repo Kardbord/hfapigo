@@ -132,6 +132,35 @@ func (c Client) ClassifyTextBatch(
 	return newTextClassificationService(c.opts).classifyBatch(req, opts...)
 }
 
+// ClassifyTokens sends a token classification request and returns the token
+// classification response for a single input.
+//
+// For multiple inputs, use ClassifyTokensBatch.
+//
+// The Provider option is ignored for now, as hf-inference is currently the only supported provider.
+func (c Client) ClassifyTokens(
+	req TokenClassificationRequest,
+	opts ...Option,
+) ([]TokenClassification, error) {
+	return newTokenClassificationService(c.opts).classify(req, opts...)
+}
+
+// ClassifyTokensBatch sends a token classification request for a batch of inputs
+// and returns a list of token classification responses for each input in the batch.
+//
+// NOTE: Batched inference is supported by the upstream API, but is not
+// officially documented; behavior may change without notice.
+//
+// Callers should check the length of the response list before indexing.
+//
+// The Provider option is ignored for now, as hf-inference is currently the only supported provider.
+func (c Client) ClassifyTokensBatch(
+	req TokenClassificationBatchRequest,
+	opts ...Option,
+) ([][]TokenClassification, error) {
+	return newTokenClassificationService(c.opts).classifyBatch(req, opts...)
+}
+
 // ZeroShotClassifyText sends a zero-shot text classification request and
 // returns the zero-shot text classification response for a single input.
 //
