@@ -154,7 +154,7 @@ Gather evidence proportional to risk.
 3. Choose one execution path after main-agent scoping:
    - Single-track work, or work where later steps depend on earlier findings: stay in the main agent.
    - Small independent reads or searches: use parallel tool calls in the main agent.
-   - 2+ substantial independent tracks already clear, with the whole batch scoped before any subagent runs: launch one 2+ subagent batch and wait for all results.
+   - 2+ substantial independent tracks already clear, with the whole batch scoped before any subagent runs: launch a 2+ subagent batch and wait for all results.
    - Use 2+ subagents or none. NEVER launch exactly 1 subagent.
 4. Synthesize findings and re-read target files if context is stale.
 5. Implement the smallest correct change.
@@ -175,21 +175,11 @@ Avoid using the bash tool whenever possible. It is a last-resort.
 - Reserve shell/script invocation ONLY for what dedicated tools or MCP tools cannot do.
 - Even when a shell command is required, write files via dedicated tools rather
   than redirecting output (`>`/`>>`) or heredocs.
+- If the bash tool or other shell tools are disabled, do not try to work around that limitation.
 
 ### Subagents
 
-Use 2+ subagents or none. NEVER launch exactly 1 subagent.
-
-The main agent is a builder, not a dispatcher. Work first, delegate second. Use subagents proactively, but only after main-agent scoping has clearly split the work into 2+ parallel independent tracks. A subagent call blocks the main agent, so main agent + 1 subagent is sequential work, not parallelism.
-
-- Scope the whole batch in the main agent before the first subagent call. If only one subagent task is ready, use zero subagents and keep scoping in the main agent.
-- Independence is execution independence, not shared final synthesis. If one track's findings decide what another track should inspect or how, keep scoping in the main agent.
-- A valid batch has 2+ substantial independent subagents, each with a distinct concern and clear return format. One broad exploratory subagent is not a batch, even if it performs many reads, searches, or internal parallel work.
-- Launch the batch together and wait for all results. Later singleton launches do not complete an earlier batch. If the interface cannot start 2+ subagents together, use zero subagents.
-- Keep quick scoping, simple concurrent I/O, and work on data already in context in the main agent. Use parallel tool calls when helpful.
-- Use subagents for repo exploration only after the exploration is split into 2+ substantial independent concerns.
-- Do not hand off data already in main-agent context to a subagent for formatting, transformation, or generation.
-- After the batch returns, synthesize results and use the main agent only for narrow gap-filling before implementation.
+The main agent is a builder, not a dispatcher. Work first, delegate second. Use subagents proactively, but only after main-agent scoping has clearly split the work into 2+ parallel independent tracks.
 
 ### Testing
 
