@@ -79,7 +79,6 @@ func (r *QuestionAnsweringRequest) Clone() QuestionAnsweringRequest {
 		return QuestionAnsweringRequest{}
 	}
 	out := *r
-	out.Input = r.Input
 	out.Parameters = cloneStructPtr(r.Parameters, (*QuestionAnsweringParameters).Clone)
 
 	return out
