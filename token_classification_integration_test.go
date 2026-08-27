@@ -5,6 +5,7 @@ package hfgo
 import (
 	"context"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -83,11 +84,12 @@ func TestTokenClassification_WithAggregationStrategy(t *testing.T) {
 
 	for _, strategy := range strategies {
 		t.Run(strategy, func(t *testing.T) {
+			strat := strings.Clone(strategy)
 			resp, err := client.ClassifyTokens(
 				TokenClassificationRequest{
 					Input: "My name is Sarah and I live in London.",
 					Parameters: &TokenClassificationParameters{
-						AggregationStrategy: &strategy,
+						AggregationStrategy: &strat,
 					},
 				},
 			)
