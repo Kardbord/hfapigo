@@ -260,6 +260,19 @@ func (c Client) SummarizeBatch(
 	return newSummarizationService(c.opts).summarizeBatch(req, opts...)
 }
 
+// AnswerTableQuestion sends a table question answering request and returns the answers.
+//
+// The request must include both a question and a table. The model will
+// identify the answer to the question within the provided table data.
+//
+// The Provider option is ignored for now, as hf-inference is currently the only supported provider.
+func (c Client) AnswerTableQuestion(
+	req TableQuestionAnsweringRequest,
+	opts ...Option,
+) ([]TableQuestionAnswering, error) {
+	return newTableQuestionAnsweringService(c.opts).answer(req, opts...)
+}
+
 // Translate sends a translation request and returns the translation output
 // for a single input.
 //
