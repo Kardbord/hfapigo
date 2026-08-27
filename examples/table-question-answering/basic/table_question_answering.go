@@ -32,7 +32,7 @@ func main() {
 	PrintJSON(table)
 	fmt.Println("...")
 
-	answers, err := client.AnswerTableQuestion(
+	answer, err := client.AnswerTableQuestion(
 		hfgo.TableQuestionAnsweringRequest{
 			Input: hfgo.TableQuestionAnsweringInput{
 				Question: question,
@@ -45,7 +45,7 @@ func main() {
 	}
 
 	fmt.Println("Results:")
-	PrintJSON(answers)
+	PrintJSON(answer)
 }
 
 func PrintJSON[T any](v T) {

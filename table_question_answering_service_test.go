@@ -17,7 +17,6 @@ func TestTableQuestionAnsweringService_AnswerTableQuestion_ResponseDecoding(t *t
 	cases := []struct {
 		name         string
 		responseBody string
-		expectedLen  int
 		wantAnswer   string
 		wantCells    []string
 		wantCoords   [][]int
@@ -27,7 +26,6 @@ func TestTableQuestionAnsweringService_AnswerTableQuestion_ResponseDecoding(t *t
 		{
 			name:         "single answer",
 			responseBody: `{"answer":"30","cells":["30"],"coordinates":[[1,1]]}`,
-			expectedLen:  1,
 			wantAnswer:   "30",
 			wantCells:    []string{"30"},
 			wantCoords:   [][]int{{1, 1}},
@@ -36,7 +34,6 @@ func TestTableQuestionAnsweringService_AnswerTableQuestion_ResponseDecoding(t *t
 		{
 			name:         "answer with aggregator",
 			responseBody: `{"answer":"COUNT > 3","cells":["Alice","Bob","Carol"],"coordinates":[[0,0],[0,1],[0,2]],"aggregator":"COUNT"}`,
-			expectedLen:  1,
 			wantAnswer:   "COUNT > 3",
 			wantCells:    []string{"Alice", "Bob", "Carol"},
 			wantCoords:   [][]int{{0, 0}, {0, 1}, {0, 2}},
@@ -46,7 +43,6 @@ func TestTableQuestionAnsweringService_AnswerTableQuestion_ResponseDecoding(t *t
 		{
 			name:         "answer with multiple cells",
 			responseBody: `{"answer":"Alice and Bob","cells":["Alice","Bob"],"coordinates":[[0,0],[0,1]]}`,
-			expectedLen:  1,
 			wantAnswer:   "Alice and Bob",
 			wantCells:    []string{"Alice", "Bob"},
 			wantCoords:   [][]int{{0, 0}, {0, 1}},
@@ -77,16 +73,14 @@ func TestTableQuestionAnsweringService_AnswerTableQuestion_ResponseDecoding(t *t
 
 			result, err := client.AnswerTableQuestion(req)
 			require.NoError(t, err, tc.description)
-			require.NotNil(t, result)
-			require.Len(t, result, tc.expectedLen, tc.description)
-			require.Equal(t, tc.wantAnswer, result[0].Answer)
-			require.Equal(t, tc.wantCells, result[0].Cells)
-			require.Equal(t, tc.wantCoords, result[0].Coordinates)
+			require.Equal(t, tc.wantAnswer, result.Answer)
+			require.Equal(t, tc.wantCells, result.Cells)
+			require.Equal(t, tc.wantCoords, result.Coordinates)
 			if tc.wantAggr != nil {
-				require.NotNil(t, result[0].Aggregator)
-				require.Equal(t, *tc.wantAggr, *result[0].Aggregator)
+				require.NotNil(t, result.Aggregator)
+				require.Equal(t, *tc.wantAggr, *result.Aggregator)
 			} else {
-				require.Nil(t, result[0].Aggregator)
+				require.Nil(t, result.Aggregator)
 			}
 		})
 	}
@@ -165,7 +159,7 @@ func TestTableQuestionAnsweringService_AnswerTableQuestion_Errors(t *testing.T) 
 				description:  "API error for model not yet loaded",
 			},
 		},
-		func(opts ...Option) ([]TableQuestionAnswering, error) {
+		func(opts ...Option) (TableQuestionAnswer, error) {
 			return NewClient(opts...).AnswerTableQuestion(TableQuestionAnsweringRequest{
 				Input: TableQuestionAnsweringInput{
 					Question: "How old is Bob?",

@@ -34,7 +34,7 @@ func main() {
 	padding := hfgo.TableQuestionAnsweringPaddingMaxLength
 	sequential := false
 	truncation := true
-	answers, err := client.AnswerTableQuestion(
+	answer, err := client.AnswerTableQuestion(
 		hfgo.TableQuestionAnsweringRequest{
 			Input: hfgo.TableQuestionAnsweringInput{
 				Question: question,
@@ -52,7 +52,7 @@ func main() {
 	}
 
 	fmt.Println("Results:")
-	PrintJSON(answers)
+	PrintJSON(answer)
 }
 
 func PrintJSON[T any](v T) {

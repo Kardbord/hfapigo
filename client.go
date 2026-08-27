@@ -260,16 +260,21 @@ func (c Client) SummarizeBatch(
 	return newSummarizationService(c.opts).summarizeBatch(req, opts...)
 }
 
-// AnswerTableQuestion sends a table question answering request and returns the answers.
+// AnswerTableQuestion sends a table question answering request and returns the answer.
 //
 // The request must include both a question and a table. The model will
 // identify the answer to the question within the provided table data.
+//
+// NOTE: The HuggingFace API returns a bare JSON object for table question
+// answering, not an array — despite the upstream schema declaring an array
+// response. This method returns a single TableQuestionAnswer to match the
+// actual API behavior.
 //
 // The Provider option is ignored for now, as hf-inference is currently the only supported provider.
 func (c Client) AnswerTableQuestion(
 	req TableQuestionAnsweringRequest,
 	opts ...Option,
-) ([]TableQuestionAnswering, error) {
+) (TableQuestionAnswer, error) {
 	return newTableQuestionAnsweringService(c.opts).answer(req, opts...)
 }
 

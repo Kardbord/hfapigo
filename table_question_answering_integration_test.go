@@ -41,15 +41,11 @@ func TestTableQuestionAnswering_LiveAPI(t *testing.T) {
 	)
 
 	require.NoError(t, err, "table question answering should succeed")
-	require.NotNil(t, resp, "response should not be nil")
-	require.NotEmpty(t, resp, "response should have answers")
+	require.NotEmpty(t, resp.Answer, "answer should not be empty")
+	require.NotEmpty(t, resp.Cells, "cells should not be empty")
+	require.NotEmpty(t, resp.Coordinates, "coordinates should not be empty")
 
-	answer := resp[0]
-	require.NotEmpty(t, answer.Answer, "answer should not be empty")
-	require.NotEmpty(t, answer.Cells, "cells should not be empty")
-	require.NotEmpty(t, answer.Coordinates, "coordinates should not be empty")
-
-	t.Logf("Answer: %q (cells: %v, coordinates: %v)", answer.Answer, answer.Cells, answer.Coordinates)
+	t.Logf("Answer: %q (cells: %v, coordinates: %v)", resp.Answer, resp.Cells, resp.Coordinates)
 }
 
 // TestTableQuestionAnswering_WithParameters tests table question answering with various parameters.
@@ -90,10 +86,9 @@ func TestTableQuestionAnswering_WithParameters(t *testing.T) {
 	)
 
 	require.NoError(t, err, "table question answering with parameters should succeed")
-	require.NotNil(t, resp, "response should not be nil")
-	require.NotEmpty(t, resp, "response should have answers")
+	require.NotEmpty(t, resp.Answer, "answer should not be empty")
 
-	t.Logf("Answer: %q (cells: %v)", resp[0].Answer, resp[0].Cells)
+	t.Logf("Answer: %q (cells: %v)", resp.Answer, resp.Cells)
 }
 
 // TestTableQuestionAnswering_ContextCancellation tests that context cancellation is respected.
@@ -111,7 +106,7 @@ func TestTableQuestionAnswering_ContextCancellation(t *testing.T) {
 		WithContext(ctx),
 	)
 
-	resp, err := client.AnswerTableQuestion(
+	_, err := client.AnswerTableQuestion(
 		TableQuestionAnsweringRequest{
 			Input: TableQuestionAnsweringInput{
 				Question: "How old is Bob?",
@@ -124,5 +119,4 @@ func TestTableQuestionAnswering_ContextCancellation(t *testing.T) {
 	)
 
 	require.Error(t, err, "request with cancelled context should fail")
-	require.Nil(t, resp, "response should be nil for cancelled context")
 }

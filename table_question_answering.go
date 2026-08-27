@@ -50,8 +50,8 @@ const (
 	TableQuestionAnsweringPaddingMaxLength = "max_length"
 )
 
-// TableQuestionAnswering represents a table question answering output.
-type TableQuestionAnswering struct {
+// TableQuestionAnswer represents a table question answering output.
+type TableQuestionAnswer struct {
 	// The answer to the question given the table. If there is an aggregator,
 	// the answer will be preceded by "AGGREGATOR >".
 	Answer string `json:"answer"`
