@@ -24,6 +24,7 @@ The SDK follows a strict immutability pattern for concurrency safety:
 2. **Client Methods**: Every inference endpoint is called directly on the `Client`
    - `Chat` / `ChatStream`: Chat completions
     - `ClassifyText` / `ClassifyTextBatch`: Text classification
+    - `AnswerQuestion`: Question answering
     - `ClassifyTokens` / `ClassifyTokensBatch`: Token classification (named entity recognition)
     - `ZeroShotClassifyText` / `ZeroShotClassifyTextBatch`: Zero-shot text classification
    - `FillMask` / `FillMaskBatch`: Mask filling
@@ -363,6 +364,18 @@ The SDK handles a quirk in the HuggingFace API where the response format differs
 - **When TopK is unset (nil)**: Returns `[[all classifications together]]` (flat format)
 
 This inconsistency is handled transparently by the `normalizeTextClassificationResponse()` helper function.
+
+### Question Answering
+
+#### AnswerQuestion(req QuestionAnsweringRequest, opts ...Option) ([]QuestionAnswering, error)
+Question answering over a context passage.
+
+**Behavior**:
+- Applies per-request options
+- Validates that a model is configured
+- Returns a ranked list of answers extracted from the context
+- Each answer includes the extracted text, score, and character span (start/end)
+- The request `inputs` field is a structured object with `question` and `context` (both required)
 
 ### Token Classification
 
