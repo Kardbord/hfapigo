@@ -26,7 +26,7 @@ func TestTableQuestionAnsweringService_AnswerTableQuestion_ResponseDecoding(t *t
 	}{
 		{
 			name:         "single answer",
-			responseBody: `[{"answer":"30","cells":["30"],"coordinates":[[1,1]]}]`,
+			responseBody: `{"answer":"30","cells":["30"],"coordinates":[[1,1]]}`,
 			expectedLen:  1,
 			wantAnswer:   "30",
 			wantCells:    []string{"30"},
@@ -35,7 +35,7 @@ func TestTableQuestionAnsweringService_AnswerTableQuestion_ResponseDecoding(t *t
 		},
 		{
 			name:         "answer with aggregator",
-			responseBody: `[{"answer":"COUNT > 3","cells":["Alice","Bob","Carol"],"coordinates":[[0,0],[0,1],[0,2]],"aggregator":"COUNT"}]`,
+			responseBody: `{"answer":"COUNT > 3","cells":["Alice","Bob","Carol"],"coordinates":[[0,0],[0,1],[0,2]],"aggregator":"COUNT"}`,
 			expectedLen:  1,
 			wantAnswer:   "COUNT > 3",
 			wantCells:    []string{"Alice", "Bob", "Carol"},
@@ -44,19 +44,13 @@ func TestTableQuestionAnsweringService_AnswerTableQuestion_ResponseDecoding(t *t
 			description:  "answer with aggregator field",
 		},
 		{
-			name:         "multiple answers",
-			responseBody: `[{"answer":"30","cells":["30"],"coordinates":[[1,1]]},{"answer":"35","cells":["35"],"coordinates":[[1,2]]}]`,
-			expectedLen:  2,
-			wantAnswer:   "30",
-			wantCells:    []string{"30"},
-			wantCoords:   [][]int{{1, 1}},
-			description:  "multiple answers returned",
-		},
-		{
-			name:         "empty response",
-			responseBody: `[]`,
-			expectedLen:  0,
-			description:  "empty response passes through as an empty list",
+			name:         "answer with multiple cells",
+			responseBody: `{"answer":"Alice and Bob","cells":["Alice","Bob"],"coordinates":[[0,0],[0,1]]}`,
+			expectedLen:  1,
+			wantAnswer:   "Alice and Bob",
+			wantCells:    []string{"Alice", "Bob"},
+			wantCoords:   [][]int{{0, 0}, {0, 1}},
+			description:  "answer spanning multiple cells",
 		},
 	}
 
@@ -85,17 +79,14 @@ func TestTableQuestionAnsweringService_AnswerTableQuestion_ResponseDecoding(t *t
 			require.NoError(t, err, tc.description)
 			require.NotNil(t, result)
 			require.Len(t, result, tc.expectedLen, tc.description)
-
-			if tc.expectedLen > 0 {
-				require.Equal(t, tc.wantAnswer, result[0].Answer)
-				require.Equal(t, tc.wantCells, result[0].Cells)
-				require.Equal(t, tc.wantCoords, result[0].Coordinates)
-				if tc.wantAggr != nil {
-					require.NotNil(t, result[0].Aggregator)
-					require.Equal(t, *tc.wantAggr, *result[0].Aggregator)
-				} else {
-					require.Nil(t, result[0].Aggregator)
-				}
+			require.Equal(t, tc.wantAnswer, result[0].Answer)
+			require.Equal(t, tc.wantCells, result[0].Cells)
+			require.Equal(t, tc.wantCoords, result[0].Coordinates)
+			if tc.wantAggr != nil {
+				require.NotNil(t, result[0].Aggregator)
+				require.Equal(t, *tc.wantAggr, *result[0].Aggregator)
+			} else {
+				require.Nil(t, result[0].Aggregator)
 			}
 		})
 	}
@@ -106,7 +97,7 @@ func TestTableQuestionAnsweringService_AnswerTableQuestion_WithParameters(t *tes
 
 	mt := testutils.NewJSONMockTransport(
 		http.StatusOK,
-		`[{"answer":"30","cells":["30"],"coordinates":[[1,1]]}]`,
+		`{"answer":"30","cells":["30"],"coordinates":[[1,1]]}`,
 		nil,
 	)
 	client := NewClient(
@@ -152,7 +143,7 @@ func TestTableQuestionAnsweringService_AnswerTableQuestion_Errors(t *testing.T) 
 			{
 				name:         "no model configured",
 				statusCode:   http.StatusOK,
-				responseBody: `[{"answer":"30","cells":["30"],"coordinates":[[1,1]]}]`,
+				responseBody: `{"answer":"30","cells":["30"],"coordinates":[[1,1]]}`,
 				want:         testutils.WantErrSDK,
 				sdkErrKind:   hferrors.SDKErrorKindConfiguration,
 				description:  "SDK error when model is missing",
@@ -193,7 +184,7 @@ func TestTableQuestionAnsweringService_AnswerTableQuestion_ModelFromOptions(t *t
 
 	mt := testutils.NewJSONMockTransport(
 		http.StatusOK,
-		`[{"answer":"30","cells":["30"],"coordinates":[[1,1]]}]`,
+		`{"answer":"30","cells":["30"],"coordinates":[[1,1]]}`,
 		nil,
 	)
 	client := NewClient(
