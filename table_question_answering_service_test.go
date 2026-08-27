@@ -66,7 +66,7 @@ func TestTableQuestionAnsweringService_AnswerTableQuestion_ResponseDecoding(t *t
 			)
 
 			req := TableQuestionAnsweringRequest{
-				Input: TableQuestionAnsweringInputData{
+				Input: TableQuestionAnsweringInput{
 					Question: "How old is Bob?",
 					Table: map[string][]string{
 						"Name": {"Alice", "Bob", "Carol"},
@@ -109,7 +109,7 @@ func TestTableQuestionAnsweringService_AnswerTableQuestion_WithParameters(t *tes
 	sequential := false
 	truncation := true
 	req := TableQuestionAnsweringRequest{
-		Input: TableQuestionAnsweringInputData{
+		Input: TableQuestionAnsweringInput{
 			Question: "How old is Bob?",
 			Table: map[string][]string{
 				"Name": {"Alice", "Bob", "Carol"},
@@ -167,7 +167,7 @@ func TestTableQuestionAnsweringService_AnswerTableQuestion_Errors(t *testing.T) 
 		},
 		func(opts ...Option) ([]TableQuestionAnswering, error) {
 			return NewClient(opts...).AnswerTableQuestion(TableQuestionAnsweringRequest{
-				Input: TableQuestionAnsweringInputData{
+				Input: TableQuestionAnsweringInput{
 					Question: "How old is Bob?",
 					Table: map[string][]string{
 						"Name": {"Alice", "Bob", "Carol"},
@@ -192,7 +192,7 @@ func TestTableQuestionAnsweringService_AnswerTableQuestion_ModelFromOptions(t *t
 	)
 
 	req := TableQuestionAnsweringRequest{
-		Input: TableQuestionAnsweringInputData{
+		Input: TableQuestionAnsweringInput{
 			Question: "How old is Bob?",
 			Table: map[string][]string{
 				"Name": {"Alice", "Bob", "Carol"},

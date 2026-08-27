@@ -34,7 +34,7 @@ func main() {
 
 	answers, err := client.AnswerTableQuestion(
 		hfgo.TableQuestionAnsweringRequest{
-			Input: hfgo.TableQuestionAnsweringInputData{
+			Input: hfgo.TableQuestionAnsweringInput{
 				Question: question,
 				Table:    table,
 			},

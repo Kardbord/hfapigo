@@ -13,7 +13,7 @@ func TestTableQuestionAnsweringRequestClone_Deep(t *testing.T) {
 	t.Parallel()
 
 	req := TableQuestionAnsweringRequest{
-		Input: TableQuestionAnsweringInputData{
+		Input: TableQuestionAnsweringInput{
 			Question: "How old is Bob?",
 			Table: map[string][]string{
 				"Name": {"Alice", "Bob", "Carol"},

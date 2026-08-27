@@ -2,9 +2,9 @@ package hfgo
 
 import "maps"
 
-// TableQuestionAnsweringInputData represents the input data for a table
+// TableQuestionAnsweringInput represents the input data for a table
 // question answering request. Both Question and Table are required.
-type TableQuestionAnsweringInputData struct {
+type TableQuestionAnsweringInput struct {
 	// The question to be answered about the table.
 	// Required.
 	Question string `json:"question"`
@@ -20,7 +20,7 @@ type TableQuestionAnsweringInputData struct {
 type TableQuestionAnsweringRequest struct {
 	// The question and table pair to answer.
 	// Required.
-	Input TableQuestionAnsweringInputData `json:"inputs"`
+	Input TableQuestionAnsweringInput `json:"inputs"`
 
 	// Additional inference parameters for table question answering.
 	Parameters *TableQuestionAnsweringParameters `json:"parameters,omitempty"`

@@ -30,7 +30,7 @@ func TestTableQuestionAnswering_LiveAPI(t *testing.T) {
 
 	resp, err := client.AnswerTableQuestion(
 		TableQuestionAnsweringRequest{
-			Input: TableQuestionAnsweringInputData{
+			Input: TableQuestionAnsweringInput{
 				Question: "How old is Bob?",
 				Table: map[string][]string{
 					"Name": {"Alice", "Bob", "Carol"},
@@ -74,7 +74,7 @@ func TestTableQuestionAnswering_WithParameters(t *testing.T) {
 	truncation := true
 	resp, err := client.AnswerTableQuestion(
 		TableQuestionAnsweringRequest{
-			Input: TableQuestionAnsweringInputData{
+			Input: TableQuestionAnsweringInput{
 				Question: "What is the most expensive product?",
 				Table: map[string][]string{
 					"Product": {"Laptop", "Phone", "Tablet"},
@@ -113,7 +113,7 @@ func TestTableQuestionAnswering_ContextCancellation(t *testing.T) {
 
 	resp, err := client.AnswerTableQuestion(
 		TableQuestionAnsweringRequest{
-			Input: TableQuestionAnsweringInputData{
+			Input: TableQuestionAnsweringInput{
 				Question: "How old is Bob?",
 				Table: map[string][]string{
 					"Name": {"Alice", "Bob", "Carol"},
