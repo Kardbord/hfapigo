@@ -29,8 +29,9 @@ The SDK follows a strict immutability pattern for concurrency safety:
     - `ZeroShotClassifyText` / `ZeroShotClassifyTextBatch`: Zero-shot text classification
    - `FillMask` / `FillMaskBatch`: Mask filling
    - `Summarize` / `SummarizeBatch`: Summarization
-   - `Translate` / `TranslateBatch`: Translation
-   - The former per-domain service types are unexported implementation details; callers interact only with the Client
+    - `Translate` / `TranslateBatch`: Translation
+    - `AnswerTableQuestion`: Table question answering
+    - The former per-domain service types are unexported implementation details; callers interact only with the Client
    - `Client.Raw()` returns the `RawService` escape hatch for arbitrary endpoints (see below); it is the deliberate exception to the flat-method design
 
 3. **Per-Request Options**: Can override client defaults for single calls
@@ -469,6 +470,20 @@ Batch text translation for multiple inputs.
 - Applies per-request options
 - Validates that a model is configured
 - The API returns a flat list of `Translation` outputs (one per input, in order) rather than a nested list, consistent with how it returns a list even for a single input
+
+### Table Question Answering
+
+#### AnswerTableQuestion(req TableQuestionAnsweringRequest, opts ...Option) (TableQuestionAnswer, error)
+Question answering over tabular data.
+
+**Behavior**:
+- Applies per-request options
+- Validates that a model is configured
+- Returns a single `TableQuestionAnswer` containing the answer text, cell values, coordinates, and optional aggregator
+- The request `inputs` field is a structured object with `question` (string) and `table` (map of column names to string cell values), both required
+
+**API Response Note**:
+The HuggingFace API returns a bare JSON object for table question answering, not an array — despite the upstream schema declaring an array response. This method returns a single `TableQuestionAnswer` to match the actual API behavior.
 
 ### RawService (escape hatch)
 

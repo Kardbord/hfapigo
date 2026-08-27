@@ -2,11 +2,11 @@ package hfgo
 
 import (
 	"net/http"
+	"reflect"
 	"testing"
 
 	"github.com/Kardbord/hfgo/v4/internal/hferrors"
 	"github.com/Kardbord/hfgo/v4/internal/testutils"
-	"github.com/stretchr/testify/require"
 )
 
 // errorCase describes a single expected-error scenario for a service call.
@@ -63,7 +63,9 @@ func runErrorCases[Res any](
 			if err == nil {
 				t.Fatalf("expected an error: %s", tc.description)
 			}
-			require.Nil(t, result, tc.description)
+			if !reflect.ValueOf(result).IsZero() {
+				t.Errorf("expected zero result, got %v: %s", result, tc.description)
+			}
 
 			if tc.want == testutils.WantErrSDK {
 				testutils.AssertSDKErrorKind(t, err, tc.sdkErrKind)
