@@ -252,6 +252,22 @@ func TestTokenClassificationService_ClassifyTokensBatch_ResponseDecoding(t *test
 			description:      "each batched input returns a list of entities",
 		},
 		{
+			name:         "multiple inputs with entity_group",
+			responseBody: `[[{"entity_group":"PER","score":0.998,"word":"Sarah","start":11,"end":16}],[{"entity_group":"ORG","score":0.995,"word":"Google","start":10,"end":16}]]`,
+			inputs: []string{
+				"My name is Sarah.",
+				"I work at Google.",
+			},
+			expectedOuterLen: 2,
+			expectedInnerLen: []int{1, 1},
+			wantGroup:        testutils.Ptr("PER"),
+			wantScore:        0.998,
+			wantWord:         "Sarah",
+			wantStart:        11,
+			wantEnd:          16,
+			description:      "batched token classification with entity_group (aggregation)",
+		},
+		{
 			name:             "empty inner result",
 			responseBody:     `[[]]`,
 			inputs:           []string{"No entities here."},
