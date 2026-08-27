@@ -161,6 +161,19 @@ func (c Client) ClassifyTokensBatch(
 	return newTokenClassificationService(c.opts).classifyBatch(req, opts...)
 }
 
+// AnswerQuestion sends a question answering request and returns the answers.
+//
+// The request must include both a question and a context. The model will
+// identify the answer to the question within the provided context.
+//
+// The Provider option is ignored for now, as hf-inference is currently the only supported provider.
+func (c Client) AnswerQuestion(
+	req QuestionAnsweringRequest,
+	opts ...Option,
+) ([]QuestionAnswering, error) {
+	return newQuestionAnsweringService(c.opts).answer(req, opts...)
+}
+
 // ZeroShotClassifyText sends a zero-shot text classification request and
 // returns the zero-shot text classification response for a single input.
 //
