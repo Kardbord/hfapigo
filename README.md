@@ -1,16 +1,98 @@
-# hfapigo
+# hfgo
 
-## ⚠️ Notice
+<p align="center">
+  <a href="https://github.com/Kardbord/hfgo/actions/workflows/build.yml"><img src="https://github.com/Kardbord/hfgo/actions/workflows/build.yml/badge.svg" alt="Build"></a>
+  <a href="https://github.com/Kardbord/hfgo/actions/workflows/unit-tests.yml"><img src="https://github.com/Kardbord/hfgo/actions/workflows/unit-tests.yml/badge.svg" alt="Unit Tests"></a>
+  <a href="https://github.com/Kardbord/hfgo/actions/workflows/integration-tests.yml"><img src="https://github.com/Kardbord/hfgo/actions/workflows/integration-tests.yml/badge.svg" alt="Integration Tests"></a>
+  <a href="https://github.com/Kardbord/hfgo/actions/workflows/lint.yml"><img src="https://github.com/Kardbord/hfgo/actions/workflows/lint.yml/badge.svg" alt="Lint"></a>
+  <a href="https://github.com/Kardbord/hfgo/actions/workflows/codeql-analysis.yml"><img src="https://github.com/Kardbord/hfgo/actions/workflows/codeql-analysis.yml/badge.svg" alt="CodeQL"></a>
+  <a href="https://pkg.go.dev/github.com/Kardbord/hfgo/v4"><img src="https://pkg.go.dev/badge/github.com/Kardbord/hfgo/v4.svg" alt="Go Reference"></a>
+  <a href="https://scorecard.dev/viewer/?uri=github.com/Kardbord/hfgo"><img src="https://api.scorecard.dev/projects/github.com/Kardbord/hfgo/badge" alt="OpenSSF Scorecard"></a>
+  <a href="https://www.bestpractices.dev/projects/12720"><img src="https://www.bestpractices.dev/projects/12720/badge" alt="OpenSSF Best Practices"></a>
+</p>
 
-Pardon our dust!
+An unofficial Go SDK for the [Hugging Face Inference API](https://huggingface.co/docs/inference-providers/tasks/index).
+Directly call any model available in the [Model Hub](https://huggingface.co/models).
 
-**v3** and earlier are significantly out of date from the upstream API.
-This project is currently undergoing a major overhaul, at the end of
-which **v4** will be released, the module will be renamed to `hfgo`,
-and **v3 will be deprecated**. See [#72](https://github.com/Kardbord/hfapigo/issues/72)
+An API key is required for authorized access. To get one, create a [Hugging Face](https://huggingface.co/) account and generate a [token](https://huggingface.co/settings/tokens).
+
+## ⚠️ v4 Release Candidate
+
+**v4** is currently in release candidate status (v4.0.0-rc1). The API may
+evolve before the final v4.0.0 GA release. **v3** and earlier are deprecated
+and no longer maintained. See [#72](https://github.com/Kardbord/hfapigo/issues/72)
 for more information.
 
----
+## Usage
+
+```bash
+go get github.com/Kardbord/hfgo/v4
+```
+
+```go
+package main
+
+import (
+	"fmt"
+	"log"
+	"os"
+
+	"github.com/Kardbord/hfgo/v4"
+)
+
+func main() {
+	token := os.Getenv("HF_TOKEN")
+	if token == "" {
+		log.Fatal("HF_TOKEN environment variable is not set")
+	}
+
+	client := hfgo.NewClient(
+		hfgo.WithToken(token),
+		hfgo.WithModel("deepseek-ai/DeepSeek-R1"),
+	)
+
+	request := hfgo.ChatRequest{
+		Messages: []hfgo.ChatMessage{
+			{
+				Role: "user",
+				Content: hfgo.ChatMessageContent{
+					Text: Ptr("Hello! What is the capital of France?"),
+				},
+			},
+		},
+		MaxTokens: Ptr(1024),
+	}
+
+	response, err := client.Chat(request)
+	if err != nil {
+		log.Fatalf("Failed to complete chat request: %v", err)
+	}
+
+	for _, choice := range response.Choices {
+		if choice.Message.Content != nil {
+			fmt.Println(*choice.Message.Content)
+		}
+	}
+}
+
+func Ptr[T any](v T) *T {
+	return &v
+}
+```
+
+See the [examples](./examples) directory for more.
+
+## Inference Tasks
+
+- [Chat](./examples/chat)
+- [Fill Mask](./examples/fill-mask)
+- [Question Answering](./examples/question-answering)
+- [Summarization](./examples/summarization)
+- [Table Question Answering](./examples/table-question-answering)
+- [Text Classification](./examples/text-classification)
+- [Token Classification](./examples/token-classification)
+- [Translation](./examples/translation)
+- [Zero-Shot Text Classification](./examples/zero-shot-text-classification)
 
 ## Contributing
 
@@ -24,37 +106,6 @@ Contributions are welcome in many forms!
 If you plan to contribute code, please open an issue first to discuss your proposed changes, coordinate with maintainers, and avoid duplicate work.
 
 See [CONTRIBUTING.md](./CONTRIBUTING.md) for detailed guidelines.
-
-[![Unit Tests](https://github.com/Kardbord/hfapigo/actions/workflows/unit-tests.yml/badge.svg)](https://github.com/Kardbord/hfapigo/actions/workflows/unit-tests.yml)
-[![CodeQL](https://github.com/Kardbord/hfapigo/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/Kardbord/hfapigo/actions/workflows/codeql-analysis.yml)
-[![Go Report Card](https://goreportcard.com/badge/github.com/Kardbord/hfapigo)](https://goreportcard.com/report/github.com/Kardbord/hfapigo)
-[![Go Reference](https://pkg.go.dev/badge/github.com/Kardbord/hfapigo.svg)](https://pkg.go.dev/github.com/Kardbord/hfapigo)
-[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/Kardbord/hfapigo/badge)](https://scorecard.dev/viewer/?uri=github.com/Kardbord/hfapigo)
-[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/12720/badge)](https://www.bestpractices.dev/projects/12720)
-
-(Golang) Go bindings for the [Hugging Face Inference API](https://huggingface.co/docs/inference-providers/tasks/index).
-Directly call any model available in the [Model Hub](https://huggingface.co/models).
-
-An API key is required for authorized access. To get one, create a [Hugging Face](https://huggingface.co/) profile.
-
-## Usage
-
-See the [examples](./examples) directory.
-
-> Coming soon!
-
-### Design notes
-
-- `Client` values are immutable; options are fixed at creation time to keep concurrency simple and request behavior predictable.
-- Each `Client` method call snapshots the client's options, so a single call is deterministic and never interferes with concurrent calls.
-- Clients are safe for concurrent use by default or when configured with immutable or synchronized dependencies.
-- Request DTOs are passed by value and the SDK never mutates the caller's payload. Treat a request (and the data it references) as read-only while a call is in flight; for concurrent invocation, pass a defensive copy per call via the deep `Clone()` method on each request DTO, or build a fresh request per call.
-- Per-request options can override client defaults for a single call.
-- The SDK favors upstream feature parity and uses DTOs closely aligned to the API; breaking changes are possible as the upstream API evolves.
-- `WithHTTPClientFactory` expects a fresh client value; avoid sharing mutable internals like transports unless synchronized to preserve safe concurrency.
-- `WithDefaultHTTPClient` restores the default client, while a nil factory is treated as a configuration error.
-- `Client.Raw()` returns the `RawService` escape hatch for arbitrary endpoints, exposing both error-interpreting and raw request paths (Do vs DoRaw).
-- DTO validation is enforced during JSON marshal/unmarshal. Invalid request payloads surface as configuration errors. For responses, invalid content type surfaces as validation errors, while malformed JSON surfaces as serialization errors.
 
 ## Resources
 
