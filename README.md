@@ -19,15 +19,11 @@ An API key is required for authorized access. To get one, create a [Hugging Face
 ## ⚠️ v4 Release Candidate
 
 **v4** is currently in release candidate status (v4.0.0-rc1). The API may
-evolve before the final v4.0.0 GA release. **v3** and earlier are deprecated
+evolve before the final v4.0.0 release. **v3** and earlier are deprecated
 and no longer maintained. See [#72](https://github.com/Kardbord/hfapigo/issues/72)
 for more information.
 
 ## Usage
-
-```bash
-go get github.com/Kardbord/hfgo/v4
-```
 
 ```go
 package main
@@ -115,5 +111,5 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for detailed guidelines.
 - [Datasets](https://huggingface.co/datasets)
 - [Hugging Face Inference API](https://huggingface.co/docs/inference-providers/tasks/index)
 - [HF on GitHub](https://github.com/huggingface)
-  - Official [Python bindings](https://github.com/huggingface/huggingface_hub)
-  - Official [JavaScript bindings](https://github.com/huggingface/huggingface.js)
+  - Official [Python SDK](https://github.com/huggingface/huggingface_hub)
+  - Official [JavaScript SDK](https://github.com/huggingface/huggingface.js)
