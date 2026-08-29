@@ -4,11 +4,15 @@ on:
   issues:
     types: [opened]
 
+permissions:
+  contents: read
+
 jobs:
   triage:
     name: Triage issue
     runs-on: ubuntu-latest
     permissions:
+      contents: read
       id-token: write
     steps:
       - name: Checkout (bootstrap for local actions)

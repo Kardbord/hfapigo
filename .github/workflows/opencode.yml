@@ -6,6 +6,9 @@ on:
   pull_request_review_comment:
     types: [created]
 
+permissions:
+  contents: read
+
 jobs:
   opencode:
     name: Run OpenCode
@@ -18,6 +21,7 @@ jobs:
        github.event.comment.author_association == 'MEMBER')
     runs-on: ubuntu-latest
     permissions:
+      contents: read
       id-token: write
     steps:
       - name: Checkout (bootstrap for local actions)
