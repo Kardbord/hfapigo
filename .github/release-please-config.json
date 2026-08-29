@@ -5,7 +5,7 @@
       "version-file": "internal/sdkversion/version.go",
       "bump-minor-pre-major": true,
       "bump-patch-for-minor-pre-major": true,
-      "skip-changelog": false,
+      "skip-changelog": true,
       "draft": false,
       "draft-pull-request": true,
       "include-v-in-tag": true,
