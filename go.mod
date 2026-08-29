@@ -1,4 +1,7 @@
+// Deprecated: use github.com/Kardbord/hfgo/v4 instead
 module github.com/Kardbord/hfapigo/v2
+
+retract [v2.0.0, v2.1.1]
 
 go 1.17
 
