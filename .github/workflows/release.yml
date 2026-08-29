@@ -8,13 +8,15 @@ on:
       - v*-draft
 
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
 
 jobs:
   release-please:
     name: Release Please
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
       # ====================================================================
       # Select release configuration based on branch

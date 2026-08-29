@@ -8,6 +8,9 @@ on:
       - v*-draft
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   run-actionlint:
     name: Run actionlint
