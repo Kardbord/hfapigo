@@ -1,16 +1,17 @@
 # hfgo
 
 <p align="center">
-  <a href="https://github.com/Kardbord/hfgo/actions/workflows/build.yml"><img src="https://github.com/Kardbord/hfgo/actions/workflows/build.yml/badge.svg" alt="Build"></a>
-  <a href="https://github.com/Kardbord/hfgo/actions/workflows/unit-tests.yml"><img src="https://github.com/Kardbord/hfgo/actions/workflows/unit-tests.yml/badge.svg" alt="Unit Tests"></a>
-  <a href="https://github.com/Kardbord/hfgo/actions/workflows/integration-tests.yml"><img src="https://github.com/Kardbord/hfgo/actions/workflows/integration-tests.yml/badge.svg" alt="Integration Tests"></a>
-  <a href="https://github.com/Kardbord/hfgo/actions/workflows/lint.yml"><img src="https://github.com/Kardbord/hfgo/actions/workflows/lint.yml/badge.svg" alt="Lint"></a>
-  <a href="https://github.com/Kardbord/hfgo/actions/workflows/codeql-analysis.yml"><img src="https://github.com/Kardbord/hfgo/actions/workflows/codeql-analysis.yml/badge.svg" alt="CodeQL"></a>
-  <a href="https://pkg.go.dev/github.com/Kardbord/hfgo/v4"><img src="https://pkg.go.dev/badge/github.com/Kardbord/hfgo/v4.svg" alt="Go Reference"></a>
-  <a href="https://www.bestpractices.dev/projects/12720"><img src="https://www.bestpractices.dev/projects/12720/baseline" alt="OpenSSF Baseline"></a>
-  <a href="https://scorecard.dev/viewer/?uri=github.com/Kardbord/hfgo"><img alt="OpenSSF Scorecard" src="https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fapi.scorecard.dev%2Fprojects%2Fgithub.com%2FKardbord%2Fhfgo&query=%24.score&style=flat&logoSize=auto&label=OSSF%20Scorecard&color=%23591A99&link=https%3A%2F%2Fscorecard.dev%2Fviewer%2F%3Furi%3Dgithub.com%2FKardbord%2Fhfgo">
-</a>
-  <a href="https://www.bestpractices.dev/projects/12720"><img src="https://www.bestpractices.dev/projects/12720/badge" alt="OpenSSF Best Practices"></a>
+
+[![Build](https://github.com/Kardbord/hfgo/actions/workflows/build.yml/badge.svg)](https://github.com/Kardbord/hfgo/actions/workflows/build.yml)
+[![Unit Tests](https://github.com/Kardbord/hfgo/actions/workflows/unit-tests.yml/badge.svg)](https://github.com/Kardbord/hfgo/actions/workflows/unit-tests.yml)
+[![Integration Tests](https://github.com/Kardbord/hfgo/actions/workflows/integration-tests.yml/badge.svg)](https://github.com/Kardbord/hfgo/actions/workflows/integration-tests.yml)
+[![Lint](https://github.com/Kardbord/hfgo/actions/workflows/lint.yml/badge.svg)](https://github.com/Kardbord/hfgo/actions/workflows/lint.yml)
+[![CodeQL](https://github.com/Kardbord/hfgo/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/Kardbord/hfgo/actions/workflows/codeql-analysis.yml)
+[![Go Reference](https://pkg.go.dev/badge/github.com/Kardbord/hfgo/v4.svg)](https://pkg.go.dev/github.com/Kardbord/hfgo/v4)
+[![OpenSSF Baseline](https://www.bestpractices.dev/projects/12720/baseline)](https://www.bestpractices.dev/projects/12720)
+[![OSSF Scorecard](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fapi.scorecard.dev%2Fprojects%2Fgithub.com%2FKardbord%2Fhfgo&query=%24.score&style=flat&logoSize=auto&label=OSSF%20Scorecard&color=%23591A99&link=https%3A%2F%2Fscorecard.dev%2Fviewer%2F%3Furi%3Dgithub.com%2FKardbord%2Fhfgo)](https://scorecard.dev/viewer/?uri=github.com/Kardbord/hfgo)
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/12720/badge)](https://www.bestpractices.dev/projects/12720)
+
 </p>
 
 An unofficial Go SDK for the [Hugging Face Inference API](https://huggingface.co/docs/inference-providers/tasks/index).
