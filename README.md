@@ -21,7 +21,7 @@ An API key is required for authorized access. To get one, create a [Hugging Face
 
 **v4** is currently in release candidate status (v4.0.0-rc1). The API may
 evolve before the final v4.0.0 release. **v3** and earlier are deprecated
-and no longer maintained. See [#72](https://github.com/Kardbord/hfapigo/issues/72)
+and no longer maintained. See [#72](https://github.com/Kardbord/hfgo/issues/72)
 for more information.
 
 ## Usage
