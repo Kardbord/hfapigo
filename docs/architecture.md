@@ -31,6 +31,7 @@ The SDK follows a strict immutability pattern for concurrency safety:
    - `Summarize` / `SummarizeBatch`: Summarization
     - `Translate` / `TranslateBatch`: Translation
     - `AnswerTableQuestion`: Table question answering
+    - `FeatureExtract` / `FeatureExtractBatch`: Feature extraction (embeddings)
     - The former per-domain service types are unexported implementation details; callers interact only with the Client
    - `Client.Raw()` returns the `RawService` escape hatch for arbitrary endpoints (see below); it is the deliberate exception to the flat-method design
 
@@ -484,6 +485,32 @@ Question answering over tabular data.
 
 **API Response Note**:
 The HuggingFace API returns a bare JSON object for table question answering, not an array — despite the upstream schema declaring an array response. This method returns a single `TableQuestionAnswer` to match the actual API behavior.
+
+### Feature Extraction
+
+#### FeatureExtract(req FeatureExtractionRequest, opts ...Option) (FeatureExtraction, error)
+Single input feature extraction (embeddings).
+
+**Behavior**:
+- Applies per-request options
+- Validates that a model is configured
+- Returns a single embedding vector (`[]float64`) for the input text
+- The API returns a flat JSON array for a single input (not wrapped in an outer array)
+
+**Parameters**:
+- `normalize` (bool): Whether to normalize embeddings to unit L2 norm
+- `prompt_name` (string): Name of the prompt for sentence-transformers encoding
+- `truncate` (bool): Whether to truncate input to model's max length
+- `truncation_direction` ("left" | "right"): Direction to truncate from
+
+#### FeatureExtractBatch(req FeatureExtractionBatchRequest, opts ...Option) ([]FeatureExtraction, error)
+Batch feature extraction for multiple inputs.
+
+**Behavior**:
+- Applies per-request options
+- Validates that a model is configured
+- Returns a list of embedding vectors (`[][]float64`), one per input, in input order
+- Callers should check the length of the response list before indexing
 
 ### RawService (escape hatch)
 

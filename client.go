@@ -308,6 +308,34 @@ func (c Client) TranslateBatch(
 	return newTranslationService(c.opts).translateBatch(req, opts...)
 }
 
+// FeatureExtract sends a feature extraction request and returns the embedding
+// vector for a single input.
+//
+// For multiple inputs, use FeatureExtractBatch.
+//
+// NOTE: hf-inference is NOT the only supported provider, add support for other providers.
+func (c Client) FeatureExtract(
+	req FeatureExtractionRequest,
+	opts ...Option,
+) (FeatureExtraction, error) {
+	return newFeatureExtractionService(c.opts).extract(req, opts...)
+}
+
+// FeatureExtractBatch sends a feature extraction request for a batch of inputs
+// and returns embedding vectors for each input in the batch.
+//
+// NOTE: Batched inference is supported by the upstream API, but is not
+// officially documented; behavior may change without notice. The response
+// is a flat list of embedding vectors in the same order as the inputs.
+//
+// NOTE: hf-inference is NOT the only supported provider, add support for other providers.
+func (c Client) FeatureExtractBatch(
+	req FeatureExtractionBatchRequest,
+	opts ...Option,
+) ([]FeatureExtraction, error) {
+	return newFeatureExtractionService(c.opts).extractBatch(req, opts...)
+}
+
 // Raw returns the raw HTTP request service for this client. Unlike the other
 // endpoints, which are exposed directly as Client methods, the raw path remains
 // namespaced under RawService: it is the advanced escape hatch for endpoints the

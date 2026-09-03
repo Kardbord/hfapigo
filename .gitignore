@@ -21,3 +21,6 @@ examples/**/*
 
 # Go cache
 .gocache
+
+# Misc
+.token
