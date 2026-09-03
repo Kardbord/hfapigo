@@ -32,8 +32,7 @@ jobs:
         run: |
           set -e
           go list ./... | while read -r pkg; do
-            dir=$(go list -f '{{.Dir}}' "$pkg" 2>/dev/null)
-            grep -rh '^func Fuzz' "$dir" --include='*_fuzz_test.go' 2>/dev/null | sed 's/.*func \(Fuzz[^(]*\).*/^\1$/' | while read -r target; do
-              go test -fuzz="$target" -fuzztime=30s -timeout=60s -count=1 "$pkg"
+            go test -list '^Fuzz' "$pkg" 2>/dev/null | while read -r target; do
+              go test -run=^$ -fuzz="$target" -fuzztime=30s -timeout=60s -count=1 "$pkg"
             done
           done

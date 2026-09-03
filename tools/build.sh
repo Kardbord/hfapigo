@@ -70,10 +70,9 @@ echo
 
 echo "Running fuzz tests..."
 go list ./... | while read -r pkg; do
-  dir=$(go list -f '{{.Dir}}' "$pkg" 2>/dev/null)
-  grep -rh '^func Fuzz' "$dir" --include='*_fuzz_test.go' 2>/dev/null | sed 's/.*func \(Fuzz[^(]*\).*/^\1$/' | while read -r target; do
+  go test -list '^Fuzz' "$pkg" 2>/dev/null | while read -r target; do
     echo "Fuzzing ${target} in ${pkg}..."
-    ${TEST_CMD} -fuzz="$target" -fuzztime=10s -timeout=30s -count=1 "$pkg"
+    ${TEST_CMD} -run=^$ -fuzz="$target" -fuzztime=10s -timeout=30s -count=1 "$pkg"
   done
 done
 echo

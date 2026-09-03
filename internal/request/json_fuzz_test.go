@@ -7,6 +7,7 @@ import (
 	"context"
 	"io"
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 
@@ -23,6 +24,10 @@ type fuzzDoJSONResp struct {
 
 func FuzzDoJSON(f *testing.F) {
 	f.Add([]byte(`{"generated_text":"hello"}`))
+	f.Add([]byte(``))
+	f.Add([]byte(`{not valid json}`))
+	f.Add([]byte(
+		`{"generated_text":"` + strings.Repeat("a", int(DefaultMaxResponseBodyBytes)+1) + `"}`))
 	f.Fuzz(func(_ *testing.T, respBody []byte) {
 		mt := &testutils.MockTransport{
 			Response: &http.Response{
@@ -50,6 +55,10 @@ type fuzzDoJSONStreamResp struct {
 
 func FuzzDoJSONStream(f *testing.F) {
 	f.Add([]byte("data: {\"text\":\"hello\"}\n\ndata: [DONE]\n\n"))
+	f.Add([]byte(``))
+	f.Add([]byte("data: [DONE]\n\n"))
+	f.Add([]byte("data: {\"text\":\"hello\"}\n\n"))
+	f.Add([]byte("not sse"))
 	f.Fuzz(func(_ *testing.T, body []byte) {
 		mt := &testutils.MockTransport{
 			Response: &http.Response{
