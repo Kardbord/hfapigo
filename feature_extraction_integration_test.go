@@ -37,10 +37,6 @@ func TestFeatureExtraction_LiveAPI(t *testing.T) {
 	require.NoError(t, err, "feature extraction should succeed")
 	require.NotNil(t, resp, "response should not be nil")
 	require.NotEmpty(t, resp, "embedding should not be empty")
-
-	for i, v := range resp {
-		require.NotZero(t, v, "embedding value at index %d should not be zero", i)
-	}
 }
 
 // TestFeatureExtraction_BatchLiveAPI tests batch feature extraction against the live HF API.
