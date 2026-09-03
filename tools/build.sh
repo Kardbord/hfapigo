@@ -69,9 +69,9 @@ ${TEST_CMD} -shuffle on -race ./...
 echo
 
 echo "Running fuzz tests..."
-for pkg in $(go list ./...); do
+go list ./... | while read -r pkg; do
   dir=$(go list -f '{{.Dir}}' "$pkg" 2>/dev/null)
-  for target in $(grep -rh '^func Fuzz' "$dir" --include='*_fuzz_test.go' 2>/dev/null | sed 's/.*func \(Fuzz[^(]*\).*/^\1$/'); do
+  grep -rh '^func Fuzz' "$dir" --include='*_fuzz_test.go' 2>/dev/null | sed 's/.*func \(Fuzz[^(]*\).*/^\1$/' | while read -r target; do
     echo "Fuzzing ${target} in ${pkg}..."
     ${TEST_CMD} -fuzz="$target" -fuzztime=10s -timeout=30s -count=1 "$pkg"
   done

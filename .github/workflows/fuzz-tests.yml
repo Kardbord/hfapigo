@@ -31,9 +31,9 @@ jobs:
       - name: Run fuzz tests
         run: |
           set -e
-          for pkg in $(go list ./...); do
+          go list ./... | while read -r pkg; do
             dir=$(go list -f '{{.Dir}}' "$pkg" 2>/dev/null)
-            for target in $(grep -rh '^func Fuzz' "$dir" --include='*_fuzz_test.go' 2>/dev/null | sed 's/.*func \(Fuzz[^(]*\).*/^\1$/'); do
+            grep -rh '^func Fuzz' "$dir" --include='*_fuzz_test.go' 2>/dev/null | sed 's/.*func \(Fuzz[^(]*\).*/^\1$/' | while read -r target; do
               go test -fuzz="$target" -fuzztime=30s -timeout=60s -count=1 "$pkg"
             done
           done
