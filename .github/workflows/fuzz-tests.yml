@@ -1,0 +1,39 @@
+---
+name: Fuzz Tests
+
+on:
+  push:
+    branches:
+      - main
+      - v*-draft
+  pull_request:
+    branches:
+      - main
+      - v*-draft
+  schedule:
+    - cron: "0 0 * * 0"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  fuzz-tests:
+    name: Fuzz Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Go
+        uses: ./.github/actions/setup-go
+
+      - name: Run fuzz tests
+        run: |
+          set -e
+          for pkg in $(go list ./...); do
+            dir=$(go list -f '{{.Dir}}' "$pkg" 2>/dev/null)
+            for target in $(grep -rh '^func Fuzz' "$dir" --include='*_fuzz_test.go' 2>/dev/null | sed 's/.*func \(Fuzz[^(]*\).*/^\1$/'); do
+              go test -fuzz="$target" -fuzztime=30s -timeout=60s -count=1 "$pkg"
+            done
+          done

@@ -68,6 +68,16 @@ echo "Checking for race conditions..."
 ${TEST_CMD} -shuffle on -race ./...
 echo
 
+echo "Running fuzz tests..."
+for pkg in $(go list ./...); do
+  dir=$(go list -f '{{.Dir}}' "$pkg" 2>/dev/null)
+  for target in $(grep -rh '^func Fuzz' "$dir" --include='*_fuzz_test.go' 2>/dev/null | sed 's/.*func \(Fuzz[^(]*\).*/^\1$/'); do
+    echo "Fuzzing ${target} in ${pkg}..."
+    ${TEST_CMD} -fuzz="$target" -fuzztime=10s -timeout=30s -count=1 "$pkg"
+  done
+done
+echo
+
 if [[ "${RUN_INTEGRATION_TESTS}" = "true" ]]; then
   echo "Running integration tests..."
   ${TEST_CMD} -shuffle on -tags integration ./...
@@ -79,4 +89,3 @@ ${TEST_CMD} -shuffle on -cover ./...
 echo
 
 popd >/dev/null
-

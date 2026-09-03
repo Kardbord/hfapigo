@@ -5,6 +5,7 @@
   <a href="https://github.com/Kardbord/hfgo/actions/workflows/unit-tests.yml"><img src="https://github.com/Kardbord/hfgo/actions/workflows/unit-tests.yml/badge.svg" alt="Unit Tests"></a>
   <a href="https://github.com/Kardbord/hfgo/actions/workflows/integration-tests.yml"><img src="https://github.com/Kardbord/hfgo/actions/workflows/integration-tests.yml/badge.svg" alt="Integration Tests"></a>
   <a href="https://github.com/Kardbord/hfgo/actions/workflows/lint.yml"><img src="https://github.com/Kardbord/hfgo/actions/workflows/lint.yml/badge.svg" alt="Lint"></a>
+  <a href="https://github.com/Kardbord/hfgo/actions/workflows/fuzz-tests.yml"><img src="https://github.com/Kardbord/hfgo/actions/workflows/fuzz-tests.yml/badge.svg" alt="Fuzz Tests"></a>
   <a href="https://github.com/Kardbord/hfgo/actions/workflows/codeql-analysis.yml"><img src="https://github.com/Kardbord/hfgo/actions/workflows/codeql-analysis.yml/badge.svg" alt="CodeQL"></a>
   <a href="https://pkg.go.dev/github.com/Kardbord/hfgo/v4"><img src="https://pkg.go.dev/badge/github.com/Kardbord/hfgo/v4.svg" alt="Go Reference"></a>
   <a href="https://www.bestpractices.dev/projects/12720"><img src="https://www.bestpractices.dev/projects/12720/baseline" alt="OpenSSF Baseline"></a>
