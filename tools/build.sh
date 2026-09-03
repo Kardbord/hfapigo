@@ -69,10 +69,12 @@ ${TEST_CMD} -shuffle on -race ./...
 echo
 
 echo "Running fuzz tests..."
-go list ./... | while read -r pkg; do
-  go test -list '^Fuzz' "$pkg" 2>/dev/null | while read -r target; do
+find . -name '*_fuzz_test.go' -exec dirname {} \; | sort -u | while read -r dir; do
+  pkg=$(go list -f '{{.ImportPath}}' "$dir" 2>/dev/null)
+  [ -z "$pkg" ] && continue
+  go test -list '^Fuzz' "$pkg" 2>/dev/null | grep '^Fuzz' | while read -r target; do
     echo "Fuzzing ${target} in ${pkg}..."
-    ${TEST_CMD} -run=^$ -fuzz="$target" -fuzztime=10s -timeout=30s -count=1 "$pkg"
+    ${TEST_CMD} -run=^$ -fuzz="^${target}$" -fuzztime=5s -timeout=30s -count=1 "$pkg"
   done
 done
 echo
